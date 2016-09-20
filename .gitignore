@@ -1,0 +1,5 @@
+#Ignore the build and documentation folders
+doc
+build
+
+#Ignore annoying documents

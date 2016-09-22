@@ -6,7 +6,7 @@
 
 ## How do I get set up? ##
 
-* You must have been permitted access to **gLinear**, **patrecII** and **emdw** and installed them according to the recmommended instructions. For now, **emdw** will required some extra hackery, trickery, pokery to work:
+* You must have been permitted access to **gLinear**, **patrecII** and **emdw** and installed them according to the recommended instructions. For now, **emdw** will required some extra hackery, trickery, pokery to work:
 
     cd /usr/local/lib
     sudo -ln -sf /home/<your_linux_user_name>/bin/libemdw.so

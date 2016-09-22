@@ -2,11 +2,11 @@
 
 ## What is this repository for? ##
 
-* Code for the Multiple Hypothesis Tracking (MHT) approach for **EMSS**'s **xRange** project. Implemented using Probabilistic Graphical Models (PGM)s using the **emdw** code base.
+* Code for the Multiple Hypothesis Tracking (MHT) approach for **EMSS**'s **xRange** project. Implemented using Probabilistic Graphical Models (PGM)s and the **emdw** code base.
 
 ## How do I get set up? ##
 
-* You must have been permitted access to **gLinear**, **patrecII** and **emdw** and installed them according to the recommended instructions. For now, **emdw** will required some extra hackery, trickery, pokery to work:
+* You must have been permitted access to **gLinear**, **patrecII** and **emdw** and installed them following the recommended instructions. For now, **emdw** will require some extra hackery to work:
 
         cd /usr/local/lib
         sudo -ln -sf /home/<your_linux_user_name>/bin/libemdw.so
@@ -20,7 +20,7 @@
          cmake ../; make -j4
          cd src
 
-   Then run which ever particular binary file was created.
+   Then run which ever binary files were created. **build/test** will contain the output of the unit tests, which is unimaginably exciting. 
    
 ## API ##
 The code is documented using the **JavaDoc** style and the API can be extracted using **doxygen**. 
@@ -34,7 +34,7 @@ The code is documented using the **JavaDoc** style and the API can be extracted 
          mkdir doc
          doxygen DoxyFile
 
-The output should be some **.html** files and **.tex** files, found in their respective subfolders. The API can now be viewed comfortably without having to sift through all the (terrible) code, which would be boring.
+The output should be some **.html** files and **.tex** files, found in their respective subfolders. The API can now be viewed comfortably without having to sift through all the code.
 
 ## Who do I talk to? ##
 

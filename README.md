@@ -34,7 +34,7 @@ The code is documented using the **JavaDoc** style and the API can be extracted 
          mkdir doc
          doxygen DoxyFile
 
-The output should be some .html files and a .tex files. The API can now be view comfortably without having to sift through all the code, which would be awfully boring.
+The output should be some **.html** files and **.tex** files, found in their respective subfolders. The API can now be viewed comfortably without having to sift through all the (terrible) code, which would be boring.
 
 ## Who do I talk to? ##
 

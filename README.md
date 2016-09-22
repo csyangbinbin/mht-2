@@ -8,10 +8,10 @@
 
 * You must have been permitted access to **gLinear**, **patrecII** and **emdw** and installed them according to the recmommended instructions. For now, **emdw** will required some extra hackery, trickery, pokery to work:
 
-       cd /usr/local/lib
-       sudo -ln -sf /home/<your_linux_user_name>/bin/libemdw.so
-       sudo ldconfig -v
-
+    cd /usr/local/lib
+    sudo -ln -sf /home/<your_linux_user_name>/bin/libemdw.so
+    sudo ldconfig -v
+    
 This assumes you are running some **debian** fork, using anything else would be morally wrong.
 
 ## Who do I talk to? ##

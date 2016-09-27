@@ -13,7 +13,7 @@ add_definitions("-Wall")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #The targets included
-set(SOURCES mainapp.cpp Student.cpp)
+set(SOURCES main.cc)
 
 #Compile the code
 add_executable(mht ${SOURCES})

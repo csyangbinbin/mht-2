@@ -6,18 +6,27 @@
  * Main app, runs small examples for now.
  *************************************************************************/
 
-#include <iostream>
-#include <string>
-
+// patrec headers
 #include "mrandom.hpp"
+
+// emdw headers
+#include "emdw.hpp"
 #include "discretetable.hpp"
 #include "clustergraph.hpp"
 #include "lbp_cg.hpp"
 #include "lbu_cg.hpp"
+
+// standard headers
+#include <iostream>  // cout, endl, flush, cin, cerr
+#include <cctype>  // toupper
+#include <string>  // string
+#include <vector>
+
 #include "v2vtransform.hpp"
 #include "combinations.hpp"
 
 using namespace emdw;
+using namespace std;
 
 /**
  * Main app, runs small examples for now.
@@ -28,7 +37,7 @@ using namespace emdw;
 int main(int, char *argv[]) {
 	typedef unsigned short T;
 	typedef DiscreteTable<T> DT;
-	typedef std::vector<T> DASS;
+	typedef vector<T> DASS;
 
-	std::cout << "Not broken yet." << std::endl;
+	cout << "Not broken yet." << endl;
 }

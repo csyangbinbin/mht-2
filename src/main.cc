@@ -39,5 +39,10 @@ int main(int, char *argv[]) {
 	typedef DiscreteTable<T> DT;
 	typedef vector<T> DASS;
 
+	rcptr <DASS> aDom (new DASS{0, 1});
+	
+	rcptr<FactorOperator> marg_ptr = uniqptr<FactorOperator> (new DiscreteTable_MaxMarginalize<T>);
+
+
 	cout << "Not broken yet." << endl;
 }

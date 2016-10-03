@@ -7,23 +7,31 @@
  *************************************************************************/
 
 // patrec headers
-#include "mrandom.hpp"
+#include "error.hpp"
+#include "genmat.hpp"
+#include "vecset.hpp"
+#include "mean_cov.hpp"
 
 // emdw headers
 #include "emdw.hpp"
-#include "discretetable.hpp"
+#include "anytype.hpp"
 #include "clustergraph.hpp"
+#include "gausscanonical.hpp"
 #include "lbp_cg.hpp"
-#include "lbu_cg.hpp"
+#include "matops.hpp"
 
 // standard headers
 #include <iostream>  // cout, endl, flush, cin, cerr
 #include <cctype>  // toupper
 #include <string>  // string
 #include <vector>
+#include <memory>
+#include <set>
+#include <map>
+#include <limits>
+#include <random>
 
 #include "v2vtransform.hpp"
-#include "combinations.hpp"
 
 using namespace emdw;
 using namespace std;
@@ -35,14 +43,36 @@ using namespace std;
  * @since 0.9.1
  */
 int main(int, char *argv[]) {
-	typedef unsigned short T;
-	typedef DiscreteTable<T> DT;
-	typedef vector<T> DASS;
-
-	rcptr <DASS> aDom (new DASS{0, 1});
+	typedef GaussCanonical GCT1;
+	std::vector<rcptr<Factor>> gaussians;
 	
-	rcptr<FactorOperator> marg_ptr = uniqptr<FactorOperator> (new DiscreteTable_MaxMarginalize<T>);
+	enum{x_0, x_1, z_1, x_2, z_2, x_3, z_3};
+	RVIds vars;
 
+	vars = {x_0};
+	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
 
-	cout << "Not broken yet." << endl;
+	vars = {x_0, x_1};
+	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
+
+	vars = {x_1, z_1};
+	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
+
+	vars = {x_1, x_2};
+	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
+
+	vars = {x_2, z_2};
+	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
+
+	vars = {x_2, x_3};
+	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
+
+	vars = {x_3, z_3};
+	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
+	
+	rcptr<ClusterGraph> cluster_graph;
+	cluster_graph = uniqptr<ClusterGraph>(new ClusterGraph(gaussians));
+	cluster_graph->exportToGraphViz("kalman");
+
+	cout << "Not broken!" << endl;
 }

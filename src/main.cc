@@ -44,35 +44,29 @@ using namespace std;
  */
 int main(int, char *argv[]) {
 	typedef GaussCanonical GCT1;
-	std::vector<rcptr<Factor>> gaussians;
 	
-	enum{x_0, x_1, z_1, x_2, z_2, x_3, z_3};
+	std::vector<rcptr<Factor>> gaussians;
+	std::map<RVIdType, std::vector<unsigned>> factor_to_rv;
+	std::vector<unsigned> old_to_new;
+	
+	enum{x_0, x_1, z_1, x_2};
 	RVIds vars;
-
-	vars = {x_0};
-	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
 
 	vars = {x_0, x_1};
 	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
 
+	vars = {x_1, x_0};
+	gaussians.push_back( uniqptr<GCT1> ( new GCT1(vars) ) );
+
 	vars = {x_1, z_1};
-	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
+	gaussians.push_back( uniqptr<GCT1> ( new GCT1(vars) ) );
 
-	vars = {x_1, x_2};
-	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
-
-	vars = {x_2, z_2};
-	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
-
-	vars = {x_2, x_3};
-	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
-
-	vars = {x_3, z_3};
-	gaussians.push_back( uniqptr<GCT1>( new GCT1(vars) ) );
-	
 	rcptr<ClusterGraph> cluster_graph;
 	cluster_graph = uniqptr<ClusterGraph>(new ClusterGraph(gaussians));
-	cluster_graph->exportToGraphViz("kalman");
 
-	cout << "Not broken!" << endl;
+	vars = {x_1, x_2};
+	gaussians.push_back( uniqptr<GCT1> ( new GCT1(vars) ) );
+	
+	cluster_graph->repackFactors(gaussians, factor_to_rv, old_to_new);
+	cluster_graph->exportToGraphViz("kalman");
 }

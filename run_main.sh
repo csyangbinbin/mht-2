@@ -21,5 +21,5 @@ cd ../;
 .$RUN_PATH;
 
 #Look at the cluster graph
-dot -Tpdf $DOT_NAME -o $PDF_NAME;
-evince $PDF_NAME &
+#dot -Tpdf $DOT_NAME -o $PDF_NAME;
+#evince $PDF_NAME &

@@ -2,10 +2,6 @@
 # mht/src CMakeLists.txt
 #
 
-#Select C++11
-set(CMAKE_CXX_COMPILER "g++-4.8")
-set(CMAKE_CXX_FLAGS "-std=c++11 -O3 ")
-
 #Enable warnings
 add_definitions("-Wall")
 

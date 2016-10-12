@@ -11,6 +11,10 @@ if("${PROJECT_TITLE}" STREQUAL "")
 endif()
 project(${PROJECT_TITLE})
 
+#Select C++11
+set(CMAKE_CXX_COMPILER "g++-4.8")
+set(CMAKE_CXX_FLAGS "-std=c++11 -O3 ")
+
 #Status updates
 message(STATUS "Source directory: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Build  directory: $ENV{PWD}")
@@ -50,4 +54,4 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 #Add subdirectories 
 add_subdirectory(src)
-#add_subdirectory(test)
+add_subdirectory(test)

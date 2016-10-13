@@ -49,7 +49,7 @@ include_directories(${PATRECII_INCLUDE_DIRS})
 set(EMDW_INCLUDE_DIRS ~/devel/emdw/src)
 include_directories(${EMDW_INCLUDE_DIRS})
 
-#Include the headers folder
+#Include the header files
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 #Add subdirectories 

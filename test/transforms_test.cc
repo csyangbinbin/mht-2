@@ -5,6 +5,7 @@
  *
  * Google Test fixture for the transform.h's classes.
  *************************************************************************/
+#include <iostream>
 #include "gtest/gtest.h"
 #include "genvec.hpp"
 #include "genmat.hpp"
@@ -24,6 +25,6 @@ class MotionModelTest : public testing::Test {
 		virtual void TearDown() {}
 };
 
-TEST_F (MotionModelTest, ReturnSomething) {
-	EXPECT_EQ(1.0, 1.0);
+TEST_F (MotionModelTest, TestSize) {
+	EXPECT_EQ(6, x_state->size());
 }

@@ -26,9 +26,11 @@
 class MotionModel : public V2VTransform{
 	public:
 		/**
-		 * Default constructor.
+		 * Constructor for MotionModel.
+		 *
+		 * @param time_step The discrete time step over which the target is advanced.
 		 */
-		MotionModel() {}
+		MotionModel(double time_step) : delta_t_(time_step) {}
 
 		/**
 		 * Implements the motion model, \f$ \pmb{g} (\pmb{x}_{t-1}) \f$, in the prediction step
@@ -40,6 +42,9 @@ class MotionModel : public V2VTransform{
 		 * @return The predicted state vector \f$ \pmb{x}_{t} \f$.
 		 */
 		std::vector< ColVector<double> > operator()(const ColVector<double>& x) const;
+	
+	private:
+		double delta_t_;
 }; // MotionModel
 
 /**

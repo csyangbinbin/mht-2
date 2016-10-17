@@ -43,7 +43,7 @@ std::vector< ColVector<double> > SensorModel::operator()(const ColVector<double>
 	std::vector< ColVector<double> > z(1); z[0].resize(2);
 
 	z[0][0] = sqrt( pow(x[0], 2) + pow(x[2], 2) + pow(x[4], 2) );
-	z[1][1] = sqrt( pow(x[1], 2) + pow(x[3], 2) + pow(x[5], 2) );
+	z[0][1] = sqrt( pow(x[1], 2) + pow(x[3], 2) + pow(x[5], 2) );
 
 	return z;
 } // operator()

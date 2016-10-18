@@ -10,6 +10,7 @@
 #ifndef TRANSFORMS_HPP
 #define TRANSFORMS_HPP
 
+#include <iostream>
 #include "genvec.hpp"
 #include "genmat.hpp"
 #include "emdw.hpp"
@@ -30,7 +31,7 @@ class MotionModel : public V2VTransform{
 		 *
 		 * @param time_step The discrete time step over which the target is advanced.
 		 */
-		MotionModel(double time_step) : delta_t_(time_step) {}
+		MotionModel(const double time_step) : delta_t_(time_step) {}
 
 		/**
 		 * Implements the motion model, \f$ \pmb{g} (\pmb{x}_{t-1}) \f$, in the prediction step
@@ -58,8 +59,13 @@ class SensorModel : public V2VTransform{
 	public:
 		/**
 		 * Default constructor.
+		 *
+		 * @param sensor_location The position of the sensor in cartesian coordinates.
 		 */
-		SensorModel() {}
+		SensorModel(const ColVector<double> &sensor_location) {
+			ASSERT(sensor_location.size() == 3, "The sensor location must be defined in 3D space.");
+			sensor_position_ = sensor_location;
+		}
 	
 		/**
 		 * Implements the sensor model, \f$ \pmb{h} (\pmb{x}_{t}) \f$, in the prediction step
@@ -71,6 +77,9 @@ class SensorModel : public V2VTransform{
 		 * @return The measurement vector \f$ \pmb{z}_{t} \f$.
 		 */
 		std::vector< ColVector<double> > operator()(const ColVector<double>& x) const;
+
+	private:
+		ColVector<double> sensor_position_;
 }; // SensorModel
 
 #endif // TRANSFORMS_HPP

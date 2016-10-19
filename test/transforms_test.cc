@@ -9,7 +9,9 @@
 #include "gtest/gtest.h"
 #include "genvec.hpp"
 #include "genmat.hpp"
+#include "anytype.hpp"
 #include "emdw.hpp"
+#include "oddsandsods.hpp"
 #include "gausscanonical.hpp"
 #include "transforms.hpp"
 
@@ -68,12 +70,13 @@ TEST_F (MotionModelTest, TranslateVector) {
 }
 
 TEST_F (MotionModelTest, CreateJointDistribution) {
+	//Declare the variables
 	emdw::RVIds prior_vars = {0, 1, 2, 3, 4, 5};
 	emdw::RVIds new_vars = {6, 7, 8, 9, 10, 11};
 	
-	ColVector<double> mu_0(6);
-	mu_0[0] = 0; mu_0[1] = 72.86; mu_0[2] = 0;
-	mu_0[3] = 0; mu_0[4] = 0; mu_0[5] = 14.04;
+	//Create the required mean and covariances
+	ColVector<double> mu_0(6); mu_0 *= 0;
+	mu_0[1] = 72.86; mu_0[5] = 14.04;
 
 	Matrix<double> S_0 = gLinear::zeros<double>(6, 6);
 	for (unsigned i = 0; i < 6; i++) S_0(i, i) = 1;
@@ -81,11 +84,13 @@ TEST_F (MotionModelTest, CreateJointDistribution) {
 	Matrix<double> R_mat = gLinear::zeros<double>(6, 6);
 	for (unsigned i = 0; i < 6; i++) R_mat(i, i) = 2.5;
 
+	//Create the factors
 	uniqptr<GaussCanonical> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, S_0, mu_0, true));
 	uniqptr<GaussCanonical> joint_distribution = 
 		uniqptr<GaussCanonical>(new GaussCanonical(prior->copy(), *motion_model_, new_vars, R_mat, true));
 	ColVector<double> mean = joint_distribution->getMean();
 	
+	//Create the expected result
 	ColVector<double> expected_mean(12); expected_mean *= 0;
 	expected_mean[1] = 72.86; expected_mean[5] = 14.04;
 	expected_mean[6] = 36.34; expected_mean[7]= 72.86;
@@ -114,13 +119,14 @@ TEST_F (SensorModelTest, PredictMeasurement) {
 }
 
 TEST_F (SensorModelTest, CreateMeasurementDistribution) {
+	//Declare variables and evidence
 	emdw::RVIds prior_vars = {0, 1, 2, 3, 4, 5};
 	emdw::RVIds markov_vars = {6, 7, 8, 9, 10, 11};
 	emdw::RVIds measurement_vars = {12, 13};
 	
-	ColVector<double> mu_0(6);
-	mu_0[0] = 0; mu_0[1] = 72.86; mu_0[2] = 0;
-	mu_0[3] = 0; mu_0[4] = 0; mu_0[5] = 14.04;
+	//Create the required means and covariances
+	ColVector<double> mu_0(6); mu_0 *= 0;
+	mu_0[1] = 72.86; mu_0[5] = 14.04;
 
 	Matrix<double> S_0 = gLinear::zeros<double>(6, 6);
 	for (unsigned i = 0; i < 6; i++) S_0(i, i) = 1;
@@ -131,13 +137,21 @@ TEST_F (SensorModelTest, CreateMeasurementDistribution) {
 	Matrix<double> Q_mat = gLinear::zeros<double>(2, 2);
 	Q_mat(0, 0) = 0.1;  Q_mat(1, 1) = 0.1;
 
-	uniqptr<Factor> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, S_0, mu_0, true));
+	//Create the clusters
+	uniqptr<Factor> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, S_0, mu_0));
 	uniqptr<Factor> markov_distribution = 
-		uniqptr<GaussCanonical>(new GaussCanonical(prior->copy(), *motion_model_, markov_vars, R_mat, true));
+		uniqptr<GaussCanonical>(new GaussCanonical(prior->copy(), *motion_model_, markov_vars, R_mat));
 	uniqptr<GaussCanonical> measurement_distribution =
 		uniqptr<GaussCanonical>(new GaussCanonical(markov_distribution->marginalize(markov_vars)->copy(), 
-					*sensor_model_, measurement_vars, Q_mat, true));
+					*sensor_model_, measurement_vars, Q_mat));
 	
-	ColVector<double> mean = measurement_distribution->getMean();
-	std::cout << mean << std::endl;
+	//Introduce the evidence and absorb the factors
+	ColVector<double> radar_meas(2);
+	radar_meas[0] = 36; radar_meas[1] = 73.36;
+
+	emdw::RVVals evidence; evidence.clear();
+	evidence.push_back(radar_meas[0]);
+	evidence.push_back(radar_meas[1]);
+
+	uniqptr<Factor> reduced = measurement_distribution->observeAndReduce(measurement_vars, evidence);
 }

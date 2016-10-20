@@ -3,7 +3,7 @@
  *  Execution: ./run_main.sh
  *  Dependencies: None
  *
- * Google Test fixture for the transform.h's classes.
+ * Google Test fixture for the transform.hpp's classes.
  *************************************************************************/
 #include <iostream>
 #include "gtest/gtest.h"
@@ -14,6 +14,7 @@
 #include "oddsandsods.hpp"
 #include "gausscanonical.hpp"
 #include "transforms.hpp"
+#include "utils.hpp"
 
 class MotionModelTest : public testing::Test {
 	protected:
@@ -26,8 +27,8 @@ class MotionModelTest : public testing::Test {
 		virtual void TearDown() {}
 
 		const double kTimeStep_ = 0.5;
-		uniqptr<V2VTransform> motion_model_;
-		uniqptr<ColVector<double>> x_state_;
+		rcptr<V2VTransform> motion_model_;
+		rcptr<ColVector<double>> x_state_;
 }; // MotionModelTest
 
 
@@ -47,10 +48,10 @@ class SensorModelTest : public testing::Test {
 		virtual void TearDown() {}
 
 		const double kTimeStep_ = 0.5;
-		uniqptr<ColVector<double>> sensor_location_;
-		uniqptr<ColVector<double>> x_state_;
-		uniqptr<V2VTransform> motion_model_;
-		uniqptr<V2VTransform> sensor_model_;
+		rcptr<ColVector<double>> sensor_location_;
+		rcptr<ColVector<double>> x_state_;
+		rcptr<V2VTransform> motion_model_;
+		rcptr<V2VTransform> sensor_model_;
 };// SensorModelTest
 
 // MotionModel Tests
@@ -85,8 +86,8 @@ TEST_F (MotionModelTest, CreateJointDistribution) {
 	for (unsigned i = 0; i < 6; i++) R_mat(i, i) = 2.5;
 
 	//Create the factors
-	uniqptr<GaussCanonical> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, S_0, mu_0, true));
-	uniqptr<GaussCanonical> joint_distribution = 
+	rcptr<GaussCanonical> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, mu_0, S_0, true));
+	rcptr<GaussCanonical> joint_distribution = 
 		uniqptr<GaussCanonical>(new GaussCanonical(prior->copy(), *motion_model_, new_vars, R_mat, true));
 	ColVector<double> mean = joint_distribution->getMean();
 	
@@ -138,10 +139,10 @@ TEST_F (SensorModelTest, CreateMeasurementDistribution) {
 	Q_mat(0, 0) = 0.1;  Q_mat(1, 1) = 0.1;
 
 	//Create the clusters
-	uniqptr<Factor> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, S_0, mu_0));
-	uniqptr<Factor> markov_distribution = 
+	rcptr<Factor> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, S_0, mu_0));
+	rcptr<Factor> markov_distribution = 
 		uniqptr<GaussCanonical>(new GaussCanonical(prior->copy(), *motion_model_, markov_vars, R_mat));
-	uniqptr<GaussCanonical> measurement_distribution =
+	rcptr<Factor> measurement_distribution =
 		uniqptr<GaussCanonical>(new GaussCanonical(markov_distribution->marginalize(markov_vars)->copy(), 
 					*sensor_model_, measurement_vars, Q_mat));
 	
@@ -153,5 +154,10 @@ TEST_F (SensorModelTest, CreateMeasurementDistribution) {
 	evidence.push_back(radar_meas[0]);
 	evidence.push_back(radar_meas[1]);
 
-	uniqptr<Factor> reduced = measurement_distribution->observeAndReduce(measurement_vars, evidence);
+	std::cout << ReadMean(markov_distribution) << std::endl;
+
+	rcptr<Factor> reduced = measurement_distribution->observeAndReduce(measurement_vars, evidence);
+	markov_distribution->inplaceAbsorb(reduced);
+
+	std::cout << ReadMean(markov_distribution) << std::endl;
 }

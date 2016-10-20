@@ -10,7 +10,7 @@
  * Main app, runs small examples for now.
  *
  * @author SCJ Robertson
- * @since 0.9.1
+ * @since 03/10/16
  */
 int main(int, char *argv[]) {
 	return 0;

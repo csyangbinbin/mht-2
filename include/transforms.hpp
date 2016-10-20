@@ -10,12 +10,6 @@
 #ifndef TRANSFORMS_HPP
 #define TRANSFORMS_HPP
 
-#include <iostream>
-#include "genvec.hpp"
-#include "genmat.hpp"
-#include "emdw.hpp"
-#include "v2vtransform.hpp"
-
 /**
  * This class implements the non-linear motion model function 
  * used in predicting a target's state at the next time step 

@@ -6,6 +6,19 @@
  * Main app, runs everything.
  *************************************************************************/
 
+#include <iostream>
+#include "genvec.hpp"
+#include "genmat.hpp"
+#include "anytype.hpp"
+#include "emdw.hpp"
+#include "discretetable.hpp"
+#include "gausscanonical.hpp"
+#include "transforms.hpp"
+#include "utils.hpp"
+
+using namespace std;
+using namespace emdw;
+
 /**
  * Main app, runs small examples for now.
  *

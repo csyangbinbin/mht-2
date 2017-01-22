@@ -52,7 +52,7 @@ class SensorModelTest : public testing::Test {
 		rcptr<ColVector<double>> x_state_;
 		rcptr<V2VTransform> motion_model_;
 		rcptr<V2VTransform> sensor_model_;
-};// SensorModelTest
+}; // SensorModelTest
 
 // MotionModel Tests
 TEST_F (MotionModelTest, IncorrectInputSize) {
@@ -71,11 +71,11 @@ TEST_F (MotionModelTest, TranslateVector) {
 }
 
 TEST_F (MotionModelTest, CreateJointDistribution) {
-	//Declare the variables
+	// Declare the variables
 	emdw::RVIds prior_vars = {0, 1, 2, 3, 4, 5};
 	emdw::RVIds new_vars = {6, 7, 8, 9, 10, 11};
 	
-	//Create the required mean and covariances
+	// Create the required mean and covariances
 	ColVector<double> mu_0(6); mu_0 *= 0;
 	mu_0[1] = 72.86; mu_0[5] = 14.04;
 
@@ -85,13 +85,13 @@ TEST_F (MotionModelTest, CreateJointDistribution) {
 	Matrix<double> R_mat = gLinear::zeros<double>(6, 6);
 	for (unsigned i = 0; i < 6; i++) R_mat(i, i) = 2.5;
 
-	//Create the factors
+	// Create the factors
 	rcptr<GaussCanonical> prior = uniqptr<GaussCanonical>(new GaussCanonical(prior_vars, mu_0, S_0, true));
 	rcptr<GaussCanonical> joint_distribution = 
 		uniqptr<GaussCanonical>(new GaussCanonical(prior->copy(), *motion_model_, new_vars, R_mat, true));
 	ColVector<double> mean = joint_distribution->getMean();
 	
-	//Create the expected result
+	// Create the expected result
 	ColVector<double> expected_mean(12); expected_mean *= 0;
 	expected_mean[1] = 72.86; expected_mean[5] = 14.04;
 	expected_mean[6] = 36.34; expected_mean[7]= 72.86;

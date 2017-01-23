@@ -11,64 +11,97 @@
 #include "genmat.hpp"
 #include "anytype.hpp"
 #include "emdw.hpp"
+#include "vecset.hpp"
 #include "discretetable.hpp"
 #include "gausscanonical.hpp"
-#include "transforms.hpp"
-#include "utils.hpp"
+#include "graph_builder.hpp"
 
 using namespace std;
 using namespace emdw;
 
-TEST (LoopyAssocTest, Loopy) {
-	// Variable type declaration
-	typedef unsigned short T;
-	typedef DiscreteTable<T> DT;
-	typedef vector<T> DASS;
-	
-	double floor = 0.0;
-	double margin = 2.0*floor;
-	double def_prob = 0.0;
+class LoopyAssocTest : public testing::Test {
+	protected:
+		virtual void SetUp() {
+			marg_ptr_ = uniqptr<FactorOperator> (new DiscreteTable_Marginalize<T>);
+			inorm_ptr_ = uniqptr<FactorOperator> (new DiscreteTable_InplaceNormalize<T>);
+			norm_ptr_ = uniqptr<FactorOperator> (new DiscreteTable_MaxNormalize<T>);
 
-	// Factor Operator declaration
-	rcptr<FactorOperator> marg_ptr = uniqptr<FactorOperator> (new DiscreteTable_Marginalize<T>);
-	rcptr<FactorOperator> inorm_ptr = uniqptr<FactorOperator> (new DiscreteTable_InplaceNormalize<T>);
-	rcptr<FactorOperator> norm_ptr = uniqptr<FactorOperator> (new DiscreteTable_MaxNormalize<T>);
+			// Probability table for a0
+			a0_dom_ = uniqptr<DASS>(new DASS{0, 1});
+			sparse_probs_.clear();
+			sparse_probs_[DASS{0}] = sparse_probs_[DASS{1}] = 1;
 
-	// Random variable name declaration
-	enum{a0, a1, a2};
-	rcptr<DASS> a0_dom (new DASS{0, 1});
-	vector<rcptr<Factor>> hypotheses;
+			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a0}, {a0_dom_}, kDefProb_, 
+					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) ) );
 
-	// Probability table for a0
-	map<DASS, FProb> sparseProbs; sparseProbs.clear();
-	sparseProbs[DASS{0}] = sparseProbs[DASS{1}] = 1;
+			// Probability table for a1
+			a1_dom_ = uniqptr<DASS>(new DASS{0, 1, 2});
+			sparse_probs_.clear();
+			sparse_probs_[DASS{0}] = sparse_probs_[DASS{1}] = sparse_probs_[DASS{2}] = 1;
 
-	// Discrete probability table
-	hypotheses.push_back(uniqptr<DT> (new DT(RVIds{a0}, {a0_dom}, def_prob, 
-					sparseProbs, margin, floor, false, marg_ptr, inorm_ptr, norm_ptr) ) );
-	
-	
-	
-	// Probability table for a1
-	rcptr<DASS> a1_dom (new DASS{0, 1, 2});
-	sparseProbs.clear();
-	sparseProbs[DASS{0}] = sparseProbs[DASS{1}] = sparseProbs[DASS{2}] = 1;
-	hypotheses.push_back(uniqptr<DT> (new DT(RVIds{a1}, {a1_dom}, def_prob, 
-					sparseProbs, margin, floor, false, marg_ptr, inorm_ptr, norm_ptr) ) );
+			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a1}, {a1_dom_}, kDefProb_, 
+					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) ) );
+
+			// Probability table for a2
+			a2_dom_ = uniqptr<DASS>(new DASS{0, 2});
+			sparse_probs_.clear();
+			sparse_probs_[DASS{0}] = sparse_probs_[DASS{2}] = 1;
+
+			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a2}, {a2_dom_}, kDefProb_, 
+					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) ) );
+
+		}
+
+		virtual void TearDown() {
+			hypotheses_.clear();
+			sparse_probs_.clear();
+		}
+
+	protected:
+		typedef unsigned short T;
+		typedef DiscreteTable<T> DT;
+		typedef vector<T> DASS;
+
+	protected:
+		enum{a0, a1, a2};
+		const double kFloor_ = 0.0;
+		const double kMargin_ = 0.0;
+		const double kDefProb_ = 0.0;
+
+		rcptr<FactorOperator> marg_ptr_;
+		rcptr<FactorOperator> inorm_ptr_;
+		rcptr<FactorOperator> norm_ptr_;
+
+		rcptr<DASS> a0_dom_;
+		rcptr<DASS> a1_dom_;
+		rcptr<DASS> a2_dom_;
+
+		vector<rcptr<Factor>> hypotheses_;
+		map<DASS, FProb> sparse_probs_;
+}; // LoopyAssocTest
 
 
-	// Probability table for a2
-	rcptr<DASS> a2_dom (new DASS{0, 2});
-	sparseProbs.clear(); 
-	sparseProbs[DASS{0}] = sparseProbs[DASS{2}] = 1;
-	hypotheses.push_back(uniqptr<DT> (new DT(RVIds{a2}, {a2_dom}, def_prob, 
-					sparseProbs, margin, floor, false, marg_ptr, inorm_ptr, norm_ptr) ) );
+TEST_F (LoopyAssocTest, GraphBuilder) {
 
-	
+	std::vector<T> a = {0, 1};
+	std::vector<T> b = {0, 1, 2};
+	std::vector<T> c = {0, 2};
+
+
+	cout << d << endl;
+
+	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(hypotheses_));
+	EXPECT_EQ(0, 0);
+}
+
+/**
+ * Explicit handmade example, just to get a rough idea of the process.
+ */
+TEST_F (LoopyAssocTest, Loopy) {	
 	vector<rcptr<Factor>> clusters;
-	clusters.push_back(hypotheses[0]->absorb(hypotheses[1]));
-	clusters.push_back(hypotheses[0]->absorb(hypotheses[2]));
-	clusters.push_back(hypotheses[1]->absorb(hypotheses[2]));
+	clusters.push_back(hypotheses_[0]->absorb(hypotheses_[1]));
+	clusters.push_back(hypotheses_[0]->absorb(hypotheses_[2]));
+	clusters.push_back(hypotheses_[1]->absorb(hypotheses_[2]));
 
 	enum{c0, c1, c2};
 	std::map<RVIds, rcptr<Factor>> old_messages;
@@ -87,8 +120,8 @@ TEST (LoopyAssocTest, Loopy) {
 	change->setEntry(RVIds{a0, a1}, RVVals{T(1), T(1)}, 0);
 	rcptr<Factor> msg = clusters[0]->marginalize(RVIds{a0});
 	
-	cout << "a0 marginal" << endl;
-	cout << *msg << endl;
+	//cout << "a0 marginal" << endl;
+	//cout << *msg << endl;
 	
 	// Cluster 1 absorbs message 1
 	clusters[1]->inplaceAbsorb(msg);
@@ -96,8 +129,8 @@ TEST (LoopyAssocTest, Loopy) {
 	change->setEntry(RVIds{a0, a2}, RVVals{T(0), T(0)}, 0);
 	msg = clusters[1]->marginalize(RVIds{a2});
 
-	cout << "a2 marginal" << endl;
-	cout << *msg << endl;
+	//cout << "a2 marginal" << endl;
+	//cout << *msg << endl;
 	
 	// Cluster 2 absorbs message 2
 	clusters[2]->inplaceAbsorb(msg);
@@ -106,11 +139,11 @@ TEST (LoopyAssocTest, Loopy) {
 	change->setEntry(RVIds{a1, a2}, RVVals{T(2), T(2)}, 0);
 	msg = clusters[2]->marginalize(RVIds{a1});
 
-	cout << "a1 marginal" << endl;
-	cout << *msg << endl;
+	//cout << "a1 marginal" << endl;
+	//cout << *msg << endl;
 
-	cout << "a2 marginal" << endl;
-	cout << *clusters[2]->marginalize(RVIds{a2}) << endl;
+	//cout << "a2 marginal" << endl;
+	//cout << *clusters[2]->marginalize(RVIds{a2}) << endl;
 
 	// Cluster 0 absorbs message 3
 	
@@ -120,8 +153,8 @@ TEST (LoopyAssocTest, Loopy) {
 	change->setEntry(RVIds{a0, a1}, RVVals{T(1), T(1)}, 0);
 	msg = clusters[0]->marginalize(RVIds{a0});
 
-	cout << "a0 marginal" << endl;
-	cout << *msg << endl;
+	//cout << "a0 marginal" << endl;
+	//cout << *msg << endl;
 
 	EXPECT_EQ(0, 0);
 }

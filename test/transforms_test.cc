@@ -154,10 +154,6 @@ TEST_F (SensorModelTest, CreateMeasurementDistribution) {
 	evidence.push_back(radar_meas[0]);
 	evidence.push_back(radar_meas[1]);
 
-	std::cout << ReadMean(markov_distribution) << std::endl;
-
 	rcptr<Factor> reduced = measurement_distribution->observeAndReduce(measurement_vars, evidence);
 	markov_distribution->inplaceAbsorb(reduced);
-
-	std::cout << ReadMean(markov_distribution) << std::endl;
 }

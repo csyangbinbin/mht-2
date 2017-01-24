@@ -40,7 +40,7 @@ class LoopyAssocTest : public testing::Test {
 			sparse_probs_[DASS{0}] = sparse_probs_[DASS{1}] = sparse_probs_[DASS{2}] = 1;
 
 			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a1}, {a1_dom_}, kDefProb_, 
-					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) I) );
+					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) ) );
 
 			// Probability table for a2
 			a2_dom_ = uniqptr<DASS>(new DASS{0, 2});
@@ -88,7 +88,8 @@ TEST_F (LoopyAssocTest, GraphBuilder) {
 	assoc_hypotheses[a1] = a1_dom_;
 	assoc_hypotheses[a2] = a2_dom_;
 
-	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(assoc_hypotheses));
+	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(assoc_hypotheses, marg_ptr_,
+				inorm_ptr_, norm_ptr_, kFloor_, kMargin_, kDefProb_));
 	
 	EXPECT_EQ(0, 0);
 }

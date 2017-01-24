@@ -38,7 +38,13 @@ class GraphBuilder {
 		 * @param assoc_hypotheses The association hypotheses formed
 		 * over each measurement. Presented as a DiscreteTable's domain.
 		 */
-		GraphBuilder(const std::map<emdw::RVIdType, rcptr<DASS>>& assoc_hypotheses);
+		GraphBuilder(const std::map<emdw::RVIdType, rcptr<DASS>>& assoc_hypotheses,
+			const rcptr<FactorOperator>& marg_ptr, 
+			const rcptr<FactorOperator>& inorm_ptr,
+			const rcptr<FactorOperator>& norm_ptr,
+			const double floor,
+			const double margin,
+			const double def_prob);
 
 		/**
 		 * Default constructor.
@@ -53,30 +59,38 @@ class GraphBuilder {
 	private:
 		/**
 		 * Construct DiscreteTable factors over single
-		 * association hypotheses.
+		 * association hypotheses. Initialises the distribution_
+		 * member.
 		 */
-		void constructDistributions();
+		void ConstructDistributions();
 
 		/**
 		 * Constructs the pairwise factors required in the network.
+		 * Initialises the cluster_ member.
 		 */
-		void constructClusters ();
+		void ConstructClusters ();
 
 		/**
-		 * Returns the RVIds of the association hypotheses.
-		 *
-		 * @return The IDs of the association hypotheses.
+		 * Get the association RV IDs from the given map. Initialises
+		 * the a_ member and sorts the association hypotheses domains.
 		 */
-		emdw::RVIds getRVIds() const;
+		void AcquireRVIds();
 
 	private:
-		emdw::RVIds rv_ids_;
-		std::vector <rcptr<Factor>> distributions_;
+		emdw::RVIds a_;
+		std::vector <rcptr<Factor>> distribution_;
 		std::vector <rcptr<Factor>> cluster_;
-
 
 		std::map <emdw::RVIdType, rcptr<DASS>> assoc_hypotheses_;
 		std::map <Idx2, emdw::RVIds> sepvecs_;
+
+		rcptr<FactorOperator> marg_ptr_;
+		rcptr<FactorOperator> inorm_ptr_;
+		rcptr<FactorOperator> norm_ptr_;
+
+		double floor_;
+		double margin_;
+		double def_prob_;
 };
 
 #endif // GRAPH_BUILDER.HPP

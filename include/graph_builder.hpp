@@ -67,6 +67,9 @@ class GraphBuilder {
 		/**
 		 * Constructs the pairwise factors required in the network.
 		 * Initialises the cluster_ member.
+		 *
+		 * TODO: Better implementation? Pairwise connections are
+		 * brute force.
 		 */
 		void ConstructClusters ();
 
@@ -78,9 +81,9 @@ class GraphBuilder {
 
 	private:
 		emdw::RVIds a_;
-		std::vector <rcptr<Factor>> distribution_;
 		std::vector <rcptr<Factor>> cluster_;
 
+		std::map <emdw::RVIdType, rcptr<Factor>> distribution_;
 		std::map <emdw::RVIdType, rcptr<DASS>> assoc_hypotheses_;
 		std::map <Idx2, emdw::RVIds> sepvecs_;
 

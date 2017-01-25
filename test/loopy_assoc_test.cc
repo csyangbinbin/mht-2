@@ -81,22 +81,27 @@ class LoopyAssocTest : public testing::Test {
 }; // LoopyAssocTest
 
 
-TEST_F (LoopyAssocTest, GraphBuilder) {
+// GraphBuilder tests
+TEST_F (LoopyAssocTest, GraphBuilderInit) {
 
 	std::map<RVIdType, rcptr<DASS>> assoc_hypotheses;
-	assoc_hypotheses[a0] = a0_dom_;
-	assoc_hypotheses[a1] = a1_dom_;
-	assoc_hypotheses[a2] = a2_dom_;
+	assoc_hypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
+	assoc_hypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
+	assoc_hypotheses[3] = uniqptr<DASS>(new DASS{0, 3});
+	assoc_hypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 3});
+	assoc_hypotheses[5] = uniqptr<DASS>(new DASS{0, 1, 2, 3});
+	assoc_hypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
+	assoc_hypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
 
 	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(assoc_hypotheses, marg_ptr_,
 				inorm_ptr_, norm_ptr_, kFloor_, kMargin_, kDefProb_));
 	
 	EXPECT_EQ(0, 0);
-}
+} // GraphBuilderInit()
 
 
  // Explicit handmade example, just to get a rough idea of the process.
-TEST_F (LoopyAssocTest, Loopy) {	
+TEST_F (LoopyAssocTest, HandHolding) {	
 	vector<rcptr<Factor>> clusters;
 	clusters.push_back(hypotheses_[0]->absorb(hypotheses_[1]));
 	clusters.push_back(hypotheses_[0]->absorb(hypotheses_[2]));
@@ -156,4 +161,4 @@ TEST_F (LoopyAssocTest, Loopy) {
 	//cout << *msg << endl;
 
 	EXPECT_EQ(0, 0);
-}
+} // HandHolding()

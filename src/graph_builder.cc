@@ -67,8 +67,11 @@ void GraphBuilder::ConstructDistributions() {
 void GraphBuilder::ConstructClusters() {
 	DASS intersection;
 	emdw::RVIds neighbours;
+	emdw::RVIds network;
+	emdw::RVIds disjoint;
 
 	std::vector<emdw::RVIds> neighbourhoods(a_.size());
+	std::vector<emdw::RVIds> districts;
 	std::vector<emdw::RVIds> pairs;
 	
 	rcptr<DASS> ai_dom;
@@ -91,6 +94,33 @@ void GraphBuilder::ConstructClusters() {
 		}
 	}
 
+
+	// Step 2: Determine all disjoint association clusters
+	for (unsigned i = 0; i < neighbourhoods.size(); i++) {
+		for (unsigned j = 0; j < neighbourhoods.size(); j++) {
+			std::set_intersection(neighbourhoods[i].begin(), neighbourhoods[i].end(),
+					neighbourhoods[j].begin(), neighbourhoods[j].end(),
+					std::back_inserter(disjoint));
+
+
+			if (disjoint.size() > 0) {
+				std::set_union(neighbourhoods[i].begin(), neighbourhoods[i].end(),
+						neighbourhoods[j].begin(), neighbourhoods[j].end(),
+						std::back_inserter(network));
+
+				neighbourhoods[i] = std::move(network);
+				network.clear();
+			}
+			disjoint.clear();
+		}
+	}
+
+	std::sort(neighbourhoods.begin(), neighbourhoods.end());
+	neighbourhoods.erase(unique(neighbourhoods.begin(), neighbourhoods.end()), neighbourhoods.end());
+
+	for (emdw::RVIds i : neighbourhoods) std::cout<< i << std::endl;
+
+	/*
 	// Step 2: Generate all pairwise connections implied by shared associations
 	for (unsigned i = 0; i < neighbourhoods.size(); i++) {
 		neighbours = neighbourhoods[i];
@@ -114,5 +144,6 @@ void GraphBuilder::ConstructClusters() {
 	}
 
 	for (unsigned i = 0; i < cluster_.size(); i++) std::cout << *cluster_[i] << std::endl;
+	*/
 
 } // ConstructClusters()

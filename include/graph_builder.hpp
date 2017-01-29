@@ -96,4 +96,4 @@ class GraphBuilder {
 		double def_prob_;
 };
 
-#endif // GRAPH_BUILDER.HPP
+#endif // GRAPH_BUILDER_HPP

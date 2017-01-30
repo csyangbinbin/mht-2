@@ -97,9 +97,6 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 			: vars_(vars.size()),
 			comps_(weights.size()),
 			N_(weights.size()),
-			g_(weights.size()),
-			h_(weights.size()),
-			K_(weights.size()),
 			maxComp_(maxComponents),
 			threshold_(threshold),
 			unionDistance_(unionDistance)
@@ -125,16 +122,19 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	// NOTE: adjustMass currently has an integer arithmetic error.
 	int fail;
 	double detcov;
-	
+	double g;
+	ColVector<double> h;
+	Matrix<double> K;
+
 	for (unsigned i = 0; i < N_; i++) {
-		K_[i] = inv(covs[i], detcov, fail);
+		K = inv(covs[i], detcov, fail);
 		if (fail) printf("Could not invert cov[%d] at line number %d in file %s\n", i, __LINE__, __FILE__);
 
-		h_[i] = K_[i]*means[i];
-		g_[i] = -0.5*( (K_[i]*means[i]).transpose() )*means[i] 
+		h = K*means[i];
+		g = -0.5*( (K*means[i]).transpose() )*means[i] 
 			- log( ( pow(2*M_PI, (1.0*vars.size())/2) * pow(detcov, 0.5) ) / weights[i]);
 
-		comps_[i] = uniqptr<GaussCanonical> ( new GaussCanonical(vars, K_[i], h_[i], g_[i],
+		comps_[i] = uniqptr<GaussCanonical> ( new GaussCanonical(vars, K, h, g,
 					false,
 					inplaceNormalizer_,
 					normalizer_,
@@ -176,9 +176,6 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 			: vars_(vars.size()),
 			comps_(g.size()),
 			N_(g.size()),
-			g_(g.size()),
-			h_(g.size()),
-			K_(g.size()),
 			maxComp_(maxComponents),
 			threshold_(threshold),
 			unionDistance_(unionDistance)
@@ -241,9 +238,6 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 			: vars_(vars.size()),
 			comps_(components.size()),
 			N_(components.size()),
-			g_(components.size()),
-			h_(components.size()),
-			K_(components.size()),
 			maxComp_(maxComponents),
 			threshold_(threshold),
 			unionDistance_(unionDistance)
@@ -274,9 +268,6 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		
 		gc = std::dynamic_pointer_cast<GaussCanonical>(components[i]);
 		comps_[i] = uniqptr<GaussCanonical>(gc->copy());
-		g_[i] = gc->getG();
-		h_[i] = gc->getH();
-		K_[i] = gc->getK(); 
 	}
 
 	// Prune and merge if necessary
@@ -285,7 +276,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 } // Component constructor
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
-		const Factor* xFPtr,
+		const rcptr<Factor> xFPtr,
 		const Matrix<double>& A,
 		const emdw::RVIds& newVars,
 		const Matrix<double>& Q,
@@ -302,6 +293,8 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper
 		) {
+
+	// Default initialisation
 	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizer;
 	if (!normalizer) normalizer_ = defaultNormalizer;
 	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorber;
@@ -310,6 +303,27 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	if (!canceller) canceller_ = defaultCanceller;
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
+
+	// Get the old components
+	rcptr<CanonicalGaussianMixture> cgm = std::dynamic_pointer_cast<CanonicalGaussianMixture>(xFPtr);
+	std::vector<rcptr<Factor>> oldComps = cgm->getComponents();
+	
+	// Put each component through the linear transform
+	unsigned N = oldComps.size();
+	comps_ = std::vector<rcptr<Factor>>(N);
+
+	for (unsigned i = 0; i < N; i++) {
+		comps_[i] = uniqptr<GaussCanonical>(new GaussCanonical(oldComps[i]->copy(), A, newVars,Q, false,
+					inplaceNormalizer_,
+					normalizer_,
+					inplaceAbsorber_,
+					absorber_,
+					inplaceCanceller_,
+					canceller_,
+					observeAndReducer_,
+					inplaceDamper_ ) );
+	}
+
 } // Linear Gaussian constructor
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
@@ -411,7 +425,7 @@ double CanonicalGaussianMixture::inplaceDampen(const Factor* oldMsg, double df, 
 } // inplaceDampen()
 
 CanonicalGaussianMixture* CanonicalGaussianMixture::copy(const emdw::RVIds& newVars, bool presorted) const {
-	return new CanonicalGaussianMixture();
+	return new CanonicalGaussianMixture(*this);
 } // copy()
 
 CanonicalGaussianMixture* CanonicalGaussianMixture::vacuousCopy(const emdw::RVIds& selectedVars, bool presorted) const {
@@ -425,6 +439,8 @@ unsigned CanonicalGaussianMixture::noOfVars() const { return 0; } // noOfVars()
 emdw::RVIds CanonicalGaussianMixture::getVars() const { return vars_; } // getVars()
 
 emdw::RVIdType CanonicalGaussianMixture::getVar(unsigned varNo) const { return vars_[varNo]; } // getVar()
+
+std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { return comps_; } //getComponents()
 
 std::istream& CanonicalGaussianMixture::txtRead(std::istream& file) { return file; } // txtRead()
 

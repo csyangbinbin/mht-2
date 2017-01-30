@@ -358,7 +358,7 @@ class CanonicalGaussianMixture : public Factor {
 		 * operator.
 		 */
 		CanonicalGaussianMixture(
-				const Factor* xFPtr,
+				const rcptr<Factor> xFPtr,
 				const Matrix<double>& A,
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
@@ -610,6 +610,41 @@ class CanonicalGaussianMixture : public Factor {
 		 */
 		void mergeComponents();
 
+	public:
+		/**
+		 * @brief Return Gaussian mixture components
+		 */
+		std::vector<rcptr<Factor>> getComponents() const;
+
+		/**
+		 * @brief Return the weights.
+		 */
+		std::vector<double> getWeights() const;
+
+		/**
+		 * @brief Return the means.
+		 */
+		std::vector<ColVector<double>> getMeans() const;
+
+		/**
+		 * @brief Return the covariance matrices.
+		 */
+		std::vector<Matrix<double>> getCovariances() const;
+
+		/**
+		 * @brief Return the gs
+		 */
+		std::vector<double> getG() const;
+
+		/**
+		 * @brief Return the information vectors.
+		 */
+		std::vector<ColVector<double>> getH() const;
+
+		/**
+		 * @brief Return the precision matrices.
+		 */
+		std::vector<Matrix<double>> getK() const;
 
 	// Data Members
 	private:
@@ -617,12 +652,6 @@ class CanonicalGaussianMixture : public Factor {
 		emdw::RVIds vars_;
 		std::vector<rcptr<Factor>> comps_;
 		mutable unsigned N_;
-
-		// Canonical representation
-		// Not sure if these are actually worth keeping around, all info is already in comps_
-		mutable std::vector<double> g_;
-		mutable std::vector<ColVector<double>> h_;
-		mutable std::vector<Matrix<double>> K_;
 
 		// Pruning and merging characteristics
 		mutable unsigned maxComp_;

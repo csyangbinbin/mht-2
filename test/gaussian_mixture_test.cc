@@ -62,6 +62,14 @@ class CGMTest : public testing::Test {
 					- log( ( pow(2*M_PI, (1.0*vars_.size())/2) * pow(detcov, 0.5) ) / w_[i]);
 			}
 
+			// Linear motion model
+			A_ = gLinear::zeros<double> (kDim_, kDim_);
+			for (unsigned i = 0; i < kDim_; i++) A_(i, i) = 1;
+
+			// Noise
+			Q_ = gLinear::zeros<double> (kDim_, kDim_);
+			for (unsigned i = 0; i < kDim_; i++) Q_(i, i) = 1;
+
 		}
 
 		virtual void TearDown() {
@@ -89,6 +97,9 @@ class CGMTest : public testing::Test {
 		std::vector<ColVector<double>> h_;
 		std::vector<Matrix<double>> K_;
 
+		Matrix<double> A_;
+		Matrix<double> Q_;
+
 		const unsigned kMaxComp_ = 100;
 		const double kThreshold_ = 0.1;
 		const double kUnionDistance_ = 5; 
@@ -99,11 +110,11 @@ TEST_F (CGMTest, DefaultConstructor) {
 }
 
 TEST_F (CGMTest, CovarianceConstructor) {
-	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, w_, mu_, S_, false));
+	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, w_, mu_, S_));
 }
 
 TEST_F (CGMTest, CanonicalConstructor) {
-	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_, false));
+	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
 }
 
 TEST_F (CGMTest, ComponentConstructor) {
@@ -111,6 +122,15 @@ TEST_F (CGMTest, ComponentConstructor) {
 	for (unsigned i = 0; i < kCompN_; i++) gm_vec[i] = uniqptr<GaussCanonical>(new GaussCanonical(vars_, K_[i], h_[i], g_[i]));
 
 	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, gm_vec));
+}
+
+TEST_F (CGMTest, LinearConstructor) {
+	emdw::RVIds newVars = emdw::RVIds(kDim_);
+	rcptr<Factor> oldGM = uniqptr<CGM>(new CGM(vars_, K_, h_, g_, false));
+
+	for (unsigned i = 0; i < kDim_ + 1; i++) newVars[i] = kDim_ + i;
+
+	rcptr<Factor> newGM = uniqptr<CGM>(new CGM(oldGM, A_, newVars, Q_));
 }
 
 TEST_F(CGMTest, InplaceAbsorber) {

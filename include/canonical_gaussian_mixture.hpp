@@ -129,6 +129,16 @@ class InplaceWeakDampingCGM : public Operator1<CanonicalGaussianMixture> {
  */
 class CanonicalGaussianMixture : public Factor {
 
+	friend class InplaceNormalizeCGM;
+	friend class NormalizeCGM;
+	friend class InplaceAbsorbCGM;
+	friend class AbsorbCGM;
+	friend class InplaceCancelCGM;
+	friend class CancelCGM;
+	friend class ObserveAndReduceCGM;
+	friend class InplaceWeakDampingCGM;
+	friend class GaussCanonical;
+
 	public:
 		/** 
 		 * @brief Default vacuous constructor.
@@ -141,19 +151,30 @@ class CanonicalGaussianMixture : public Factor {
 		 * @param presorted Set to true if vars is sorted according to their 
 		 * integer values.
 		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
+		 *
 		 * A list of Factor operators, if it equals zero it will be set to a default
 		 * operator.
 		 */
 		CanonicalGaussianMixture(
 				const emdw::RVIds& vars = {},
 				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
-				const rcptr<FactorOperator>& obseverAndReducer = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
 
@@ -171,7 +192,8 @@ class CanonicalGaussianMixture : public Factor {
 		 * with a specific integer that indentifies it.
 		 *
 		 * @param weights The weight of a mixture component. The weights
-		 * must not be in logarithmic form.
+		 * must assume that Gaussian is otherwise normalised, they must given
+		 * in linear form.
 		 *
 		 * @param means A vector of the component's means.
 		 *
@@ -179,6 +201,14 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param presorted Set to true if vars is sorted according to their 
 		 * integer values.
+		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
 		 *
 		 * A list of Factor operators, if it equals zero it will be set to a default
 		 * operator.
@@ -189,13 +219,16 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<ColVector<double>>& means,
 				const std::vector<Matrix<double>>& covs,
 				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
-				const rcptr<FactorOperator>& obseverAndReducer = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
 
@@ -222,6 +255,14 @@ class CanonicalGaussianMixture : public Factor {
 		 * @param presorted Set to true if vars is sorted according to their 
 		 * integer values.
 		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
+		 *
 		 * A list of Factor operators, if it equals zero it will be set to a default
 		 * operator.
 		 */
@@ -231,36 +272,210 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<ColVector<double>>& info,
 				const std::vector<double>& g,
 				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
-				const rcptr<FactorOperator>& obseverAndReducer = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
 
-
 		/**
 		 * @brief GaussCanonical vector constructor.
+		 *
+		 * Creates a Gaussian mixture from the given vector of
+		 * GaussCanonical factors.
+		 *
+		 * @param vars Each variable in the PGM will be identified
+		 * with a specific integer that indentifies it.
+		 *
+		 * @param components A vector of GaussCanonical components, their
+		 * variables must be the same as vars
+		 *
+		 * @param presorted Set to true if vars is sorted according to their 
+		 * integer values.
+		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
+		 *
+		 * A list of Factor operators, if it equals zero it will be set to a default
+		 * operator.
 		 */
-		/*
 		CanonicalGaussianMixture(
 				const emdw::RVIds& vars,
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
-				const rcptr<FactorOperator>& obseverAndReducer = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
-		*/
 
+		/** 
+		 * @brief Linear Gaussian constructor.
+		 * 
+		 * Creates a new Gaussian Mixture by shifting an exisiting
+		 * Gaussian Mixture through a linear transfrom according to 
+		 * Chapman-Kolmogrov equation.
+		 * 
+		 * @param xFPtr A pointer to an existing CanonicalGaussianMixture.
+		 *
+		 * @param A A matrix describing some appropriate linear transform.
+		 *
+		 * @param newVars The scope of the newly created GM.
+		 *
+		 * @param Q A noise covariance matrix.
+		 *
+		 * @param presorted Set to true if vars is sorted according to their 
+		 * integer values.
+		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
+		 *
+		 * A list of Factor operators, if it equals zero it will be set to a default
+		 * operator.
+		 */
+		CanonicalGaussianMixture(
+				const Factor* xFPtr,
+				const Matrix<double>& A,
+				const emdw::RVIds& newVars,
+				const Matrix<double>& Q,
+				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
+				const rcptr<FactorOperator>& inplaceNormalizer = 0,
+				const rcptr<FactorOperator>& normalizer = 0,
+				const rcptr<FactorOperator>& inplaceAbsorber = 0,
+				const rcptr<FactorOperator>& absorber = 0,
+				const rcptr<FactorOperator>& inplaceCanceller = 0,
+				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
+				const rcptr<FactorOperator>& inplaceDamper = 0
+				);
+
+		/** 
+		 * @brief Non-linear Gaussian constructor.
+		 * 
+		 * Creates a new Gaussian Mixture by shifting an exisiting
+		 * Gaussian Mixture through a non-linear transfrom according to 
+		 * Chapman-Kolmogrov equation using the Unscented Transform.
+		 * 
+		 * @param xFPtr A pointer to an existing CanonicalGaussianMixture.
+		 *
+		 * @param transfrom Any appropriate non-linear vector to vector
+		 * transfrom.
+		 *
+		 * @param newVars The scope of the newly created GM.
+		 *
+		 * @param Q A noise covariance matrix.
+		 *
+		 * @param presorted Set to true if vars is sorted according to their 
+		 * integer values.
+		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
+		 *
+		 * A list of Factor operators, if it equals zero it will be set to a default
+		 * operator.
+		 */
+		CanonicalGaussianMixture(
+				const Factor* xFPtr,
+				const V2VTransform& transform,
+				const emdw::RVIds& newVars,
+				const Matrix<double>& Q,
+				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
+				const rcptr<FactorOperator>& inplaceNormalizer = 0,
+				const rcptr<FactorOperator>& normalizer = 0,
+				const rcptr<FactorOperator>& inplaceAbsorber = 0,
+				const rcptr<FactorOperator>& absorber = 0,
+				const rcptr<FactorOperator>& inplaceCanceller = 0,
+				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
+				const rcptr<FactorOperator>& inplaceDamper = 0
+				);
+
+		/** 
+		 * @brief Joint non-linear Gaussian constructor.
+		 * 
+		 * Creates a new joint Gaussian Mixture by shifting an exisiting
+		 * Gaussian Mixture through a non-linear transfrom according to 
+		 * Chapman-Kolmogrov equation using the Unscented Transform.
+		 * 
+		 * @param x1FPtr A pointer to an existing CanonicalGaussianMixture.
+		 *
+		 * @param x2FPtr A pointer to an existing CanonicalGaussianMixture.
+		 *
+		 * @param transfrom Any appropriate non-linear vector to vector
+		 * transfrom.
+		 *
+		 * @param newVars The scope of the newly created GM.
+		 *
+		 * @param Q A noise covariance matrix.
+		 *
+		 * @param presorted Set to true if vars is sorted according to their 
+		 * integer values.
+		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
+		 *
+		 * A list of Factor operators, if it equals zero it will be set to a default
+		 * operator.
+		 */
+		CanonicalGaussianMixture(
+				const Factor* x1FPtr,
+				const Factor* x2FPtr,
+				const V2VTransform& transform,
+				const emdw::RVIds& newVars,
+				const Matrix<double>& Q,
+				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
+				const rcptr<FactorOperator>& inplaceNormalizer = 0,
+				const rcptr<FactorOperator>& normalizer = 0,
+				const rcptr<FactorOperator>& inplaceAbsorber = 0,
+				const rcptr<FactorOperator>& absorber = 0,
+				const rcptr<FactorOperator>& inplaceCanceller = 0,
+				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
+				const rcptr<FactorOperator>& inplaceDamper = 0
+				);
 
 		CanonicalGaussianMixture(const CanonicalGaussianMixture& st) = default;
 		CanonicalGaussianMixture(CanonicalGaussianMixture&& st) = default;
@@ -269,6 +484,10 @@ class CanonicalGaussianMixture : public Factor {
 		 * @brief Default destructor.
 		 */
 		virtual ~CanonicalGaussianMixture();
+
+	public:
+		CanonicalGaussianMixture& operator=(const CanonicalGaussianMixture& d) = default;
+		CanonicalGaussianMixture& operator=(CanonicalGaussianMixture&& d) = default;
 
 
 	public:
@@ -358,7 +577,7 @@ class CanonicalGaussianMixture : public Factor {
 		/**
 		 * @brief Returns the variables' identity.
 		 */
-		virtual emdw::RVIds getVars() const;
+	virtual emdw::RVIds getVars() const;
 
 		/**
 		 * @brief Returns a specfic variable's identity.
@@ -376,10 +595,39 @@ class CanonicalGaussianMixture : public Factor {
 		 */
 		virtual std::ostream& txtWrite(std::ostream& file) const;
 
+	public:
+		/**
+		 * @brief Prune the Gaussian mixture.
+		 *
+		 * Discard all components constributing insignificant mass.
+		 */
+		void pruneComponents();
+
+		/**
+		 * @brief Merge all closely space components.
+		 *
+		 * Merge all components which are close to one another.
+		 */
+		void mergeComponents();
+
+
 	// Data Members
 	private:
+		// Scope and components
 		emdw::RVIds vars_;
-		std::vector<GaussCanonical> comps_;
+		std::vector<rcptr<Factor>> comps_;
+		mutable unsigned N_;
+
+		// Canonical representation
+		// Not sure if these are actually worth keeping around, all info is already in comps_
+		mutable std::vector<double> g_;
+		mutable std::vector<ColVector<double>> h_;
+		mutable std::vector<Matrix<double>> K_;
+
+		// Pruning and merging characteristics
+		mutable unsigned maxComp_;
+		mutable double threshold_;
+		mutable double unionDistance_;
 
 		// Operators
 		rcptr<FactorOperator> marginalizer_;

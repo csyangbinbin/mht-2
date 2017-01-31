@@ -118,11 +118,15 @@ class InplaceWeakDampingCGM : public Operator1<CanonicalGaussianMixture> {
  * for a vector of GaussCanonical factors, it quietly pretends
  * NormedGaussCanonical doesn't exist. 
  *
+ * For now, the underlying GaussCanonical factors make use of
+ * their default operators.
+ *
  * Not all required Factor methods are properly implemented, those
  * which aren't are noted in the documentation.
  *
  * The implementation is fairly lax; it doesn't bother checking dimensional
  * consistency and the like.
+ *
  *
  * @author SCJ Robertson
  * @since 28/01/17
@@ -137,7 +141,6 @@ class CanonicalGaussianMixture : public Factor {
 	friend class CancelCGM;
 	friend class ObserveAndReduceCGM;
 	friend class InplaceWeakDampingCGM;
-	friend class GaussCanonical;
 
 	public:
 		/** 
@@ -407,60 +410,8 @@ class CanonicalGaussianMixture : public Factor {
 		 * operator.
 		 */
 		CanonicalGaussianMixture(
-				const Factor* xFPtr,
-				const V2VTransform& transform,
-				const emdw::RVIds& newVars,
-				const Matrix<double>& Q,
-				bool presorted = false,
-				const unsigned maxComponents = 100,
-				const double threshold = 0.1,
-				const double unionDistance = 5,
-				const rcptr<FactorOperator>& inplaceNormalizer = 0,
-				const rcptr<FactorOperator>& normalizer = 0,
-				const rcptr<FactorOperator>& inplaceAbsorber = 0,
-				const rcptr<FactorOperator>& absorber = 0,
-				const rcptr<FactorOperator>& inplaceCanceller = 0,
-				const rcptr<FactorOperator>& canceller = 0,
-				const rcptr<FactorOperator>& observerAndReducer = 0,
-				const rcptr<FactorOperator>& inplaceDamper = 0
-				);
-
-		/** 
-		 * @brief Joint non-linear Gaussian constructor.
-		 * 
-		 * Creates a new joint Gaussian Mixture by shifting an exisiting
-		 * Gaussian Mixture through a non-linear transfrom according to 
-		 * Chapman-Kolmogrov equation using the Unscented Transform.
-		 * 
-		 * @param x1FPtr A pointer to an existing CanonicalGaussianMixture.
-		 *
-		 * @param x2FPtr A pointer to an existing CanonicalGaussianMixture.
-		 *
-		 * @param transfrom Any appropriate non-linear vector to vector
-		 * transfrom.
-		 *
-		 * @param newVars The scope of the newly created GM.
-		 *
-		 * @param Q A noise covariance matrix.
-		 *
-		 * @param presorted Set to true if vars is sorted according to their 
-		 * integer values.
-		 *
-		 * @param maxComponents The maximum allowable number of components in the mixture.
-		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
-		 *
-		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
-		 * If the distance between their means is less than this threshold they merged into 
-		 * one.
-		 *
-		 * A list of Factor operators, if it equals zero it will be set to a default
-		 * operator.
-		 */
-		CanonicalGaussianMixture(
-				const Factor* x1FPtr,
-				const Factor* x2FPtr,
-				const V2VTransform& transform,
+				const rcptr<Factor> xFPtr,
+				const rcptr<V2VTransform> transform,
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
 				bool presorted = false,
@@ -489,15 +440,30 @@ class CanonicalGaussianMixture : public Factor {
 		CanonicalGaussianMixture& operator=(const CanonicalGaussianMixture& d) = default;
 		CanonicalGaussianMixture& operator=(CanonicalGaussianMixture&& d) = default;
 
-
 	public:
 		/** 
 		 * @brief Inplace normalization.
+		 *
+		 * Inplace normalization. Vacuous Gaussian distributions
+		 * are unnormalizable, if this mixture contains a vacuous
+		 * component normalization will fail.
+		 *
+		 * @param procPtr A pointer to some user defined FactorOperator
+		 * process.
 		 */
 		inline void inplaceNormalize(FactorOperator* procPtr = 0);
 		
 		/**
 		 * @brief Normalization.
+		 *
+		 * Inplace normalization. Vacuous Gaussian distributions
+		 * are unnormalizable, if this mixture contains a vacuous
+		 * component normalization will fail.
+		 *
+		 * @param procPtr A pointer to some user defined FactorOperator
+		 * process.
+		 *
+		 * @return A unique pointer to a normalized Gaussian mixture.
 		 */
 		inline uniqptr<Factor> normalize(FactorOperator* procPtr = 0) const;
 
@@ -513,11 +479,27 @@ class CanonicalGaussianMixture : public Factor {
 
 		/**
 		 * @brief Inplace division.
+		 *
+		 * Inplace division. The divisor is allowed to be a CanonicalGaussianMixture
+		 * or a GaussCanonical. If it is a mixture, it will first be moment matched
+		 * before division.
+		 *
+		 * @param rhsPtr The divisor. Can be CanonicalGaussianMixture or
+		 * GaussCanonical.
 		 */
 		inline void inplaceCancel(const Factor* rhsPtr, FactorOperator* procPtr = 0);
 		
 		/**
 		 * @brief Division.
+		 *
+		 * Division. The divisor is allowed to be a CanonicalGaussianMixture
+		 * or a GaussCanonical. If it is a mixture, it will first be moment matched
+		 * before division.
+		 *
+		 * @param rhsPtr The divisor. Can be CanonicalGaussianMixture or
+		 * GaussCanonical.
+		 *
+		 * @return A unique pointer to the CanonicalGaussianMixture quotient.
 		 */
 		inline uniqptr<Factor> cancel(const Factor* rhsPtr, FactorOperator* procPtr = 0) const;
 		
@@ -538,6 +520,8 @@ class CanonicalGaussianMixture : public Factor {
 
 		/**
 		 * @brief Inplace dampening.
+		 *
+		 * TODO: Complete this!!!
 		 */
 		virtual double inplaceDampen(const Factor* oldMsg, double df, FactorOperator* procPtr = 0);
 

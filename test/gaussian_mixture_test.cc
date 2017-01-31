@@ -70,6 +70,8 @@ class CGMTest : public testing::Test {
 			Q_ = gLinear::zeros<double> (kDim_, kDim_);
 			for (unsigned i = 0; i < kDim_; i++) Q_(i, i) = 1;
 
+			// MotionModel
+			motion_model_ = uniqptr<MotionModel>(new MotionModel(kTimeStep_));
 		}
 
 		virtual void TearDown() {
@@ -86,7 +88,7 @@ class CGMTest : public testing::Test {
 
 	protected:
 		const unsigned kCompN_ = 3;
-		const unsigned kDim_ = 3;
+		const unsigned kDim_ = 6;
 		emdw::RVIds vars_;
 
 		std::vector<double> w_;
@@ -100,9 +102,13 @@ class CGMTest : public testing::Test {
 		Matrix<double> A_;
 		Matrix<double> Q_;
 
+		rcptr<V2VTransform> motion_model_;
+		rcptr<V2VTransform> sensor_model_;
+
 		const unsigned kMaxComp_ = 100;
 		const double kThreshold_ = 0.1;
 		const double kUnionDistance_ = 5; 
+		const double kTimeStep_ = 0.04;
 };
 
 TEST_F (CGMTest, DefaultConstructor) {
@@ -128,18 +134,54 @@ TEST_F (CGMTest, LinearConstructor) {
 	emdw::RVIds newVars = emdw::RVIds(kDim_);
 	rcptr<Factor> oldGM = uniqptr<CGM>(new CGM(vars_, K_, h_, g_, false));
 
-	for (unsigned i = 0; i < kDim_ + 1; i++) newVars[i] = kDim_ + i;
-
+	for (unsigned i = 0; i < kDim_; i++) newVars[i] = kDim_ + i;
 	rcptr<Factor> newGM = uniqptr<CGM>(new CGM(oldGM, A_, newVars, Q_));
 }
 
-TEST_F(CGMTest, InplaceAbsorber) {
-	rcptr<Factor> gm_1 = uniqptr<CGM>(new CGM());
-	rcptr<Factor> gm_2 = uniqptr<CGM>(new CGM());
-	rcptr<Factor> gc = uniqptr<GaussCanonical>(new GaussCanonical());
+TEST_F (CGMTest, NonlinearConstructor) {
+	emdw::RVIds newVars = emdw::RVIds(kDim_);
+	rcptr<Factor> oldGM = uniqptr<CGM>(new CGM(vars_, K_, h_, g_, false));
 
-	gm_1->inplaceAbsorb(gm_2);
-	gm_1->inplaceAbsorb(gc);
+	for (unsigned i = 0; i < kDim_; i++) newVars[i] = kDim_ + i;
+	rcptr<Factor> newGM = uniqptr<CGM>(new CGM(oldGM, motion_model_, newVars, Q_));
 }
 
+TEST_F (CGMTest, InplaceAbsorbGC) {
+	emdw::RVIds newVars = emdw::RVIds(kDim_);
+	for (unsigned i = 0; i < kDim_; i++) newVars[i] = kDim_ + i;
 
+	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	rcptr<Factor> gc = uniqptr<GaussCanonical>(new GaussCanonical(newVars, K_[0], h_[0], g_[0]));
+	gm->inplaceAbsorb(gc);
+
+
+	/*
+	std::cout << "==========================================================" << std::endl;
+	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(gm);
+	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
+	std::cout << (after->getComponents()).size() << std::endl;
+	*/
+}
+
+TEST_F (CGMTest, InplaceAbsorbCGM) {
+	emdw::RVIds newVars = emdw::RVIds(kDim_);
+	for (unsigned i = 0; i < kDim_; i++) newVars[i] = kDim_ + i;
+
+	rcptr<Factor> multiplicand = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	rcptr<Factor> multiplier = uniqptr<CGM>(new CGM(newVars, K_, h_, g_));
+
+	/*
+	rcptr<CGM> before = std::dynamic_pointer_cast<CGM>(multiplicand);
+	for (rcptr<Factor> c : before->getComponents()) std::cout << *c << std::endl;
+	std::cout << "==========================================================" << std::endl;
+	*/
+
+	multiplicand->inplaceAbsorb(multiplier);
+	
+	/*
+	std::cout << "==========================================================" << std::endl;
+	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(multiplicand);
+	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
+	std::cout << (after->getComponents()).size() << std::endl;
+	*/
+}

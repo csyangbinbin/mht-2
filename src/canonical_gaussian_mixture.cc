@@ -23,6 +23,7 @@ rcptr<FactorOperator> defaultInplaceAbsorber = uniqptr<FactorOperator>(new Inpla
 rcptr<FactorOperator> defaultAbsorber = uniqptr<FactorOperator>(new AbsorbCGM());
 rcptr<FactorOperator> defaultInplaceCanceller = uniqptr<FactorOperator>(new InplaceCancelCGM());
 rcptr<FactorOperator> defaultCanceller = uniqptr<FactorOperator>(new CancelCGM());
+rcptr<FactorOperator> defaultMarginalizer = uniqptr<FactorOperator>(new MarginalizeCGM());
 rcptr<FactorOperator> defaultObserveReducer = uniqptr<FactorOperator>(new ObserveAndReduceCGM());
 rcptr<FactorOperator> defaultInplaceWeakDamper = uniqptr<FactorOperator>(new InplaceWeakDampingCGM());
 
@@ -38,6 +39,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const rcptr<FactorOperator>& absorber,
 		const rcptr<FactorOperator>& inplaceCanceller,
 		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper)
 			: vars_(vars.size()),
@@ -53,6 +55,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	if (!absorber) absorber_ = defaultAbsorber;
 	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
 	if (!canceller) canceller_ = defaultCanceller;
+	if (!marginalizer) marginalizer_ = defaultMarginalizer;
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
 
@@ -84,6 +87,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const rcptr<FactorOperator>& absorber,
 		const rcptr<FactorOperator>& inplaceCanceller,
 		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper)
 			: vars_(vars.size()),
@@ -101,6 +105,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	if (!absorber) absorber_ = defaultAbsorber;
 	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
 	if (!canceller) canceller_ = defaultCanceller;
+	if (!marginalizer) marginalizer_ = defaultMarginalizer;
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
 
@@ -153,6 +158,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const rcptr<FactorOperator>& absorber,
 		const rcptr<FactorOperator>& inplaceCanceller,
 		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper)
 			: vars_(vars.size()),
@@ -170,6 +176,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	if (!absorber) absorber_ = defaultAbsorber;
 	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
 	if (!canceller) canceller_ = defaultCanceller;
+	if (!marginalizer) marginalizer_ = defaultMarginalizer;
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
 
@@ -205,6 +212,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const rcptr<FactorOperator>& absorber,
 		const rcptr<FactorOperator>& inplaceCanceller,
 		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper
 		) 
@@ -223,6 +231,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	if (!absorber) absorber_ = defaultAbsorber;
 	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
 	if (!canceller) canceller_ = defaultCanceller;
+	if (!marginalizer) marginalizer_ = defaultMarginalizer;
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
 	
@@ -263,6 +272,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const rcptr<FactorOperator>& absorber,
 		const rcptr<FactorOperator>& inplaceCanceller,
 		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper
 		) {
@@ -274,6 +284,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	if (!absorber) absorber_ = defaultAbsorber;
 	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
 	if (!canceller) canceller_ = defaultCanceller;
+	if (!marginalizer) marginalizer_ = defaultMarginalizer;
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
 
@@ -315,6 +326,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const rcptr<FactorOperator>& absorber,
 		const rcptr<FactorOperator>& inplaceCanceller,
 		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper
 		) {
@@ -326,6 +338,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	if (!absorber) absorber_ = defaultAbsorber;
 	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
 	if (!canceller) canceller_ = defaultCanceller;
+	if (!marginalizer) marginalizer_ = defaultMarginalizer;
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
 
@@ -354,9 +367,45 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 
 CanonicalGaussianMixture::~CanonicalGaussianMixture() {} // Default Destructor
 
-void CanonicalGaussianMixture::pruneComponents() {} // pruneComponents()
 
-void CanonicalGaussianMixture::mergeComponents() {} // mergeComponents()
+unsigned CanonicalGaussianMixture::classSpecificConfigure(
+		const emdw::RVIds& vars,
+		const std::vector<rcptr<Factor>>& components,
+		bool presorted,
+		const unsigned maxComponents,
+		const double threshold,
+		const double unionDistance,
+		const rcptr<FactorOperator>& inplaceNormalizer,
+		const rcptr<FactorOperator>& normalizer,
+		const rcptr<FactorOperator>& inplaceAbsorber,
+		const rcptr<FactorOperator>& absorber,
+		const rcptr<FactorOperator>& inplaceCanceller,
+		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
+		const rcptr<FactorOperator>& observerAndReducer,
+		const rcptr<FactorOperator>& inplaceDamper
+		) {
+	this->~CanonicalGaussianMixture();
+
+	new(this) CanonicalGaussianMixture(
+			vars,
+			components,
+			presorted,
+			maxComponents,
+			threshold,
+			unionDistance,
+			inplaceNormalizer,
+			normalizer,
+			inplaceAbsorber,
+			absorber,
+			inplaceCanceller,
+			canceller,
+			marginalizer,
+			observerAndReducer,
+			inplaceDamper);
+
+	return 1;
+} // classSpecificConfiguration()
 
 
 //------------------Family 1: Normalization
@@ -418,7 +467,7 @@ double CanonicalGaussianMixture::inplaceDampen(const Factor* oldMsg, double df, 
 	else return dynamicInplaceApply(inplaceDamper_.get(), this, oldMsg, df); 
 } // inplaceDampen()
 
-//------------------Family 4: Other required virtual methods
+//------------------Other required virtual methods
 
 CanonicalGaussianMixture* CanonicalGaussianMixture::copy(const emdw::RVIds& newVars, bool presorted) const {
 	return new CanonicalGaussianMixture(*this);
@@ -436,20 +485,111 @@ emdw::RVIds CanonicalGaussianMixture::getVars() const { return vars_; } // getVa
 
 emdw::RVIdType CanonicalGaussianMixture::getVar(unsigned varNo) const { return vars_[varNo]; } // getVar()
 
-std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { return comps_; } //getComponents()
-
 //TODO: Complete this!!!
 std::istream& CanonicalGaussianMixture::txtRead(std::istream& file) { return file; } // txtRead()
 
 //TODO: Complete this!!
 std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const { return file; } // txtWrite()
 
+//------------------ Pruning and Merging
+
+
+
+//------------------ Pruning and Merging
+
+void CanonicalGaussianMixture::pruneComponents() {} // pruneComponents()
+
+void CanonicalGaussianMixture::mergeComponents() {} // mergeComponents()
+
+
+//---------------- Useful get methods
+
+std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { return comps_; } //getComponents()
+
+std::vector<double> CanonicalGaussianMixture::getWeights() const {
+	std::vector<double> weights;
+	for (rcptr<Factor> c : comps_) weights.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getMass() );
+	return weights;
+}
+
+std::vector<ColVector<double>> CanonicalGaussianMixture::getMeans() const {
+	std::vector<ColVector<double>> means;
+	for (rcptr<Factor> c : comps_) means.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getMean() );
+	return means;
+}
+
+std::vector<Matrix<double>> CanonicalGaussianMixture::getCovs() const {
+	std::vector<Matrix<double>> covs;
+	for (rcptr<Factor> c : comps_) covs.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getCov() );
+	return covs;
+}
+
+std::vector<double> CanonicalGaussianMixture::getG() const {
+	std::vector<double> g;
+	for (rcptr<Factor> c : comps_) g.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getG() );
+	return g;
+}
+
+std::vector<ColVector<double>> CanonicalGaussianMixture::getH() const {
+	std::vector<ColVector<double>> info;
+	for (rcptr<Factor> c : comps_) info.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getH() );
+	return info;
+}
+
+std::vector<Matrix<double>> CanonicalGaussianMixture::getK() const {
+	std::vector<Matrix<double>> prec;
+	for (rcptr<Factor> c : comps_) prec.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getK());
+	return prec;
+}
+
+//==================================================FactorOperators======================================
+
+//------------------Family 1: Normalization
+//
 const std::string& InplaceNormalizeCGM::isA() const {
 	static const std::string CLASSNAME("InplaceNormalizeCGM");
 	return CLASSNAME;
 } // isA()
 
 void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
+	CanonicalGaussianMixture& lhs(*lhsPtr);
+	std::vector<rcptr<Factor>> lhsComp = lhs.getComponents();
+
+	// Get the total mass
+	std::vector<double> weights = lhs.getWeights();
+	double totalMass = 0;
+	for (auto& w : weights) totalMass += w;
+	std::cout << totalMass << std::endl;
+
+	for (rcptr<Factor> c : lhs.getComponents()) std::cout << *c << std::endl;
+
+	std::cout << "=====================================" << std::endl;
+
+	// Divide through by the total mass
+	for (rcptr<Factor> c : lhsComp) (std::dynamic_pointer_cast<GaussCanonical>(c))->adjustMass(1.0/totalMass);
+
+	// Reconfigure
+	lhs.classSpecificConfigure(lhs.getVars(), lhsComp, true,
+				lhs.maxComp_,
+				lhs.threshold_,
+				lhs.unionDistance_,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_);
+
+	for (rcptr<Factor> c : lhs.getComponents()) std::cout << *c << std::endl;
+
+	weights = lhs.getWeights();
+	totalMass = 0;
+	for (auto& w : weights) totalMass += w;
+	std::cout << totalMass << std::endl;
+
 } // inplaceProcess()
 
 const std::string& NormalizeCGM::isA() const {
@@ -471,39 +611,50 @@ Factor* NormalizeCGM::process(const CanonicalGaussianMixture* lhsPtr) {
 	return fPtr;
 } // process()
 
+
+//------------------Family 2: Absorption, Cancellation
+
 const std::string& InplaceAbsorbCGM::isA() const {
 	static const std::string CLASSNAME("InplaceAbsorbCGM");
 	return CLASSNAME;
 } // isA()
 
 void InplaceAbsorbCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Factor* rhsFPtr) {
-	CanonicalGaussianMixture* lhs = new CanonicalGaussianMixture(*lhsPtr);
-	std::vector<rcptr<Factor>> lhsComps = lhs->getComponents();
-	const CanonicalGaussianMixture* rhs = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
+	CanonicalGaussianMixture& lhs(*lhsPtr);
+	std::vector<rcptr<Factor>> product;
+	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
+	
+	// Try cast the pointer to CanonicalGaussianMixture 
+	const CanonicalGaussianMixture* rhsCGMPtr = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
 
-	if (rhs != NULL) {
-		std::vector<rcptr<Factor>> rhsComps = rhs->getComponents();
-		std::vector<rcptr<Factor>> product;
+	// If it isn't a CanonicalGaussianMixture GaussCanonical should do all the validation.
+	if (rhsCGMPtr){
+		const CanonicalGaussianMixture& rhs(*rhsCGMPtr);
+		std::vector<rcptr<Factor>> rhsComps = rhs.getComponents();
 
-		for (rcptr<Factor> l : lhsComps) {
-			for (rcptr<Factor> r : rhsComps) {
-				product.push_back(l->absorb(r));
+		for (rcptr<Factor> i : lhsComps) {
+			for (rcptr<Factor> j : rhsComps) {
+				product.push_back(i->absorb(j));
 			}
 		}
-
-		(lhs->comps_).clear();
-		(lhs->comps_).resize(product.size());
-
-		for (unsigned i = 0; i < product.size(); i++) {
-			(lhs->comps_)[i] = product[i];
-			std::cout << *((lhs->comps_)[i]) << std::endl;
-		} 
-
-
-	} else {
-		rcptr<Factor> multiplier = uniqptr<Factor>(rhsFPtr->copy());
-		for (rcptr<Factor> m : lhsComps) m->inplaceAbsorb(multiplier); 
+	} else { 
+		rcptr<Factor> rhs = uniqptr<Factor>(rhsFPtr->copy());
+		for (rcptr<Factor> c : lhsComps) product.push_back(c->absorb(rhs));
 	}
+
+	lhs.classSpecificConfigure(product[0]->getVars(), product, true,
+				lhs.maxComp_,
+				lhs.threshold_,
+				lhs.unionDistance_,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_);
 } // inplaceProcess()
 
 const std::string& AbsorbCGM::isA() const {
@@ -539,6 +690,7 @@ const std::string& CancelCGM::isA() const {
 	return CLASSNAME;
 } // isA()
 
+
 Factor* CancelCGM::process(const CanonicalGaussianMixture* lhsPtr, const Factor* rhsFPtr) {
 	CanonicalGaussianMixture* fPtr = new CanonicalGaussianMixture(*lhsPtr);
 	InplaceAbsorbCGM ipCancel;
@@ -553,6 +705,9 @@ Factor* CancelCGM::process(const CanonicalGaussianMixture* lhsPtr, const Factor*
 	return fPtr;
 } // process()
 
+
+//------------------Family 3: Marginalization
+
 const std::string& MarginalizeCGM::isA() const {
 	static const std::string CLASSNAME("MarginalizeCGM");
 	return CLASSNAME;
@@ -560,8 +715,50 @@ const std::string& MarginalizeCGM::isA() const {
 
 Factor* MarginalizeCGM::process(const CanonicalGaussianMixture* lhsPtr, const emdw::RVIds& variablesToKeep,
 		bool presorted) {
-	return new CanonicalGaussianMixture();
+	const CanonicalGaussianMixture& lhs(*lhsPtr);
+	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
+	std::vector<rcptr<Factor>> result;
+
+	// If everything is marginalized out.
+	if (!variablesToKeep.size()) {
+		return new CanonicalGaussianMixture(
+				variablesToKeep,
+				true,
+				lhs.maxComp_,
+				lhs.threshold_,
+				lhs.unionDistance_,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_
+				);
+	}
+
+	// Let GaussCanonical sort it all out for us.
+	for (rcptr<Factor> c : lhsComps) result.push_back(c->marginalize(variablesToKeep, presorted));
+
+	return new CanonicalGaussianMixture(result[0]->getVars(), result, true,
+				lhs.maxComp_,
+				lhs.threshold_,
+				lhs.unionDistance_,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_ );
 } // process()
+
+
+//------------------Family 4: ObserveAndReduce
 
 const std::string& ObserveAndReduceCGM::isA() const {
 	static const std::string CLASSNAME("ObserveAndReduceCGM");
@@ -570,14 +767,40 @@ const std::string& ObserveAndReduceCGM::isA() const {
 
 Factor* ObserveAndReduceCGM::process(const CanonicalGaussianMixture* lhsPtr, const emdw::RVIds& variables,
 		const emdw::RVVals& assignedVals, bool presorted) {
-	return new CanonicalGaussianMixture();
+	const CanonicalGaussianMixture& lhs(*lhsPtr);
+	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
+	std::vector<rcptr<Factor>> result;
+
+	// If nothing was observed.
+	if(!variables.size()) return lhs.copy(); 
+
+	// Let GaussCanonical sort it all out for us.
+	for (rcptr<Factor> c : lhsComps) result.push_back(c->observeAndReduce(variables, assignedVals, presorted));
+
+	return new CanonicalGaussianMixture(result[0]->getVars(), result, true,
+				lhs.maxComp_,
+				lhs.threshold_,
+				lhs.unionDistance_,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_ );
 } // process()
+
+
+//------------------Family 5: Damping
 
 const std::string& InplaceWeakDampingCGM::isA() const {
 	static const std::string CLASSNAME("InplaceWeakDampingCGM");
 	return CLASSNAME;
 } // isA()
 
+// TODO: Complete this!!!
 double InplaceWeakDampingCGM::inplaceProcess(const CanonicalGaussianMixture* lhsPtr, const Factor* rhsPtr, double df) {
 	return 0.0;
 } // inplaceProcess()

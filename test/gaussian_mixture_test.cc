@@ -112,7 +112,7 @@ class CGMTest : public testing::Test {
 };
 
 TEST_F (CGMTest, DefaultConstructor) {
-	rcptr<Factor> gm = uniqptr<CGM>(new CGM());
+	rcptr<CGM> gm = uniqptr<CGM>(new CGM());
 }
 
 TEST_F (CGMTest, CovarianceConstructor) {
@@ -120,7 +120,15 @@ TEST_F (CGMTest, CovarianceConstructor) {
 }
 
 TEST_F (CGMTest, CanonicalConstructor) {
-	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	rcptr<CGM> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+
+	/*
+	std::vector<rcptr<Factor>> comps = gm->getComponents();
+	rcptr<GaussCanonical> first = std::dynamic_pointer_cast<GaussCanonical>(comps[0]);
+
+	std::cout << first->getMass() << std::endl;
+	std::cout << first->getNormC() << std::endl;
+	*/
 }
 
 TEST_F (CGMTest, ComponentConstructor) {
@@ -154,12 +162,10 @@ TEST_F (CGMTest, InplaceAbsorbGC) {
 	rcptr<Factor> gc = uniqptr<GaussCanonical>(new GaussCanonical(newVars, K_[0], h_[0], g_[0]));
 	gm->inplaceAbsorb(gc);
 
-
 	/*
 	std::cout << "==========================================================" << std::endl;
 	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(gm);
 	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
-	std::cout << (after->getComponents()).size() << std::endl;
 	*/
 }
 
@@ -170,18 +176,60 @@ TEST_F (CGMTest, InplaceAbsorbCGM) {
 	rcptr<Factor> multiplicand = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
 	rcptr<Factor> multiplier = uniqptr<CGM>(new CGM(newVars, K_, h_, g_));
 
-	/*
-	rcptr<CGM> before = std::dynamic_pointer_cast<CGM>(multiplicand);
-	for (rcptr<Factor> c : before->getComponents()) std::cout << *c << std::endl;
-	std::cout << "==========================================================" << std::endl;
-	*/
-
 	multiplicand->inplaceAbsorb(multiplier);
-	
+
 	/*
 	std::cout << "==========================================================" << std::endl;
 	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(multiplicand);
 	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
-	std::cout << (after->getComponents()).size() << std::endl;
+	*/
+} 
+
+TEST_F (CGMTest, AbsorbGC) {
+	emdw::RVIds newVars = emdw::RVIds(kDim_);
+	for (unsigned i = 0; i < kDim_; i++) newVars[i] = kDim_ + i;
+
+	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	rcptr<Factor> gc = uniqptr<GaussCanonical>(new GaussCanonical(newVars, K_[0], h_[0], g_[0]));
+	rcptr<Factor> product = gm->absorb(gc);
+
+	/*
+	std::cout << "==========================================================" << std::endl;
+	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(product);
+	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
+	*/
+}
+
+
+TEST_F (CGMTest, AbsorbGCM) {
+	emdw::RVIds newVars = emdw::RVIds(kDim_);
+	for (unsigned i = 0; i < kDim_; i++) newVars[i] = kDim_ + i;
+
+	rcptr<Factor> multiplicand = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	rcptr<Factor> multiplier = uniqptr<CGM>(new CGM(newVars, K_, h_, g_));
+	rcptr<Factor> product = multiplicand->absorb(multiplier);
+
+	/*
+	std::cout << "==========================================================" << std::endl;
+	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(product);
+	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
+	*/
+}
+
+TEST_F (CGMTest, InplaceNormalize) {
+	rcptr<CGM> cgm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	std::vector<rcptr<Factor>> cgmComps = cgm->getComponents();
+	
+	cgm->inplaceNormalize();
+}
+
+TEST_F (CGMTest, Marginalize) {
+	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	rcptr<Factor> reduced = gm->marginalize(emdw::RVIds{1, 2});
+
+	/*
+	std::cout << "==========================================================" << std::endl;
+	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(reduced);
+	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
 	*/
 }

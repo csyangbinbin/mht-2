@@ -139,6 +139,7 @@ class CanonicalGaussianMixture : public Factor {
 	friend class AbsorbCGM;
 	friend class InplaceCancelCGM;
 	friend class CancelCGM;
+	friend class MarginalizeCGM;
 	friend class ObserveAndReduceCGM;
 	friend class InplaceWeakDampingCGM;
 
@@ -177,6 +178,7 @@ class CanonicalGaussianMixture : public Factor {
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
 				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
@@ -231,6 +233,7 @@ class CanonicalGaussianMixture : public Factor {
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
 				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
@@ -284,6 +287,7 @@ class CanonicalGaussianMixture : public Factor {
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
 				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
@@ -327,6 +331,7 @@ class CanonicalGaussianMixture : public Factor {
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
 				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
@@ -375,6 +380,7 @@ class CanonicalGaussianMixture : public Factor {
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
 				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
@@ -424,6 +430,7 @@ class CanonicalGaussianMixture : public Factor {
 				const rcptr<FactorOperator>& absorber = 0,
 				const rcptr<FactorOperator>& inplaceCanceller = 0,
 				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
 				const rcptr<FactorOperator>& observerAndReducer = 0,
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
@@ -438,8 +445,55 @@ class CanonicalGaussianMixture : public Factor {
 
 	public:
 		CanonicalGaussianMixture& operator=(const CanonicalGaussianMixture& d) = default;
+
 		CanonicalGaussianMixture& operator=(CanonicalGaussianMixture&& d) = default;
 
+
+	public:
+		/**
+		 * @brief Class specific configuration
+		 *
+		 * Reconfigures the exsiting clas, replacing old members with new 
+		 * ones. It may seem pointless, but it greatly simplifies the 
+		 * inplaceProcesses.
+		 *
+		 * @param vars Each variable in the PGM will be identified
+		 * with a specific integer that indentifies it.
+		 *
+		 * @param components A vector of GaussCanonical components, their
+		 * variables must be the same as vars
+		 *
+		 * @param presorted Set to true if vars is sorted according to their 
+		 * integer values.
+		 *
+		 * @param maxComponents The maximum allowable number of components in the mixture.
+		 *
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 *
+		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
+		 * If the distance between their means is less than this threshold they merged into 
+		 * one.
+		 *
+		 * A list of Factor operators, if it equals zero it will be set to a default
+		 * operator.
+		 */
+		unsigned classSpecificConfigure(
+				const emdw::RVIds& vars,
+				const std::vector<rcptr<Factor>>& components,
+				bool presorted = false,
+				const unsigned maxComponents = 100,
+				const double threshold = 0.1,
+				const double unionDistance = 5,
+				const rcptr<FactorOperator>& inplaceNormalizer = 0,
+				const rcptr<FactorOperator>& normalizer = 0,
+				const rcptr<FactorOperator>& inplaceAbsorber = 0,
+				const rcptr<FactorOperator>& absorber = 0,
+				const rcptr<FactorOperator>& inplaceCanceller = 0,
+				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
+				const rcptr<FactorOperator>& inplaceDamper = 0
+				);
 	public:
 		/** 
 		 * @brief Inplace normalization.
@@ -486,6 +540,9 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param rhsPtr The divisor. Can be CanonicalGaussianMixture or
 		 * GaussCanonical.
+		 *
+		 * @param procPtr A pointer to some user defined FactorOperator
+		 * process.
 		 */
 		inline void inplaceCancel(const Factor* rhsPtr, FactorOperator* procPtr = 0);
 		
@@ -499,12 +556,26 @@ class CanonicalGaussianMixture : public Factor {
 		 * @param rhsPtr The divisor. Can be CanonicalGaussianMixture or
 		 * GaussCanonical.
 		 *
-		 * @return A unique pointer to the CanonicalGaussianMixture quotient.
+		 * @param procPtr A pointer to some user defined FactorOperator
+		 * process.
+		 *
+		 * @return A unique pointer to the quotient Factor.
 		 */
 		inline uniqptr<Factor> cancel(const Factor* rhsPtr, FactorOperator* procPtr = 0) const;
 		
 		/**
 		 * @brief Marginalization.
+		 *
+		 * Marginalize out the given variables.
+		 *
+		 * @param variablesToKeep The variables which will not be marginalized out.
+		 *
+		 * @param presorted Is variablesToKeep sorted already?
+		 *
+		 * @param procPtr A unique pointer to some user defined FactorOperator
+		 * process.
+		 *
+		 * @return A unique pointer to the scoped reduced Factor.
 		 */
 		inline uniqptr<Factor> marginalize(const emdw::RVIds& variablesToKeep, 
 				bool presorted = false, FactorOperator* procPtr = 0) const;
@@ -594,6 +665,10 @@ class CanonicalGaussianMixture : public Factor {
 		 */
 		void mergeComponents();
 
+		/**
+		 * @brief Return a single Gaussian with matching moments.
+		 */
+
 	public:
 		/**
 		 * @brief Return Gaussian mixture components
@@ -613,7 +688,7 @@ class CanonicalGaussianMixture : public Factor {
 		/**
 		 * @brief Return the covariance matrices.
 		 */
-		std::vector<Matrix<double>> getCovariances() const;
+		std::vector<Matrix<double>> getCovs() const;
 
 		/**
 		 * @brief Return the gs

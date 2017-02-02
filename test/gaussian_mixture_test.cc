@@ -30,10 +30,11 @@ class CGMTest : public testing::Test {
 			// Identity
 			vars_ = emdw::RVIds(kDim_);
 			for (unsigned i = 0; i < kDim_; i++) vars_[i] = i;
-			
+		
 			// Weights
 			w_ = std::vector<double>(kCompN_);
 			for (unsigned i = 0; i < kCompN_; i++) w_[i] = 1.0;
+			w_[kCompN_ - 1] = 0.05;
 
 			// Mean and Covariances
 			mu_ = std::vector<ColVector<double>>(kCompN_);
@@ -237,4 +238,9 @@ TEST_F (CGMTest, Marginalize) {
 	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(reduced);
 	for (rcptr<Factor> c : after->getComponents()) std::cout << *c << std::endl;
 	*/
+}
+
+TEST_F (CGMTest, PruneComponents) {
+	rcptr<CGM> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
+	gm->pruneComponents();
 }

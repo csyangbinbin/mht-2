@@ -240,8 +240,10 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	}
 
 	// Prune and merge if necessary - or something
-	pruneComponents();
-	mergeComponents();
+	if (N_ > maxComp_) {
+		pruneComponents();
+		mergeComponents();
+	}
 } // Component constructor
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
@@ -507,7 +509,22 @@ uniqptr<GaussCanonical> CanonicalGaussianMixture::momentMatch() const {
 
 //------------------ Pruning and Merging
 
-void CanonicalGaussianMixture::pruneComponents() {} // pruneComponents()
+void CanonicalGaussianMixture::pruneComponents()  {
+	std::vector<double> weights = this->getWeights();
+	std::vector<rcptr<Factor>> newComps;
+
+	// Throw out all insignificant components
+	for (unsigned i = 0; i < N_; i++) {
+		if (weights[i] > threshold_) newComps.push_back(comps_[i]); 
+	}
+
+	// Re-assign
+	comps_ = newComps;
+	N_ = comps_.size();
+
+	// Re-normalize
+	this->inplaceNormalize();
+} // pruneComponents()
 
 void CanonicalGaussianMixture::mergeComponents() {} // mergeComponents()
 

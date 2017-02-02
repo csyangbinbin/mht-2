@@ -380,7 +380,7 @@ unsigned CanonicalGaussianMixture::classSpecificConfigure(
 			marginalizer,
 			observerAndReducer,
 			inplaceDamper);
-
+	
 	return 1;
 } // classSpecificConfigure()
 
@@ -456,7 +456,7 @@ CanonicalGaussianMixture* CanonicalGaussianMixture::vacuousCopy(const emdw::RVId
 
 bool CanonicalGaussianMixture::isEqual(const Factor* rhsPtr) const { return true; } // isEqual()
 
-unsigned CanonicalGaussianMixture::noOfVars() const { return 0; } // noOfVars()
+unsigned CanonicalGaussianMixture::noOfVars() const { return vars_.size(); } // noOfVars()
 
 emdw::RVIds CanonicalGaussianMixture::getVars() const { return vars_; } // getVars()
 

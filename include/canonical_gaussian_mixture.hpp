@@ -652,6 +652,18 @@ class CanonicalGaussianMixture : public Factor {
 
 	public:
 		/**
+		 * @brief Moment match the mixture with a single Gaussian.
+		 *
+		 * Determine a single GaussCanonical which matches the mixture's
+		 * first two moments.
+		 *
+		 * @return A unique pointer to a single GaussCanonical Factor
+		 * with matching moments.
+		 */
+		uniqptr<GaussCanonical> momentMatch() const;
+
+	public:
+		/**
 		 * @brief Prune the Gaussian mixture.
 		 *
 		 * Discard all components constributing insignificant mass.
@@ -665,15 +677,17 @@ class CanonicalGaussianMixture : public Factor {
 		 */
 		void mergeComponents();
 
-		/**
-		 * @brief Return a single Gaussian with matching moments.
-		 */
-
 	public:
 		/**
-		 * @brief Return Gaussian mixture components
+		 * @brief Return Gaussian mixture components.
 		 */
 		std::vector<rcptr<Factor>> getComponents() const;
+
+
+		/**
+		 * @brief Return number of Gaussian mixture components.
+		 */
+		double getNumberOfComponents() const;
 
 		/**
 		 * @brief Return the weights.

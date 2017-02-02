@@ -33,7 +33,7 @@ class CGMTest : public testing::Test {
 			
 			// Weights
 			w_ = std::vector<double>(kCompN_);
-			for (unsigned i = 0; i < kCompN_; i++) w_[i] = 1.0/kCompN_;
+			for (unsigned i = 0; i < kCompN_; i++) w_[i] = 1.0;
 
 			// Mean and Covariances
 			mu_ = std::vector<ColVector<double>>(kCompN_);
@@ -209,6 +209,9 @@ TEST_F (CGMTest, AbsorbGCM) {
 	rcptr<Factor> multiplier = uniqptr<CGM>(new CGM(newVars, K_, h_, g_));
 	rcptr<Factor> product = multiplicand->absorb(multiplier);
 
+
+	std::cout << "After absorbtion: " << product->getVars() << std::endl;
+
 	/*
 	std::cout << "==========================================================" << std::endl;
 	rcptr<CGM> after = std::dynamic_pointer_cast<CGM>(product);
@@ -226,6 +229,8 @@ TEST_F (CGMTest, InplaceNormalize) {
 TEST_F (CGMTest, Marginalize) {
 	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
 	rcptr<Factor> reduced = gm->marginalize(emdw::RVIds{1, 2});
+
+	std::cout << "After marginalization: " << reduced->getVars() << std::endl;
 
 	/*
 	std::cout << "==========================================================" << std::endl;

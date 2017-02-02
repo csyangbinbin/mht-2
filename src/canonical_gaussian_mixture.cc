@@ -117,8 +117,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	// Convert from Covariance to Canonical form, this is done upfront
 	// as using adjustMass after initialisation is more expensive.
 	int fail;
-	double detcov;
-	double g;
+	double detcov, g;
 	ColVector<double> h;
 	Matrix<double> K;
 
@@ -134,13 +133,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	}
 
 	// Make the sure high level description is sorted.
-	if (presorted || !vars.size()) {
-		vars_ = vars;
-		return;
-	} 
-	
-	std::vector<size_t> sorted = sortIndices(vars, std::less<unsigned>() );
-	vars_ = extract<unsigned>(vars, sorted);
+	vars_ = comps_[0]->getVars();
 } // Covariance constructor
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
@@ -190,13 +183,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	}
 
 	// Make the sure high level description is sorted.
-	if (presorted || !vars.size()) {
-		vars_ = vars;
-		return;
-	} 
-	
-	std::vector<size_t> sorted = sortIndices(vars, std::less<unsigned>() );
-	vars_ = extract<unsigned>(vars, sorted);
+	vars_ = comps_[0]->getVars();
 } // Canonical constructor
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
@@ -302,13 +289,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	}
 
 	// Make the new variables are sorted in CanonicalGaussianMixture
-	if (presorted) {
-		vars_ = newVars;
-		return;
-	} 
-	
-	std::vector<size_t> sorted = sortIndices(newVars, std::less<unsigned>() );
-	vars_ = extract<unsigned>(newVars, sorted);
+	vars_ = comps_[0]->getVars();
 } // Linear Gaussian constructor
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
@@ -356,13 +337,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	}
 
 	// Make the new variables are sorted in CanonicalGaussianMixture
-	if (presorted) {
-		vars_ = newVars;
-		return;
-	} 
-	
-	std::vector<size_t> sorted = sortIndices(newVars, std::less<unsigned>() );
-	vars_ = extract<unsigned>(newVars, sorted);
+	vars_ = comps_[0]->getVars();
 } // Non-linear Gaussian constructor
 
 CanonicalGaussianMixture::~CanonicalGaussianMixture() {} // Default Destructor
@@ -385,8 +360,10 @@ unsigned CanonicalGaussianMixture::classSpecificConfigure(
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper
 		) {
+	// Destroy existing ...
 	this->~CanonicalGaussianMixture();
 
+	// .. and begin anew!
 	new(this) CanonicalGaussianMixture(
 			vars,
 			components,
@@ -405,7 +382,7 @@ unsigned CanonicalGaussianMixture::classSpecificConfigure(
 			inplaceDamper);
 
 	return 1;
-} // classSpecificConfiguration()
+} // classSpecificConfigure()
 
 
 //------------------Family 1: Normalization
@@ -491,9 +468,42 @@ std::istream& CanonicalGaussianMixture::txtRead(std::istream& file) { return fil
 //TODO: Complete this!!
 std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const { return file; } // txtWrite()
 
-//------------------ Pruning and Merging
+//------------------ M-Projections
 
+uniqptr<GaussCanonical> CanonicalGaussianMixture::momentMatch() const {
+	// Old means and covariances
+	std::vector<double> w;
+	std::vector<ColVector<double>> mu;
+	std::vector<Matrix<double>> S;
+	double totalMass = 0;
 
+	// New mean and covariance
+	unsigned dimension = vars_.size();
+	ColVector<double> mean(dimension); mean *= 0;
+	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); 
+
+	// Get the non-vacuous Gaussians' weights, means and covariances
+	rcptr<GaussCanonical> gc;
+	for (rcptr<Factor> c : comps_) {
+		if (c->noOfVars() != 0) { // Horrible hack to check if vacuous
+			gc = std::dynamic_pointer_cast<GaussCanonical>(c);
+			w.push_back( gc->getMass() );
+			mu.push_back( gc->getMean() );
+			S.push_back( gc->getCov() );
+			totalMass += w.back();
+		}
+	}
+	
+	// Determine the first two moments of the mixture
+	double weight;
+	for (unsigned i = 0; i < w.size(); i++) {
+		weight = w[i]/totalMass;
+		mean += (weight)*(mu[i]);
+		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
+	}
+
+	return uniqptr<GaussCanonical>(new GaussCanonical(vars_, mean, cov) );
+}
 
 //------------------ Pruning and Merging
 
@@ -504,43 +514,45 @@ void CanonicalGaussianMixture::mergeComponents() {} // mergeComponents()
 
 //---------------- Useful get methods
 
-std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { return comps_; } //getComponents()
+std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { return comps_; } // getComponents()
+
+double CanonicalGaussianMixture::getNumberOfComponents() const { return N_; } // getNumberOfComponents()
 
 std::vector<double> CanonicalGaussianMixture::getWeights() const {
 	std::vector<double> weights;
 	for (rcptr<Factor> c : comps_) weights.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getMass() );
 	return weights;
-}
+} // getWeights()
 
 std::vector<ColVector<double>> CanonicalGaussianMixture::getMeans() const {
 	std::vector<ColVector<double>> means;
 	for (rcptr<Factor> c : comps_) means.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getMean() );
 	return means;
-}
+} // getMeans()
 
 std::vector<Matrix<double>> CanonicalGaussianMixture::getCovs() const {
 	std::vector<Matrix<double>> covs;
 	for (rcptr<Factor> c : comps_) covs.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getCov() );
 	return covs;
-}
+} // getCovs()
 
 std::vector<double> CanonicalGaussianMixture::getG() const {
 	std::vector<double> g;
 	for (rcptr<Factor> c : comps_) g.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getG() );
 	return g;
-}
+} // getG()
 
 std::vector<ColVector<double>> CanonicalGaussianMixture::getH() const {
 	std::vector<ColVector<double>> info;
 	for (rcptr<Factor> c : comps_) info.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getH() );
 	return info;
-}
+} // getH()
 
 std::vector<Matrix<double>> CanonicalGaussianMixture::getK() const {
 	std::vector<Matrix<double>> prec;
 	for (rcptr<Factor> c : comps_) prec.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getK());
 	return prec;
-}
+} // getK()
 
 //==================================================FactorOperators======================================
 
@@ -559,14 +571,15 @@ void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
 	std::vector<double> weights = lhs.getWeights();
 	double totalMass = 0;
 	for (auto& w : weights) totalMass += w;
-	std::cout << totalMass << std::endl;
-
-	for (rcptr<Factor> c : lhs.getComponents()) std::cout << *c << std::endl;
-
-	std::cout << "=====================================" << std::endl;
 
 	// Divide through by the total mass
-	for (rcptr<Factor> c : lhsComp) (std::dynamic_pointer_cast<GaussCanonical>(c))->adjustMass(1.0/totalMass);
+	// TODO: Sort this out!!! This is a mess!
+	rcptr<GaussCanonical> gc;
+	for (rcptr<Factor> c : lhsComp) {
+		gc = std::dynamic_pointer_cast<GaussCanonical>(c);
+		gc->classSpecificConfigure(gc->getVars(), gc->getK(), gc->getH(),
+				gc->getG() - log(totalMass), true);
+	}
 
 	// Reconfigure
 	lhs.classSpecificConfigure(lhs.getVars(), lhsComp, true,
@@ -582,14 +595,6 @@ void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
 				lhs.marginalizer_,
 				lhs.observeAndReducer_,
 				lhs.inplaceDamper_);
-
-	for (rcptr<Factor> c : lhs.getComponents()) std::cout << *c << std::endl;
-
-	weights = lhs.getWeights();
-	totalMass = 0;
-	for (auto& w : weights) totalMass += w;
-	std::cout << totalMass << std::endl;
-
 } // inplaceProcess()
 
 const std::string& NormalizeCGM::isA() const {
@@ -620,14 +625,15 @@ const std::string& InplaceAbsorbCGM::isA() const {
 } // isA()
 
 void InplaceAbsorbCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Factor* rhsFPtr) {
+	// Try cast the pointer to CanonicalGaussianMixture 
 	CanonicalGaussianMixture& lhs(*lhsPtr);
+	const CanonicalGaussianMixture* rhsCGMPtr = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
+	
+	// New components
 	std::vector<rcptr<Factor>> product;
 	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
-	
-	// Try cast the pointer to CanonicalGaussianMixture 
-	const CanonicalGaussianMixture* rhsCGMPtr = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
 
-	// If it isn't a CanonicalGaussianMixture GaussCanonical should do all the validation.
+	// If it isn't a CanonicalGaussianMixture then GaussCanonical should do all the validation.
 	if (rhsCGMPtr){
 		const CanonicalGaussianMixture& rhs(*rhsCGMPtr);
 		std::vector<rcptr<Factor>> rhsComps = rhs.getComponents();
@@ -642,6 +648,7 @@ void InplaceAbsorbCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 		for (rcptr<Factor> c : lhsComps) product.push_back(c->absorb(rhs));
 	}
 
+	// Reconfigure the class
 	lhs.classSpecificConfigure(product[0]->getVars(), product, true,
 				lhs.maxComp_,
 				lhs.threshold_,
@@ -682,7 +689,37 @@ const std::string& InplaceCancelCGM::isA() const {
 } // isA()
 
 void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Factor* rhsFPtr) {
+	// Try cast the pointer to CanonicalGaussianMixture 
+	CanonicalGaussianMixture& lhs(*lhsPtr);
+	const CanonicalGaussianMixture* rhsCGMPtr = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
+	const CanonicalGaussianMixture& rhs(*rhsCGMPtr); // Not very safe
+	
+	// New components
+	std::vector<rcptr<Factor>> quotient;
+	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
+	rcptr<Factor> single;
+	
+	// If it isn't a CanonicalGaussianMixture then GaussCanonical should do all the validation.
+	if (rhsCGMPtr) single = rhs.momentMatch();
+	else single = uniqptr<Factor>(rhsFPtr->copy());
 
+	// Divide through by a single GaussCanonical
+	for (rcptr<Factor> i : lhsComps) quotient.push_back( i->cancel(single)  );
+
+	// Reconfigure the class
+	lhs.classSpecificConfigure(quotient[0]->getVars(), quotient, true,
+				lhs.maxComp_,
+				lhs.threshold_,
+				lhs.unionDistance_,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_);
 } // inplaceCancel()
 
 const std::string& CancelCGM::isA() const {

@@ -673,7 +673,9 @@ class CanonicalGaussianMixture : public Factor {
 		/**
 		 * @brief Merge all closely space components.
 		 *
-		 * Merge all components which are close to one another.
+		 * Merge all components which are close to one another. This is
+		 * an incredibly expensive procedure, but there aren't any cheaper
+		 * methods of reducing a mixture.
 		 */
 		void mergeComponents();
 

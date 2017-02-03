@@ -118,8 +118,6 @@ void GraphBuilder::ConstructClusters() {
 	std::sort(neighbourhoods.begin(), neighbourhoods.end());
 	neighbourhoods.erase(unique(neighbourhoods.begin(), neighbourhoods.end()), neighbourhoods.end());
 
-	for (emdw::RVIds i : neighbourhoods) std::cout<< i << std::endl;
-
 	/*
 	// Step 2: Generate all pairwise connections implied by shared associations
 	for (unsigned i = 0; i < neighbourhoods.size(); i++) {

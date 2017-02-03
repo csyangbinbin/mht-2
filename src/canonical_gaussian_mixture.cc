@@ -521,12 +521,87 @@ void CanonicalGaussianMixture::pruneComponents()  {
 	// Re-assign
 	comps_ = newComps;
 	N_ = comps_.size();
-
-	// Re-normalize
-	this->inplaceNormalize();
 } // pruneComponents()
 
-void CanonicalGaussianMixture::mergeComponents() {} // mergeComponents()
+void CanonicalGaussianMixture::mergeComponents() {
+	std::vector<rcptr<Factor>> merged;
+	std::vector<rcptr<GaussCanonical>> oldComps, cTemp;
+	
+	// Weights of old components
+	std::vector<double> w, wTemp;
+	std::set<unsigned> indices;
+	unsigned L, maxIndex;
+
+	// Parameters of new components
+	unsigned dim = vars_.size();
+	ColVector<double> mu(dim), mu_0(dim), mean(dim);
+	Matrix<double> S = gLinear::zeros<double>(dim, dim);
+	double g;
+
+	// Get the weights and cast the Factors down to CG
+	for (rcptr<Factor> c : comps_) {
+		oldComps.push_back(std::dynamic_pointer_cast<GaussCanonical>(c));
+		w.push_back( (oldComps.back())->getMass() );
+	}
+
+	// Calculate the merged components
+	while (!oldComps.empty()) {
+		// Determine maximum remaining weight.
+		maxIndex = std::max_element(w.begin(), w.end()) - w.begin(); // Hack to get max element's index.
+		mu_0 = oldComps[maxIndex]->getMean(); // Dominant component's mean.
+		L = w.size();
+		
+		// Determined merged components.
+		g = 0; mu *= 0; mean *= 0; S *= 0;
+		for (unsigned i = 0; i < L; i++) {
+			if (oldComps[i]->mahanalobis(mu_0) <= unionDistance_) {
+				mean = oldComps[i]->getMean();
+				
+				g += w[i];
+				mu += w[i]*(mean);
+				S +=  w[i]*(oldComps[i]->getCov() + (mean - mu_0)*((mean - mu_0).transpose()));
+
+				indices.insert(i);
+			}
+		}
+
+		// Absolutely terrible removal technique, but neat iterator solutions hate rcptr<Factor>.
+		for (unsigned i = 0; i < L; i++) {
+			if (!indices.count(i)) {
+				cTemp.push_back(oldComps[i]);
+				wTemp.push_back(w[i]);
+			}		
+		}
+		
+		// Re-assign and clear temporary variables
+		oldComps = cTemp; cTemp.clear(); 
+		w = wTemp; wTemp.clear();
+		indices.clear();
+
+		// Create a new Gaussian
+		merged.push_back( uniqptr<GaussCanonical> (new GaussCanonical(vars_, mu/g, S/g, true)) );
+	}
+
+	// Re-assign
+	comps_ = merged;
+	N_ = comps_.size();
+
+	// If there are still too many components, throw out the smallest ones
+	if (N_ > maxComp_) {
+		comps_.clear(); oldComps.clear(); w.clear();
+
+		// Get the new weights
+		for (rcptr<Factor> c : merged) w.push_back( (std::dynamic_pointer_cast<GaussCanonical>(c))->getMass() );
+
+		// Sort
+		std::vector<size_t> sorted = sortIndices( w, std::less<double>() );
+		merged = extract<rcptr<Factor>>(merged, sorted);
+		
+		// Re-assign
+		std::copy(merged.begin(), merged.begin() + maxComp_, std::back_inserter(comps_));
+		N_ = maxComp_;
+	}
+} // mergeComponents()
 
 
 //---------------- Useful get methods
@@ -590,7 +665,7 @@ void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
 	for (auto& w : weights) totalMass += w;
 
 	// Divide through by the total mass
-	// TODO: Sort this out!!! This is a mess!
+	// TODO: Sort this out, it is a mess.
 	rcptr<GaussCanonical> gc;
 	for (rcptr<Factor> c : lhsComp) {
 		gc = std::dynamic_pointer_cast<GaussCanonical>(c);

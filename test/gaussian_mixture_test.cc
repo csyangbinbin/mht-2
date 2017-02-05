@@ -88,7 +88,7 @@ class CGMTest : public testing::Test {
 		}
 
 	protected:
-		const unsigned kCompN_ = 150;
+		const unsigned kCompN_ = 3;
 		const unsigned kDim_ = 6;
 		emdw::RVIds vars_;
 

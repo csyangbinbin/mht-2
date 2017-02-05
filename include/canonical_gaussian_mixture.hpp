@@ -510,7 +510,7 @@ class CanonicalGaussianMixture : public Factor {
 		/**
 		 * @brief Normalization.
 		 *
-		 * Inplace normalization. Vacuous Gaussian distributions
+		 * Normalization. Vacuous Gaussian distributions
 		 * are unnormalizable, if this mixture contains a vacuous
 		 * component normalization will fail.
 		 *
@@ -522,12 +522,26 @@ class CanonicalGaussianMixture : public Factor {
 		inline uniqptr<Factor> normalize(FactorOperator* procPtr = 0) const;
 
 		/**
-		 * @brief Inplace absorbtion.
+		 * @brief Inplace multiplication.
+		 *
+		 * Inplace multiplication. The multiplier is allowed to be a CanonicalGaussianMixture
+		 * or a GaussCanonical.
+		 *
+		 * @param rhsPtr The divisor. Can be CanonicalGaussianMixture or
+		 * GaussCanonical.
 		 */
 		inline void inplaceAbsorb(const Factor* rhsPtr, FactorOperator* procPtr = 0);
 		
 		/**
-		 * @brief Absorbtion.
+		 * @brief Multiplication.
+		 *
+		 * Multiplication. The multiplier is allowed to be a CanonicalGaussianMixture
+		 * or a GaussCanonical.
+		 *
+		 * @param rhsPtr The divisor. Can be CanonicalGaussianMixture or
+		 * GaussCanonical.
+		 *
+		 * @return A uniqptr to the product Factor.
 		 */
 		inline uniqptr<Factor> absorb(const Factor* rhsPtr, FactorOperator* procPtr = 0) const;
 
@@ -584,6 +598,17 @@ class CanonicalGaussianMixture : public Factor {
 		 * @brief Observe and Reduce
 		 *
 		 * Introduce evidence and collapse the factor.
+		 *
+		 * @param variables The variables which have been opbsevered in some 
+		 * given state.
+		 *
+		 * @param assignedVals The values (state) of the given variables.
+		 *
+		 * @param presorted Are the given variables already sorted?
+		 *
+		 * @param procPtr A pointer to some user defined FactorOperator
+		 *
+		 * @return A unique pointer to resulting Factor.
 		 */
 		virtual uniqptr<Factor> observeAndReduce( const emdw::RVIds& variables,
 				const emdw::RVVals& assignedVals, bool presorted = false,

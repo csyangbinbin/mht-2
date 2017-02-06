@@ -15,6 +15,7 @@
 #include "oddsandsods.hpp"
 #include "gausscanonical.hpp"
 #include "canonical_gaussian_mixture.hpp"
+#include "graph.hpp"
 #include "node.hpp"
 #include "transforms.hpp"
 #include "utils.hpp"
@@ -31,14 +32,30 @@ class GraphTest : public testing::Test {
 		}
 };
 
-TEST_F (GraphTest, InitTest) {
-	std::map <rcptr<Factor>, emdw::RVIds> m;
-	m.clear();
+TEST_F (GraphTest, GraphInitTest) {
+	// Factors
+	rcptr<Factor> gc_1 = uniqptr<Factor>(new GaussCanonical(emdw::RVIds{0, 1}));
+	rcptr<Factor> gc_2 = uniqptr<Factor>(new GaussCanonical(emdw::RVIds{0, 2}));
+	rcptr<Factor> gc_3 = uniqptr<Factor>(new GaussCanonical(emdw::RVIds{1, 2}));
+	rcptr<Factor> gc_4 = uniqptr<Factor>(new GaussCanonical(emdw::RVIds{87, 54}));
 
-	rcptr<Factor> gc_key = uniqptr<GaussCanonical>(new GaussCanonical());
-	emdw::RVIds val = {0, 1, 3};
+	// Clusters
+	rcptr<Node> psi_1 = uniqptr<Node>(new Node(gc_1));
+	rcptr<Node> psi_2 = uniqptr<Node>(new Node(gc_2));
+	rcptr<Node> psi_3 = uniqptr<Node>(new Node(gc_3));
+	rcptr<Node> psi_4 = uniqptr<Node>(new Node(gc_4));
 
-	m[gc_key] = val;
+	// Graph
+	rcptr<Graph> graph = uniqptr<Graph>(new Graph());
+	graph->addEdge(psi_1, psi_2);
+	graph->addEdge(psi_2, psi_3);
+	graph->addEdge(psi_3, psi_1);
 
-	std::cout << m[gc_key] << std::endl;
+	// dfs
+	std::map<rcptr<Node>, bool> marked = graph->depthFirstSearch();
+}
+
+TEST_F (GraphTest, NodeInitTest) {
+	rcptr<Factor> gc = uniqptr<Factor>(new GaussCanonical());
+	rcptr<Node> node = uniqptr<Node>(new Node(gc));
 }

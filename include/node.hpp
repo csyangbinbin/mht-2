@@ -12,14 +12,16 @@
 #include "factoroperator.hpp"
 #include "emdw.hpp"
 #include "anytype.hpp"
-#include "gausscanonical.hpp"
-#include "v2vtransform.hpp"
+
+// Forward Declaration
+class Node;
 
 /**
  * @brief A class representing a general cluster node.
  *
  * A class reprensenting a node in a cluster graph. A
- * wrapper type for a Factor.
+ * wrapper type for a Factor, this uses an
+ * adjacency list representation for a Graph.
  *
  * @author SCJ Robertson
  * @since 05/02/17
@@ -28,15 +30,52 @@ class Node {
 
 	public:
 		/**
-		 * Default constructor.
+		 * @brief Node constructor.
+		 *
+		 * Create a general cluster node given the factor it
+		 * contains and its adjacent nodes.
+		 * 
+		 * @param factor The cluster the node is to contain.
 		 */
-		Node();
+		Node(rcptr<Factor> cluster);
 
 		/**
-		 * Default destructor
+		 * @brief Default destructor.
 		 */
 		~Node();
 
+	public:
+		/**
+		 * @brief Add an edge.
+		 *
+		 * Connect this cluster node to an
+		 * adjacent cluster node.
+		 *
+		 * @param node An adjacent cluster node.
+		 *
+		 * @param sepset The sepset variables shared between
+		 * the two nodes.
+		 *
+		 * @param message An initial message sent to the cluster.
+		 */
+		void addEdge(rcptr<Node> node, emdw::RVIds& sepset, rcptr<Factor> message = 0);
+
+	public:
+		/**
+		 * @brief Return variables.
+		 */
+		emdw::RVIds getVars() const;
+
+		/**
+		 * @brief Return factor.
+		 */
+		rcptr<Factor> getFactor() const;
+
+		/**
+		 * @brief Return the adjacent nodes
+		 */
+		std::vector<rcptr<Node>> getAdjacentNodes() const;
+	
 	public:
 		/** 
 		 * @brief Inplace normalization.
@@ -46,7 +85,7 @@ class Node {
 		 * @param procPtr A pointer to some user defined FactorOperator
 		 * process.
 		 */
-		void inplaceNormalize (FactorOperator *procPtr = 0);
+		void inplaceNormalize (FactorOperator* procPtr = 0);
 
 		/**
 		 * @brief Normalization.
@@ -58,7 +97,7 @@ class Node {
 		 *
 		 * @return A unique pointer to a normalized Factor.
 		 */
-		uniqptr<Factor> normalize (FactorOperator *procPtr = 0) const;
+		uniqptr<Factor> normalize (FactorOperator* procPtr = 0) const;
 
 		/**
 		 * @brief Inplace multiplication.
@@ -68,8 +107,11 @@ class Node {
 		 *
 		 * @param rhsPtr The divisor. Can be CanonicalGaussianMixture or
 		 * GaussCanonical.
+		 *
+		 * @param procPtr A pointer to some user defined FactorOperator
+		 * process.
 		 */
-		void inplaceAbsorb (FactorOperator *procPtr = 0);
+		void inplaceAbsorb (const Factor* rhsPtr, FactorOperator* procPtr = 0);
 
 		/**
 		 * @brief Multiplication.
@@ -82,7 +124,7 @@ class Node {
 		 *
 		 * @return A uniqptr to the product Factor.
 		 */
-		uniqptr<Factor> absorb (FactorOperator *procPtr = 0) const;
+		uniqptr<Factor> absorb (const Factor* rhsPtr, FactorOperator* procPtr = 0) const;
 
 		/**
 		 * @brief Inplace division.
@@ -94,7 +136,7 @@ class Node {
 		 * @param procPtr A pointer to some user defined FactorOperator
 		 * process.
 		 */
-		void inplaceCancel (FactorOperator *procPtr = 0);
+		void inplaceCancel (const Factor* rhsPtr, FactorOperator *procPtr = 0);
 
 		/**
 		 * @brief Division.
@@ -108,7 +150,7 @@ class Node {
 		 *
 		 * @return A unique pointer to the quotient Factor.
 		 */
-		uniqptr<Factor> cancel (FactorOperator *procPtr = 0) const;
+		uniqptr<Factor> cancel (const Factor* rhsPtr, FactorOperator* procPtr = 0) const;
 
 		/**
 		 * @brief Marginalization.
@@ -128,7 +170,25 @@ class Node {
 				bool presorted = false, FactorOperator* procPtr = 0) const;
 
 		/**
-		I * @brief Observe and Reduce
+		 * @brief Inplace Observe and Reduce
+		 *
+		 * Introduce evidence and collapse the factor.
+		 *
+		 * @param variables The variables which have been opbsevered in some 
+		 * given state.
+		 *
+		 * @param assignedVals The values (state) of the given variables.
+		 *
+		 * @param presorted Are the given variables already sorted?
+		 *
+		 * @param procPtr A pointer to some user defined FactorOperator
+		 */
+		void inplaceObserveAndReduce( const emdw::RVIds& variables,
+				const emdw::RVVals& assignedVals, bool presorted = false,
+				FactorOperator* procPtr = 0);
+
+		/**
+		 * @brief Observe and Reduce
 		 *
 		 * Introduce evidence and collapse the factor.
 		 *
@@ -148,20 +208,8 @@ class Node {
 				FactorOperator* procPtr = 0) const;
 
 	public:
-		/**
-		 * @brief Return variables.
-		 */
-		emdw::RVIds getVars() const;
-
-		/**
-		 * @brief Return factor.
-		 */
-		rcptr<Factor> getFactor() const;
-
-		/**
-		 * @brief Return the adjacent nodes
-		 */
-		std::vector<rcptr<Node>> getAdjacentNodes() const;
+		template<typename T>
+		friend std::ostream& operator<<(std::ostream& file, const Node& n);
 
 	private:
 		// Current information and scope
@@ -169,12 +217,11 @@ class Node {
 		rcptr<Factor> factor_;
 		
 		// Neighbouring vertices
-		std::vector<rcptr<Node>> adjacencyList_;
-		std::map<rcptr<Node>, emdw::RVIds> sepsets_;
+		std::map<rcptr<Node>, emdw::RVIds> sepsets_; // Contains adjacency list
 		
 		// Past and passed information
 		rcptr<Factor> prevFactor_;
-		std::map<rcptr<Node>, rpctr<Factor> sentMsg_;
+		std::map<rcptr<Node>, rcptr<Factor>> sentMsg_;
 }; // Node
 
 #endif // NODE_HPP

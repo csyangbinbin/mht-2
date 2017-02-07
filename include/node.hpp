@@ -37,7 +37,7 @@ class Node {
 		 * 
 		 * @param factor The cluster the node is to contain.
 		 */
-		Node(rcptr<Factor> cluster);
+		Node(const rcptr<Factor> factor);
 
 		/**
 		 * @brief Default destructor.
@@ -51,14 +51,38 @@ class Node {
 		 * Connect this cluster node to an
 		 * adjacent cluster node.
 		 *
-		 * @param node An adjacent cluster node.
+		 * @param w An adjacent cluster node.
 		 *
 		 * @param sepset The sepset variables shared between
 		 * the two nodes.
 		 *
 		 * @param message An initial message sent to the cluster.
 		 */
-		void addEdge(rcptr<Node> node, emdw::RVIds& sepset, rcptr<Factor> message = 0);
+		void addEdge(const rcptr<Node> w, const emdw::RVIds& sepset, const rcptr<Factor> message = 0);
+
+		/**
+		 * @brief Add a newly received message to the log.
+		 *
+		 * Add a newly received message to the message 
+		 * log.
+		 *
+		 * @param w The neighbouring node in the graph that
+		 * sent the message.
+		 *
+		 * @param message The newly received message.
+		 */
+		void logMessage(const rcptr<Node> w, const rcptr<Factor> message);
+
+
+		/**
+		 * @brief Cache a the current status of the factor.
+		 * 
+		 * Cache the current status of the factor. This allows for
+		 * convergence tests during the next round of message passing.
+		 *
+		 * @param factor The current status of the factor.
+		 */
+		void cacheFactor(const rcptr<Factor> factor);
 
 	public:
 		/**
@@ -70,6 +94,21 @@ class Node {
 		 * @brief Return factor.
 		 */
 		rcptr<Factor> getFactor() const;
+
+		/**
+		 * @brief Return the previous the cached factor
+		 */
+		rcptr<Factor> getCachedFactor() const;
+
+		/**
+		 * @brief Return sepset variables
+		 */
+		emdw::RVIds getSepset(const rcptr<Node> w);
+
+		/**
+		 * @brief Return last message received from a given neighbour.
+		 */
+		rcptr<Factor> getReceivedMessage(const rcptr<Node> w);
 
 		/**
 		 * @brief Return the adjacent nodes
@@ -221,7 +260,7 @@ class Node {
 		
 		// Past and passed information
 		rcptr<Factor> prevFactor_;
-		std::map<rcptr<Node>, rcptr<Factor>> sentMsg_;
+		std::map<rcptr<Node>, rcptr<Factor>> recMsg_;
 }; // Node
 
 #endif // NODE_HPP

@@ -20,18 +20,18 @@
 
 Graph::Graph () {} // Default constructor
 
-Graph::Graph (std::vector<rcptr<Node>> nodes) {
+Graph::Graph (const std::vector<rcptr<Node>> nodes) {
 	for (rcptr<Node> n : nodes) addNode(n);
 } // Node vector constructor
 
 Graph::~Graph () {} // Default destructor
 
-void Graph::addNode (rcptr<Node> v) {
+void Graph::addNode (const rcptr<Node> v) {
 	nodes_.insert(v);
 	n_ = nodes_.size();
 } // addNode()
 
-void Graph::addEdge (rcptr<Node> v, rcptr<Node> w) {
+void Graph::addEdge (const rcptr<Node> v, const rcptr<Node> w) {
 	emdw::RVIds l2i, r2i;
 	emdw::RVIds sepset = sortedIntersection(v->getVars(), w->getVars(), l2i, r2i);
 
@@ -45,26 +45,51 @@ void Graph::addEdge (rcptr<Node> v, rcptr<Node> w) {
 	e_++;
 } // addEdge()
 
-std::map<rcptr<Node>, bool> Graph::depthFirstSearch () {
+void Graph::depthFirstSearch () {
 	marked_.clear();
 
 	for(rcptr<Node> v : nodes_) marked_[v] = false; 
 
-	dfs(*(nodes_.begin()));
-	
-	return marked_;
+	dfs(*(nodes_.begin()));	
+
 } // depthFirstSearch()
 
-void Graph::dfs(rcptr<Node> v) {
-	std::cout << v->getVars() << std::endl;
+void Graph::dfs(const rcptr<Node> v) {
+	std::vector<rcptr<Node>> adjacent = v->getAdjacentNodes();
 
 	marked_[v] = true;
+	for (rcptr<Node> w : adjacent) bupReceiveMessage(v, w);
+	for (rcptr<Node> w : adjacent) if (!marked_[w]) dfs(w);
 
-	for (rcptr<Node> w : v->getAdjacentNodes()) {
-		if (!marked_[w]) dfs(w);
-	}
+	
+	rcptr<Factor> vFactor = v->getFactor();
+	/*
+	rcptr<Factor> cachedFactor = v->getCachedFactor();
+	double distance = vFactor->distance( cachedFactor->copy() );
 
+
+	std::cout << "=================" << std::endl;
+	std::cout << "Distance: " << distance << std::endl;
+	std::cout << "New:\n " << *vFactor << std::endl;
+	std::cout << "Old:\n " << *cachedFactor << std::endl;
+	std::cout << "=================" << std::endl;
+	*/
+
+	v->cacheFactor(vFactor);
 } // dfs()
+
+void Graph::bupReceiveMessage(const rcptr<Node> v, const rcptr<Node> w) {
+	emdw::RVIds sepset = v->getSepset(w);
+
+	// Divide the incoming message by the previous sent information
+	rcptr<Factor> receivedMsg = w->getReceivedMessage(v);
+	rcptr<Factor> incomingMsg = (w->marginalize(sepset))->cancel(receivedMsg);
+
+	// Absorb and log the message
+	v->inplaceAbsorb(incomingMsg->copy());
+	v->inplaceNormalize();
+	v->logMessage(w, incomingMsg);
+} // bupReceiveMessage()
 
 unsigned Graph::getNoOfNodes() const {
 	return n_;

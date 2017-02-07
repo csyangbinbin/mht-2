@@ -17,16 +17,27 @@
 #include "vecset.hpp"
 #include "node.hpp"
 
-Node::Node(rcptr<Factor> cluster) : vars_(cluster->getVars()), prevFactor_(cluster->copy()) {
+Node::Node(const rcptr<Factor> factor) 
+	: vars_(factor->getVars()),
+	factor_(factor->copy()),
+	prevFactor_(factor->copy()) {
 } // Constructor()
 
 Node::~Node() {} // Default destructor()
 
-void Node::addEdge(rcptr<Node> node, emdw::RVIds& sepset, rcptr<Factor> message) {
-	sepsets_[node] = sepset;
-	if (message) sentMsg_[node] = uniqptr<Factor> ( (factor_)->vacuousCopy(sepset, true) );
-	else sentMsg_[node] = message;
+void Node::addEdge(const rcptr<Node> w, const emdw::RVIds& sepset, const rcptr<Factor> message) {
+	sepsets_[w] = sepset;
+	if (!message) recMsg_[w] =  uniqptr<Factor> ( factor_->vacuousCopy(sepset, false) );
+	else recMsg_[w] = uniqptr<Factor> (factor_->copy());
 } // addEdge()
+
+void Node::logMessage(const rcptr<Node> w, const rcptr<Factor> message) {
+	recMsg_[w] = message;
+} // logMessage()
+
+void Node::cacheFactor(const rcptr<Factor> factor) {
+	prevFactor_ = uniqptr<Factor>(factor->copy());
+} // cacheFactor()
 
 emdw::RVIds Node::getVars() const {
 	return vars_;
@@ -35,6 +46,18 @@ emdw::RVIds Node::getVars() const {
 rcptr<Factor> Node::getFactor() const {
 	return uniqptr<Factor>( (factor_)->copy() );
 } // getFactor()
+
+rcptr<Factor> Node::getCachedFactor() const {
+	return uniqptr<Factor> ( (prevFactor_)->copy() );
+} // getCachedFactor()
+
+emdw::RVIds Node::getSepset(const rcptr<Node> w) {
+	return sepsets_[w];
+} // getSepset()
+
+rcptr<Factor> Node::getReceivedMessage(const rcptr<Node> w) {
+	return recMsg_[w];
+} // getSentMessage()
 
 std::vector<rcptr<Node>> Node::getAdjacentNodes() const {
 	std::vector<rcptr<Node>> neighbours;

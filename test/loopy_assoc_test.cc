@@ -22,39 +22,39 @@ using namespace emdw;
 class LoopyAssocTest : public testing::Test {
 	protected:
 		virtual void SetUp() {
-			marg_ptr_ = uniqptr<FactorOperator> (new DiscreteTable_Marginalize<T>);
-			inorm_ptr_ = uniqptr<FactorOperator> (new DiscreteTable_InplaceNormalize<T>);
-			norm_ptr_ = uniqptr<FactorOperator> (new DiscreteTable_MaxNormalize<T>);
+			inplaceNormalizer_ = uniqptr<FactorOperator> (new DiscreteTable_InplaceNormalize<T>);
+			normalizer_ = uniqptr<FactorOperator> (new DiscreteTable_MaxNormalize<T>);
+			marginalizer_ = uniqptr<FactorOperator> (new DiscreteTable_Marginalize<T>);
 
 			// Probability table for a0
-			a0_dom_ = uniqptr<DASS>(new DASS{0, 1});
-			sparse_probs_.clear();
-			sparse_probs_[DASS{0}] = sparse_probs_[DASS{1}] = 1;
+			a0Dom_ = uniqptr<DASS>(new DASS{0, 1});
+			sparseProbs_.clear();
+			sparseProbs_[DASS{0}] = sparseProbs_[DASS{1}] = 1;
 
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a0}, {a0_dom_}, kDefProb_, 
-					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) ) );
+			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a0}, {a0Dom_}, kDefProb_, 
+					sparseProbs_, kMargin_, kFloor_, false, marginalizer_, inplaceNormalizer_, normalizer_) ) );
 
 			// Probability table for a1
-			a1_dom_ = uniqptr<DASS>(new DASS{0, 1, 2});
-			sparse_probs_.clear();
-			sparse_probs_[DASS{0}] = sparse_probs_[DASS{1}] = sparse_probs_[DASS{2}] = 1;
+			a1Dom_ = uniqptr<DASS>(new DASS{0, 1, 2});
+			sparseProbs_.clear();
+			sparseProbs_[DASS{0}] = sparseProbs_[DASS{1}] = sparseProbs_[DASS{2}] = 1;
 
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a1}, {a1_dom_}, kDefProb_, 
-					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) ) );
+			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a1}, {a1Dom_}, kDefProb_, 
+					sparseProbs_, kMargin_, kFloor_, false, marginalizer_, inplaceNormalizer_, normalizer_) ) );
 
 			// Probability table for a2
-			a2_dom_ = uniqptr<DASS>(new DASS{0, 2});
-			sparse_probs_.clear();
-			sparse_probs_[DASS{0}] = sparse_probs_[DASS{2}] = 1;
+			a2Dom_ = uniqptr<DASS>(new DASS{0, 2});
+			sparseProbs_.clear();
+			sparseProbs_[DASS{0}] = sparseProbs_[DASS{2}] = 1;
 
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a2}, {a2_dom_}, kDefProb_, 
-					sparse_probs_, kMargin_, kFloor_, false, marg_ptr_, inorm_ptr_, norm_ptr_) ) );
+			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a2}, {a2Dom_}, kDefProb_, 
+					sparseProbs_, kMargin_, kFloor_, false, marginalizer_, inplaceNormalizer_, normalizer_) ) );
 
 		}
 
 		virtual void TearDown() {
 			hypotheses_.clear();
-			sparse_probs_.clear();
+			sparseProbs_.clear();
 		}
 
 	protected:
@@ -68,33 +68,33 @@ class LoopyAssocTest : public testing::Test {
 		const double kMargin_ = 0.0;
 		const double kDefProb_ = 0.0;
 
-		rcptr<FactorOperator> marg_ptr_;
-		rcptr<FactorOperator> inorm_ptr_;
-		rcptr<FactorOperator> norm_ptr_;
+		rcptr<FactorOperator> inplaceNormalizer_;
+		rcptr<FactorOperator> normalizer_;
+		rcptr<FactorOperator> marginalizer_;
 
-		rcptr<DASS> a0_dom_;
-		rcptr<DASS> a1_dom_;
-		rcptr<DASS> a2_dom_;
+		rcptr<DASS> a0Dom_;
+		rcptr<DASS> a1Dom_;
+		rcptr<DASS> a2Dom_;
 
 		vector<rcptr<Factor>> hypotheses_;
-		map<DASS, FProb> sparse_probs_;
+		map<DASS, FProb> sparseProbs_;
 }; // LoopyAssocTest
 
 
 // GraphBuilder tests
 TEST_F (LoopyAssocTest, GraphBuilderInit) {
 
-	std::map<RVIdType, rcptr<DASS>> assoc_hypotheses;
-	assoc_hypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
-	assoc_hypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
-	assoc_hypotheses[3] = uniqptr<DASS>(new DASS{0, 3});
-	assoc_hypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 3});
-	assoc_hypotheses[5] = uniqptr<DASS>(new DASS{0, 1, 2, 3});
-	assoc_hypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
-	assoc_hypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
+	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
+	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
+	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
+	assocHypotheses[3] = uniqptr<DASS>(new DASS{0, 3});
+	assocHypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 3});
+	assocHypotheses[5] = uniqptr<DASS>(new DASS{0, 1, 2, 3});
+	assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
+	assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
 
-	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(assoc_hypotheses, marg_ptr_,
-				inorm_ptr_, norm_ptr_, kFloor_, kMargin_, kDefProb_));
+	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(assocHypotheses,  kFloor_, kMargin_, kDefProb_, 
+				marginalizer_, inplaceNormalizer_, normalizer_));
 	
 	EXPECT_EQ(0, 0);
 } // GraphBuilderInit()

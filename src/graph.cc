@@ -55,27 +55,16 @@ void Graph::depthFirstSearch () {
 } // depthFirstSearch()
 
 void Graph::dfs(const rcptr<Node> v) {
+
+	std::cout << v->getVars() << std::endl;
+
 	std::vector<rcptr<Node>> adjacent = v->getAdjacentNodes();
 
 	marked_[v] = true;
-	for (rcptr<Node> w : adjacent) bupReceiveMessage(v, w);
+	//for (rcptr<Node> w : adjacent) bupReceiveMessage(v, w);
 	for (rcptr<Node> w : adjacent) if (!marked_[w]) dfs(w);
 
-	
-	rcptr<Factor> vFactor = v->getFactor();
-	/*
-	rcptr<Factor> cachedFactor = v->getCachedFactor();
-	double distance = vFactor->distance( cachedFactor->copy() );
-
-
-	std::cout << "=================" << std::endl;
-	std::cout << "Distance: " << distance << std::endl;
-	std::cout << "New:\n " << *vFactor << std::endl;
-	std::cout << "Old:\n " << *cachedFactor << std::endl;
-	std::cout << "=================" << std::endl;
-	*/
-
-	v->cacheFactor(vFactor);
+	v->cacheFactor(v->getFactor());
 } // dfs()
 
 void Graph::bupReceiveMessage(const rcptr<Node> v, const rcptr<Node> w) {

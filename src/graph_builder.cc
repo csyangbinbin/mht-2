@@ -17,131 +17,167 @@
 #include "vecset.hpp"
 #include "graph_builder.hpp"
 
-GraphBuilder::GraphBuilder(const std::map<emdw::RVIdType, rcptr<DASS>>& assoc_hypotheses,
-		const rcptr<FactorOperator>& marg_ptr, 
-		const rcptr<FactorOperator>& inorm_ptr,
-		const rcptr<FactorOperator>& norm_ptr,
+
+rcptr<FactorOperator> defaultInplaceNormalizerGB = uniqptr<FactorOperator>(new DiscreteTable_InplaceNormalize<unsigned short>);
+rcptr<FactorOperator> defaultNormalizerGB = uniqptr<FactorOperator>(new DiscreteTable_MaxNormalize<unsigned short>);
+rcptr<FactorOperator> defaultMarginalizerGB = uniqptr<FactorOperator>(new DiscreteTable_Marginalize<unsigned short>);
+
+GraphBuilder::GraphBuilder(
+		const std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses,
 		const double floor,
 		const double margin,
-		const double def_prob) :
-		assoc_hypotheses_(assoc_hypotheses),
-		marg_ptr_(marg_ptr),
-		inorm_ptr_(inorm_ptr),
-		norm_ptr_(norm_ptr),
-		floor_(floor),
-		margin_(margin),
-		def_prob_(def_prob) {
+		const double defProb,
+		const rcptr<FactorOperator>& inplaceNormalizer, 
+		const rcptr<FactorOperator>& normalizer,
+		const rcptr<FactorOperator>& marginalizer) 
+			: assocHypotheses_(assocHypotheses),
+			  floor_(floor),
+			  margin_(margin),
+			  defProb_(defProb) {
 			
-			AcquireRVIds();
-			ConstructDistributions();
-			ConstructClusters();
+	// Default initialisation
+	if(!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerGB;
+	if(!normalizer) normalizer_ = defaultNormalizerGB;
+	if(!marginalizer) marginalizer_ = defaultMarginalizerGB;
+
+	extractRVIds();
+	constructDistributions();
+	constructClusters();
+
 } // GraphBuilder()
 
 GraphBuilder::GraphBuilder() {} // GraphBuilder()
 
 GraphBuilder::~GraphBuilder() {} // ~GraphBuilder()
 
-void GraphBuilder::AcquireRVIds() {
-	for (auto const& e : assoc_hypotheses_) {
+void GraphBuilder::extractRVIds() {
+	for (auto const& e : assocHypotheses_) {
 		a_.push_back(e.first);
 		std::sort((e.second)->begin(), (e.second)->end());
 	}
 } // AcquireRVIds()
 
-void GraphBuilder::ConstructDistributions() {
-	std::map<DASS, FProb> sparse_probs;
+void GraphBuilder::constructDistributions() {
+	std::map<DASS, FProb> sparseProbs;
+	rcptr<DASS> aDom;
 
 	for (unsigned i = 0; i < a_.size(); i++) {
-		rcptr<DASS> a_dom = assoc_hypotheses_[a_[i]];
+		aDom = assocHypotheses_[a_[i]];
 		
-		for (unsigned j = 0; j < a_dom->size(); j++) sparse_probs[DASS{(*a_dom)[j]}] = 1;
+		for (unsigned j = 0; j < aDom->size(); j++) sparseProbs[DASS{(*aDom)[j]}] = 1;
 		
-		distribution_[a_[i]] = uniqptr<DT> (new DT(emdw::RVIds{a_[i]}, {a_dom}, def_prob_,
-						sparse_probs, margin_, floor_, false,
-						marg_ptr_, inorm_ptr_, norm_ptr_ ) );
+		dist_[a_[i]] = uniqptr<DT> (new DT(emdw::RVIds{a_[i]}, {aDom}, defProb_,
+						sparseProbs, margin_, floor_, false,
+						marginalizer_, inplaceNormalizer_, normalizer_ ) );
 		
-		sparse_probs.clear();
+		sparseProbs.clear();
 	}
 } // ConstructDistributions()
 
-void GraphBuilder::ConstructClusters() {
-	DASS intersection;
-	emdw::RVIds neighbours;
-	emdw::RVIds network;
-	emdw::RVIds disjoint;
+void GraphBuilder::constructClusters() {
+	DASS domIntersection;
+	emdw::RVIds nodeVars, maximalClique, varIntersection;
 
-	std::vector<emdw::RVIds> neighbourhoods(a_.size());
-	std::vector<emdw::RVIds> districts;
-	std::vector<emdw::RVIds> pairs;
-	
-	rcptr<DASS> ai_dom;
-	rcptr<DASS> aj_dom;
+	std::vector<rcptr<Node>> vertex;
+	std::vector<emdw::RVIds> clique(a_.size()), districts;
+	rcptr<DASS> aiDom, ajDom;
+
+	bool intersects = false;
+	int prev = -1;
 
 	// Step 1: Group all association hypotheses which share common origins.
 	for (unsigned i = 0; i < a_.size(); i++) {
 		
-		ai_dom = assoc_hypotheses_[a_[i]]; 
+		aiDom = assocHypotheses_[a_[i]]; 
 		
 		for (unsigned j = 0; j < a_.size(); j++) {
-			aj_dom = assoc_hypotheses_[a_[j]];
+			ajDom = assocHypotheses_[a_[j]];
 
-			std::set_intersection((*ai_dom).begin(), (*ai_dom).end(),
-					(*aj_dom).begin(), (*aj_dom).end(),
-					std::back_inserter(intersection));
+			std::set_intersection(aiDom->begin(), aiDom->end(),
+					ajDom->begin(), ajDom->end(),
+					std::back_inserter(domIntersection));
 
-			if (intersection.size() > 1) neighbourhoods[i].push_back(a_[j]);
-			intersection.clear(); 
+			if (domIntersection.size() > 1) clique[i].push_back(a_[j]);
+			domIntersection.clear(); 
 		}
 	}
 
+	// Step 2: Determine all disjoint association variable networks
+	for (unsigned i = 0; i < clique.size(); i++) {
+		for (unsigned j = 0; j < clique.size(); j++) {
 
-	// Step 2: Determine all disjoint association clusters
-	for (unsigned i = 0; i < neighbourhoods.size(); i++) {
-		for (unsigned j = 0; j < neighbourhoods.size(); j++) {
-			std::set_intersection(neighbourhoods[i].begin(), neighbourhoods[i].end(),
-					neighbourhoods[j].begin(), neighbourhoods[j].end(),
-					std::back_inserter(disjoint));
+			std::set_intersection( clique[i].begin(), clique[j].end(),
+					clique[j].begin(), clique[j].end(),
+					std::back_inserter(varIntersection));
 
+			if (varIntersection.size() > 0) {
+				std::set_union( clique[i].begin(), clique[i].end(),
+						clique[j].begin(), clique[j].end(),
+						std::back_inserter(maximalClique));
 
-			if (disjoint.size() > 0) {
-				std::set_union(neighbourhoods[i].begin(), neighbourhoods[i].end(),
-						neighbourhoods[j].begin(), neighbourhoods[j].end(),
-						std::back_inserter(network));
-
-				neighbourhoods[i] = std::move(network);
-				network.clear();
+				clique[i] = std::move(maximalClique);
+				maximalClique.clear();
 			}
-			disjoint.clear();
+			varIntersection.clear();
 		}
 	}
 
-	std::sort(neighbourhoods.begin(), neighbourhoods.end());
-	neighbourhoods.erase(unique(neighbourhoods.begin(), neighbourhoods.end()), neighbourhoods.end());
+	// Step 3: Select only unique cliques
+	std::sort(clique.begin(), clique.end());
+	clique.erase(unique( clique.begin(), clique.end() ), clique.end());
 
-	/*
-	// Step 2: Generate all pairwise connections implied by shared associations
-	for (unsigned i = 0; i < neighbourhoods.size(); i++) {
-		neighbours = neighbourhoods[i];
-		for (unsigned j = 0; j < neighbours.size(); j++) {
-			for (unsigned k = j+1; k < neighbours.size(); k++) {
-				pairs.push_back(emdw::RVIds{neighbours[j], neighbours[k]});
-			}
-			if (neighbours.size() == 1) pairs.push_back(emdw::RVIds{neighbours[j], neighbours[j]});
-		}
-	}
-
-	// Step 3: Select only the unique pairings
-	std::sort(pairs.begin(), pairs.end());
-	pairs.erase(unique(pairs.begin(), pairs.end()), pairs.end());
-
-	//for (unsigned i = 0; i < pairs.size(); i++) std::cout << pairs[i] << std::endl;
+	// Step 4: Generate all pairwise connections in the clique
+	std::vector<std::vector<emdw::RVIds>> pairs(clique.size());
+	unsigned numNodes;
 	
-	// Step 4: Create all pairwise (or single) clusters
-	for (unsigned i = 0; i < pairs.size(); i++) {
-		cluster_.push_back( distribution_[pairs[i][0]]->absorb(distribution_[pairs[i][1]]) );
+	for (unsigned i = 0; i < clique.size(); i++) {	
+		
+		nodeVars = clique[i]; numNodes = nodeVars.size();
+
+		for (unsigned j = 0; j < numNodes; j++) {
+			for (unsigned k = j+1; k < numNodes; k++) pairs[i].push_back(emdw::RVIds{nodeVars[j], nodeVars[k]});
+			if (numNodes == 1) pairs[i].push_back(emdw::RVIds{nodeVars[j], nodeVars[j]});
+		}
+	}
+	
+	// Step 5: Select only the unique pairings
+	for (auto& p : pairs) {
+		std::sort(p.begin(), p.end());
+		p.erase( unique(p.begin(), p.end()), p.end() );
 	}
 
-	for (unsigned i = 0; i < cluster_.size(); i++) std::cout << *cluster_[i] << std::endl;
-	*/
+	// Step 6: Create the pairwise clusters
+	graphs_.clear(); graphs_.resize(pairs.size());
+
+	for (unsigned i = 0; i < pairs.size(); i++) {
+		graphs_[i] = uniqptr<Graph>(new Graph());
+
+		// Step 6.1 : Create the nodes for the graph
+		for (auto& j : pairs[i]) vertex.push_back(uniqptr<Node>(new Node ( ( dist_[j[0]] )->absorb( dist_[j[1]] ) ) ) );
+
+		// Step 6.2 : Link up the nodes
+		for (auto& j : clique[i]) {
+			for (unsigned k = 0; k < vertex.size(); k++) {
+   				nodeVars = vertex[k]->getVars();
+				
+				// If the cluster contains variable j
+				for (auto& v : nodeVars)  {
+					if (v == j) { intersects = true; }
+				}
+
+				// Link up the nodes in a chain
+				if (intersects && prev != -1) graphs_[i]->addEdge(vertex[prev], vertex[k]); 
+				if (intersects) prev = (int) k;
+
+				// Clear the values
+				intersects = false;
+				nodeVars.clear();
+			}
+			prev = -1;
+		}
+		vertex.clear();	
+	}
+
+	graphs_[1]->depthFirstSearch();
 
 } // ConstructClusters()

@@ -17,15 +17,15 @@
 #include "canonical_gaussian_mixture.hpp"
 
 // Default operators
-rcptr<FactorOperator> defaultInplaceNormalizer = uniqptr<FactorOperator>(new InplaceNormalizeCGM());
-rcptr<FactorOperator> defaultNormalizer = uniqptr<FactorOperator>(new NormalizeCGM());
-rcptr<FactorOperator> defaultInplaceAbsorber = uniqptr<FactorOperator>(new InplaceAbsorbCGM());
-rcptr<FactorOperator> defaultAbsorber = uniqptr<FactorOperator>(new AbsorbCGM());
-rcptr<FactorOperator> defaultInplaceCanceller = uniqptr<FactorOperator>(new InplaceCancelCGM());
-rcptr<FactorOperator> defaultCanceller = uniqptr<FactorOperator>(new CancelCGM());
-rcptr<FactorOperator> defaultMarginalizer = uniqptr<FactorOperator>(new MarginalizeCGM());
-rcptr<FactorOperator> defaultObserveReducer = uniqptr<FactorOperator>(new ObserveAndReduceCGM());
-rcptr<FactorOperator> defaultInplaceWeakDamper = uniqptr<FactorOperator>(new InplaceWeakDampingCGM());
+rcptr<FactorOperator> defaultInplaceNormalizerCGM = uniqptr<FactorOperator>(new InplaceNormalizeCGM());
+rcptr<FactorOperator> defaultNormalizerCGM = uniqptr<FactorOperator>(new NormalizeCGM());
+rcptr<FactorOperator> defaultInplaceAbsorberCGM = uniqptr<FactorOperator>(new InplaceAbsorbCGM());
+rcptr<FactorOperator> defaultAbsorberCGM = uniqptr<FactorOperator>(new AbsorbCGM());
+rcptr<FactorOperator> defaultInplaceCancellerCGM = uniqptr<FactorOperator>(new InplaceCancelCGM());
+rcptr<FactorOperator> defaultCancellerCGM = uniqptr<FactorOperator>(new CancelCGM());
+rcptr<FactorOperator> defaultMarginalizerCGM = uniqptr<FactorOperator>(new MarginalizeCGM());
+rcptr<FactorOperator> defaultObserveReducerCGM = uniqptr<FactorOperator>(new ObserveAndReduceCGM());
+rcptr<FactorOperator> defaultInplaceWeakDamperCGM = uniqptr<FactorOperator>(new InplaceWeakDampingCGM());
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
 		const emdw::RVIds& vars,
@@ -49,15 +49,15 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		{
 	
 	// Default operator intialisation
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizer;
-	if (!normalizer) normalizer_ = defaultNormalizer;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorber;
-	if (!absorber) absorber_ = defaultAbsorber;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
-	if (!canceller) canceller_ = defaultCanceller;
-	if (!marginalizer) marginalizer_ = defaultMarginalizer;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
+	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerCGM;
+	if (!normalizer) normalizer_ = defaultNormalizerCGM;
+	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberCGM;
+	if (!absorber) absorber_ = defaultAbsorberCGM;
+	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerCGM;
+	if (!canceller) canceller_ = defaultCancellerCGM;
+	if (!marginalizer) marginalizer_ = defaultMarginalizerCGM;
+	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerCGM;
+	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperCGM;
 
 	// Ensure the higher level description is sorted.
 	if (presorted || !vars.size()) {
@@ -99,15 +99,15 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		{
 
 	// Default operator initialisation
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizer;
-	if (!normalizer) normalizer_ = defaultNormalizer;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorber;
-	if (!absorber) absorber_ = defaultAbsorber;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
-	if (!canceller) canceller_ = defaultCanceller;
-	if (!marginalizer) marginalizer_ = defaultMarginalizer;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
+	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerCGM;
+	if (!normalizer) normalizer_ = defaultNormalizerCGM;
+	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberCGM;
+	if (!absorber) absorber_ = defaultAbsorberCGM;
+	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerCGM;
+	if (!canceller) canceller_ = defaultCancellerCGM;
+	if (!marginalizer) marginalizer_ = defaultMarginalizerCGM;
+	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerCGM;
+	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperCGM;
 
 	// A quick check
 	ASSERT( (means.size() == N_) && (covs.size() == N_),
@@ -163,15 +163,15 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		{
 
 	// Default initialisation
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizer;
-	if (!normalizer) normalizer_ = defaultNormalizer;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorber;
-	if (!absorber) absorber_ = defaultAbsorber;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
-	if (!canceller) canceller_ = defaultCanceller;
-	if (!marginalizer) marginalizer_ = defaultMarginalizer;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
+	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerCGM;
+	if (!normalizer) normalizer_ = defaultNormalizerCGM;
+	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberCGM;
+	if (!absorber) absorber_ = defaultAbsorberCGM;
+	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerCGM;
+	if (!canceller) canceller_ = defaultCancellerCGM;
+	if (!marginalizer) marginalizer_ = defaultMarginalizerCGM;
+	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerCGM;
+	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperCGM;
 
 	// A quick check
 	ASSERT( (info.size() == N_) && (prec.size() == N_),
@@ -212,15 +212,15 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		{
 	
 	// Default initialisation	
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizer;
-	if (!normalizer) normalizer_ = defaultNormalizer;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorber;
-	if (!absorber) absorber_ = defaultAbsorber;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
-	if (!canceller) canceller_ = defaultCanceller;
-	if (!marginalizer) marginalizer_ = defaultMarginalizer;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
+	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerCGM;
+	if (!normalizer) normalizer_ = defaultNormalizerCGM;
+	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberCGM;
+	if (!absorber) absorber_ = defaultAbsorberCGM;
+	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerCGM;
+	if (!canceller) canceller_ = defaultCancellerCGM;
+	if (!marginalizer) marginalizer_ = defaultMarginalizerCGM;
+	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerCGM;
+	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperCGM;
 	
 	// Make the sure high level description is sorted.
 	if (presorted || !vars.size()) {
@@ -267,15 +267,15 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		) {
 
 	// Default initialisation.
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizer;
-	if (!normalizer) normalizer_ = defaultNormalizer;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorber;
-	if (!absorber) absorber_ = defaultAbsorber;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
-	if (!canceller) canceller_ = defaultCanceller;
-	if (!marginalizer) marginalizer_ = defaultMarginalizer;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
+	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerCGM;
+	if (!normalizer) normalizer_ = defaultNormalizerCGM;
+	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberCGM;
+	if (!absorber) absorber_ = defaultAbsorberCGM;
+	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerCGM;
+	if (!canceller) canceller_ = defaultCancellerCGM;
+	if (!marginalizer) marginalizer_ = defaultMarginalizerCGM;
+	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerCGM;
+	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperCGM;
 
 	// Get the old mixture components.
 	rcptr<CanonicalGaussianMixture> cgm = std::dynamic_pointer_cast<CanonicalGaussianMixture>(xFPtr);
@@ -315,15 +315,15 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		) {
 
 	// Default initialisation.
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizer;
-	if (!normalizer) normalizer_ = defaultNormalizer;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorber;
-	if (!absorber) absorber_ = defaultAbsorber;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCanceller;
-	if (!canceller) canceller_ = defaultCanceller;
-	if (!marginalizer) marginalizer_ = defaultMarginalizer;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducer;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamper;
+	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerCGM;
+	if (!normalizer) normalizer_ = defaultNormalizerCGM;
+	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberCGM;
+	if (!absorber) absorber_ = defaultAbsorberCGM;
+	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerCGM;
+	if (!canceller) canceller_ = defaultCancellerCGM;
+	if (!marginalizer) marginalizer_ = defaultMarginalizerCGM;
+	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerCGM;
+	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperCGM;
 
 	// Get the old mixture components.
 	rcptr<CanonicalGaussianMixture> cgm = std::dynamic_pointer_cast<CanonicalGaussianMixture>(xFPtr);

@@ -111,12 +111,5 @@ TEST_F (GraphTest, ControlledExample) {
 	graph->addEdge(v, x);
 
 	// Run a DFS message passing scheme
-	for (unsigned i = 0; i < 100; i++) graph->depthFirstSearch();
-
-	std::cout << "====================" << std::endl;
-	std::cout << *(v->getFactor()) << std::endl;
-	std::cout << "====================" << std::endl;
-	std::cout << *(w->getFactor()) << std::endl;
-	std::cout << "====================" << std::endl;
-	std::cout << *(x->getFactor()) << std::endl;
+	//for (unsigned i = 0; i < 100; i++) graph->depthFirstSearch();
 }

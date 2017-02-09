@@ -95,6 +95,12 @@ TEST_F (LoopyAssocTest, GraphBuilderInit) {
 
 	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(assocHypotheses,  kFloor_, kMargin_, kDefProb_, 
 				marginalizer_, inplaceNormalizer_, normalizer_));
+
+
+	std::vector<rcptr<Graph>> graphs = gb->getGraphs();
+
+	graphs[0]->depthFirstMessagePassing();
+	std::vector<rcptr<Factor>> beliefs = graphs[0]->getBeliefs();
 	
 	EXPECT_EQ(0, 0);
 } // GraphBuilderInit()

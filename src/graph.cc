@@ -5,7 +5,6 @@
  *
  * Source file for the cluster graph declared in graph.hpp
  *************************************************************************/
-
 #include <vector>
 #include <map>
 #include <iostream>
@@ -27,8 +26,20 @@ Graph::Graph (const std::vector<rcptr<Node>> nodes) {
 Graph::~Graph () {} // Default destructor
 
 void Graph::addNode (const rcptr<Node> v) {
+	emdw::RVIds tempUnion;
+	emdw::RVIds vVars = v->getVars();
+
+	// Add the node
 	nodes_.insert(v);
 	n_ = nodes_.size();
+
+	// Expand the scope
+	std::set_union(vVars.begin(), vVars.end(),
+			vars_.begin(), vars_.end(),
+			std::back_inserter(tempUnion));
+
+	vars_ = std::move(tempUnion);
+	tempUnion.clear(); vVars.clear();
 } // addNode()
 
 void Graph::addEdge (const rcptr<Node> v, const rcptr<Node> w) {
@@ -45,27 +56,24 @@ void Graph::addEdge (const rcptr<Node> v, const rcptr<Node> w) {
 	e_++;
 } // addEdge()
 
-void Graph::depthFirstSearch () {
+void Graph::depthFirstMessagePassing () {
 	marked_.clear();
 
 	for(rcptr<Node> v : nodes_) marked_[v] = false; 
 
-	dfs(*(nodes_.begin()));	
+	dfmp(*(nodes_.begin()));	
 
-} // depthFirstSearch()
+} // depthFirstMessagePassing()
 
-void Graph::dfs(const rcptr<Node> v) {
-
-	std::cout << v->getVars() << std::endl;
-
+void Graph::dfmp(const rcptr<Node> v) {
 	std::vector<rcptr<Node>> adjacent = v->getAdjacentNodes();
 
 	marked_[v] = true;
-	//for (rcptr<Node> w : adjacent) bupReceiveMessage(v, w);
-	for (rcptr<Node> w : adjacent) if (!marked_[w]) dfs(w);
+	for (rcptr<Node> w : adjacent) bupReceiveMessage(v, w);
+	for (rcptr<Node> w : adjacent) if (!marked_[w]) dfmp(w);
 
 	v->cacheFactor(v->getFactor());
-} // dfs()
+} // dfmp()
 
 void Graph::bupReceiveMessage(const rcptr<Node> v, const rcptr<Node> w) {
 	emdw::RVIds sepset = v->getSepset(w);
@@ -87,3 +95,13 @@ unsigned Graph::getNoOfNodes() const {
 unsigned Graph::getNoOfEdges() const {
 	return e_;
 } // getNoOfEdges()
+
+std::vector<rcptr<Factor>> Graph::getBeliefs() const {
+	std::vector<rcptr<Factor>> beliefs;
+
+	for (unsigned i : vars_) {
+		
+	}
+
+	return beliefs;
+} // getBeliefs()

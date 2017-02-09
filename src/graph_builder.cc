@@ -17,7 +17,7 @@
 #include "vecset.hpp"
 #include "graph_builder.hpp"
 
-
+//TODO: Add all the default DiscreteTable factor operators
 rcptr<FactorOperator> defaultInplaceNormalizerGB = uniqptr<FactorOperator>(new DiscreteTable_InplaceNormalize<unsigned short>);
 rcptr<FactorOperator> defaultNormalizerGB = uniqptr<FactorOperator>(new DiscreteTable_MaxNormalize<unsigned short>);
 rcptr<FactorOperator> defaultMarginalizerGB = uniqptr<FactorOperator>(new DiscreteTable_Marginalize<unsigned short>);
@@ -75,15 +75,24 @@ void GraphBuilder::constructDistributions() {
 } // ConstructDistributions()
 
 void GraphBuilder::constructClusters() {
-	DASS domIntersection;
-	emdw::RVIds nodeVars, maximalClique, varIntersection;
-
-	std::vector<rcptr<Node>> vertex;
-	std::vector<emdw::RVIds> clique(a_.size()), districts;
+	// Variable's domains
+	DASS setUnion, domIntersection, domUnion{0};
 	rcptr<DASS> aiDom, ajDom;
+	std::vector<DASS> cliqueDomain(a_.size());
+	
+	// Variable's identity
+	emdw::RVIds nodeVars, maximalClique, varIntersection;
+	std::vector<emdw::RVIds> clique(a_.size());
 
+	// Nodes for the graphs
+	std::vector<rcptr<Node>> vertex;
+	rcptr<Factor> factor; 
+	rcptr<DT> cancel; 
+
+	// Some counters
 	bool intersects = false;
 	int prev = -1;
+	unsigned numNodes;
 
 	// Step 1: Group all association hypotheses which share common origins.
 	for (unsigned i = 0; i < a_.size(); i++) {
@@ -97,10 +106,20 @@ void GraphBuilder::constructClusters() {
 					ajDom->begin(), ajDom->end(),
 					std::back_inserter(domIntersection));
 
-			if (domIntersection.size() > 1) clique[i].push_back(a_[j]);
+			if (domIntersection.size() > 1) {
+				std::set_union(domUnion.begin(), domUnion.end(),
+						ajDom->begin(), ajDom->end(),
+						std::back_inserter(setUnion));
+
+				clique[i].push_back(a_[j]);
+				domUnion = std::move(setUnion);
+				setUnion.clear();
+			}
 			domIntersection.clear(); 
-		}
-	}
+		} // for
+		cliqueDomain[i] = std::move(domUnion);
+		domUnion.clear();
+	} // for
 
 	// Step 2: Determine all disjoint association variable networks
 	for (unsigned i = 0; i < clique.size(); i++) {
@@ -117,67 +136,70 @@ void GraphBuilder::constructClusters() {
 
 				clique[i] = std::move(maximalClique);
 				maximalClique.clear();
-			}
+			} // if
 			varIntersection.clear();
-		}
-	}
+		} // for
+	} // for
 
 	// Step 3: Select only unique cliques
 	std::sort(clique.begin(), clique.end());
 	clique.erase(unique( clique.begin(), clique.end() ), clique.end());
 
+	std::sort(cliqueDomain.begin(), cliqueDomain.end());
+	cliqueDomain.erase(unique( cliqueDomain.begin(), cliqueDomain.end() ), cliqueDomain.end());
+
 	// Step 4: Generate all pairwise connections in the clique
 	std::vector<std::vector<emdw::RVIds>> pairs(clique.size());
-	unsigned numNodes;
-	
 	for (unsigned i = 0; i < clique.size(); i++) {	
-		
 		nodeVars = clique[i]; numNodes = nodeVars.size();
-
 		for (unsigned j = 0; j < numNodes; j++) {
 			for (unsigned k = j+1; k < numNodes; k++) pairs[i].push_back(emdw::RVIds{nodeVars[j], nodeVars[k]});
 			if (numNodes == 1) pairs[i].push_back(emdw::RVIds{nodeVars[j], nodeVars[j]});
-		}
-	}
+		} // for
+	} // for
 	
 	// Step 5: Select only the unique pairings
 	for (auto& p : pairs) {
 		std::sort(p.begin(), p.end());
 		p.erase( unique(p.begin(), p.end()), p.end() );
-	}
+	} // for
 
 	// Step 6: Create the pairwise clusters
 	graphs_.clear(); graphs_.resize(pairs.size());
-
 	for (unsigned i = 0; i < pairs.size(); i++) {
-		graphs_[i] = uniqptr<Graph>(new Graph());
-
 		// Step 6.1 : Create the nodes for the graph
-		for (auto& j : pairs[i]) vertex.push_back(uniqptr<Node>(new Node ( ( dist_[j[0]] )->absorb( dist_[j[1]] ) ) ) );
-
+		for (auto& j : pairs[i]) {
+			factor = (dist_[j[0]])->absorb(dist_[j[1]]);
+			cancel = std::dynamic_pointer_cast<DT>(factor);
+			for (auto& k : cliqueDomain[i]) cancel->setEntry(j, emdw::RVVals{k, k}, 0);
+			vertex.push_back(uniqptr<Node> ( new Node(factor) ) );
+		} // for
 		// Step 6.2 : Link up the nodes
-		for (auto& j : clique[i]) {
-			for (unsigned k = 0; k < vertex.size(); k++) {
-   				nodeVars = vertex[k]->getVars();
-				
-				// If the cluster contains variable j
-				for (auto& v : nodeVars)  {
-					if (v == j) { intersects = true; }
-				}
+		if (vertex.size() > 1) {
+			graphs_[i] = uniqptr<Graph>(new Graph());
+			for (auto& j : clique[i]) {
+				for (unsigned k = 0; k < vertex.size(); k++) {
+					nodeVars = vertex[k]->getVars();
+					// If the cluster contains variable j
+					for (auto& v : nodeVars)  {
+						if (v == j) { intersects = true; }
+					}
 
-				// Link up the nodes in a chain
-				if (intersects && prev != -1) graphs_[i]->addEdge(vertex[prev], vertex[k]); 
-				if (intersects) prev = (int) k;
+					// Link up the nodes in a chain
+					if (intersects && prev != -1) graphs_[i]->addEdge(vertex[prev], vertex[k]); 
+					if (intersects) prev = (int) k;
 
-				// Clear the values
-				intersects = false;
-				nodeVars.clear();
-			}
-			prev = -1;
-		}
+					// Clear the values
+					intersects = false;
+					nodeVars.clear();
+				} // for
+				prev = -1;
+			} // for
+		} else graphs_[i] = uniqptr<Graph>(new Graph( {vertex[0]} ) ); // If there is only a single node.
 		vertex.clear();	
-	}
-
-	graphs_[1]->depthFirstSearch();
-
+	} // for
 } // ConstructClusters()
+
+std::vector<rcptr<Graph>> GraphBuilder::getGraphs() const {
+	return graphs_;
+}

@@ -27,6 +27,10 @@ class GraphBuilder;
  * This does not construct a general cluster graph, but the name
  * stuck.
  *
+ * TODO: This should be a module that shits out
+ * association Graphs for given hypotheses. I need to
+ * rewrite most of this object.
+ *
  * @author SCJ Robertson
  * @since 23/01/17
  */
@@ -65,6 +69,12 @@ class GraphBuilder {
 		 */
 		~GraphBuilder();
 
+	public:
+		/**
+		 * Return the constructed graphs.
+		 */
+		std::vector<rcptr<Graph>> getGraphs() const;
+
 	private:
 		/**
 		 * Get the association RV IDs from the given map. Initialises
@@ -83,8 +93,8 @@ class GraphBuilder {
 		 * Constructs the pairwise factors required in the network.
 		 * Initialises the cluster_ member.
 		 *
-		 * TODO: Better implementation? Pairwise connections are
-		 * brute force.
+		 * TODO: This is the worst code ever. May take longer to construct
+		 * than explicitly using a massive table.
 		 */
 		void constructClusters ();
 

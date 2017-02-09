@@ -53,6 +53,10 @@ class Graph {
 		/**
 		 * @brief Add an edge between two clusters
 		 *
+		 * The sepsets on this edge will be an exact intersection
+		 * of the adjacent clusters' scopes, because I'm so
+		 * lazy.
+		 *
 		 * @param v A node within the graph, to be
 		 * connected with w.
 		 *
@@ -63,21 +67,21 @@ class Graph {
 
 	public:
 		/**
-		 * @brief Depth First Search
+		 * @brief Depth First Message Passing
 		 *
 		 * Depth First Search, a naive attempt at a 
 		 * message passing schedule which at least ensure every node
 		 * in the graph is visited.
 		 */
-		void depthFirstSearch();
+		void depthFirstMessagePassing();
 
 	private:
 		/**
-		 * @brief Recursive Depth Frist search
+		 * @brief Recursive Depth First Message Passing
 		 *
 		 * @param v The current node in the graph.
 		 */
-		void dfs(const rcptr<Node> v);
+		void dfmp(const rcptr<Node> v);
 
 		/**
 		 * @brief Incoporate a message into a given cluster.
@@ -90,21 +94,28 @@ class Graph {
 		 * @param w The transimitting node.
 		 */
 		void bupReceiveMessage(const rcptr<Node> v, const rcptr<Node> w);
-	
+
 	public:
 		/**
-		 * @brief Get number of nodes in the graph.
+		 * @brief Return number of nodes in the graph.
 		 */
 		unsigned getNoOfNodes() const;
 
 		/**
-		 * @brief Get the number of edges in the graph.
+		 * @brief Return the number of edges in the graph.
 		 */
 		unsigned getNoOfEdges() const;
+
+		/**
+		 * @brief Return the belief held over each variable
+		 */
+		std::vector<rcptr<Factor>> getBeliefs() const;
+
 
 	private:
 		std::set<rcptr<Node>> nodes_;
 		mutable unsigned n_, e_;
+		emdw::RVIds vars_;
 
 		std::map<rcptr<Node>, bool> marked_;
 		std::map<rcptr<Node>, bool> converged_;

@@ -98,9 +98,7 @@ TEST_F (LoopyAssocTest, GraphBuilderInit) {
 
 
 	std::vector<rcptr<Graph>> graphs = gb->getGraphs();
-
-	graphs[0]->depthFirstMessagePassing();
-	std::vector<rcptr<Factor>> beliefs = graphs[0]->getBeliefs();
+	graphs[1]->depthFirstMessagePassing();
 	
 	EXPECT_EQ(0, 0);
 } // GraphBuilderInit()

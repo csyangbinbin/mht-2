@@ -106,12 +106,6 @@ class Graph {
 		 */
 		unsigned getNoOfEdges() const;
 
-		/**
-		 * @brief Return the belief held over each variable
-		 */
-		std::vector<rcptr<Factor>> getBeliefs() const;
-
-
 	private:
 		std::set<rcptr<Node>> nodes_;
 		mutable unsigned n_, e_;

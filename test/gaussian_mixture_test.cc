@@ -17,9 +17,6 @@
 #include "transforms.hpp"
 #include "utils.hpp"
 
-using namespace emdw;
-using namespace std;
-
 class CGMTest : public testing::Test {
 
 	protected:

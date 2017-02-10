@@ -657,7 +657,7 @@ class CanonicalGaussianMixture : public Factor {
 		/**
 		 * @brief Returns the variables' identity.
 		 */
-	virtual emdw::RVIds getVars() const;
+		virtual emdw::RVIds getVars() const;
 
 		/**
 		 * @brief Returns a specfic variable's identity.

@@ -17,9 +17,6 @@
 #include "graph.hpp"
 #include "node.hpp"
 
-using namespace emdw;
-using namespace std;
-
 class GraphTest : public testing::Test {
 	protected:
 		typedef unsigned short T;
@@ -37,7 +34,7 @@ class GraphTest : public testing::Test {
 			sparseProbs_.clear();
 			sparseProbs_[DASS{0}] = sparseProbs_[DASS{1}] = 1;
 
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a0}, {a0Dom_}, kDefProb_, 
+			hypotheses_.push_back(uniqptr<DT> (new DT(emdw::RVIds{a0}, {a0Dom_}, kDefProb_, 
 					sparseProbs_, kMargin_, kFloor_, false, margPtr_, inormPtr_, normPtr_) ) );
 
 			// Probability table for a1
@@ -45,7 +42,7 @@ class GraphTest : public testing::Test {
 			sparseProbs_.clear();
 			sparseProbs_[DASS{0}] = sparseProbs_[DASS{1}] = sparseProbs_[DASS{2}] = 1;
 
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a1}, {a1Dom_}, kDefProb_, 
+			hypotheses_.push_back(uniqptr<DT> (new DT(emdw::RVIds{a1}, {a1Dom_}, kDefProb_, 
 					sparseProbs_, kMargin_, kFloor_, false, margPtr_, inormPtr_, normPtr_) ) );
 
 			// Probability table for a2
@@ -53,7 +50,7 @@ class GraphTest : public testing::Test {
 			sparseProbs_.clear();
 			sparseProbs_[DASS{0}] = sparseProbs_[DASS{2}] = 1;
 
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a2}, {a2Dom_}, kDefProb_, 
+			hypotheses_.push_back(uniqptr<DT> (new DT(emdw::RVIds{a2}, {a2Dom_}, kDefProb_, 
 					sparseProbs_, kMargin_, kFloor_, false, margPtr_, inormPtr_, normPtr_) ) );
 		}
 

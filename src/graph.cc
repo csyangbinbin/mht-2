@@ -95,13 +95,3 @@ unsigned Graph::getNoOfNodes() const {
 unsigned Graph::getNoOfEdges() const {
 	return e_;
 } // getNoOfEdges()
-
-std::vector<rcptr<Factor>> Graph::getBeliefs() const {
-	std::vector<rcptr<Factor>> beliefs;
-
-	for (unsigned i : vars_) {
-		
-	}
-
-	return beliefs;
-} // getBeliefs()

@@ -27,8 +27,6 @@ rcptr<FactorOperator> defaultObserveReducerLG = uniqptr<FactorOperator>(new Obse
 rcptr<FactorOperator> defaultInplaceWeakDamperLG = uniqptr<FactorOperator>(new InplaceWeakDampingLG());
 
 LinearGaussian::LinearGaussian(
-		const emdw::RVIds& vars,
-		bool presorted,
 		const rcptr<FactorOperator>& inplaceNormalizer,
 		const rcptr<FactorOperator>& normalizer,
 		const rcptr<FactorOperator>& inplaceAbsorber,
@@ -37,9 +35,31 @@ LinearGaussian::LinearGaussian(
 		const rcptr<FactorOperator>& canceller,
 		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
-		const rcptr<FactorOperator>& inplaceDamper)
-		{
-	
+		const rcptr<FactorOperator>& inplaceDamper) {
+	// Default operator intialisation
+	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerLG;
+	if (!normalizer) normalizer_ = defaultNormalizerLG;
+	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberLG;
+	if (!absorber) absorber_ = defaultAbsorberLG;
+	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerLG;
+	if (!canceller) canceller_ = defaultCancellerLG;
+	if (!marginalizer) marginalizer_ = defaultMarginalizerLG;
+	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerLG;
+	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperLG;
+} // Default Constructor
+
+LinearGaussian::LinearGaussian(
+		const rcptr<Factor>& discreteRV,
+		const std::map<unsigned, rcptr<Factor>>& conditionalList,
+		const rcptr<FactorOperator>& inplaceNormalizer,
+		const rcptr<FactorOperator>& normalizer,
+		const rcptr<FactorOperator>& inplaceAbsorber,
+		const rcptr<FactorOperator>& absorber,
+		const rcptr<FactorOperator>& inplaceCanceller,
+		const rcptr<FactorOperator>& canceller,
+		const rcptr<FactorOperator>& marginalizer,
+		const rcptr<FactorOperator>& observerAndReducer,
+		const rcptr<FactorOperator>& inplaceDamper) {
 	// Default operator intialisation
 	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerLG;
 	if (!normalizer) normalizer_ = defaultNormalizerLG;
@@ -51,20 +71,40 @@ LinearGaussian::LinearGaussian(
 	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerLG;
 	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperLG;
 
-	// Ensure the higher level description is sorted.
-	if (presorted || !vars.size()) {
-		vars_ = vars;
-	} else {
-		std::vector<size_t> sorted = sortIndices(vars, std::less<unsigned>() );
-		vars_ = extract<unsigned>(vars, sorted);
+	// Get the variables
+	emdw::RVIds vars;
+	emdw::RVIds discreteVars = discreteRV->getVars(); 
+	emdw::RVIds continuousVars = ( (conditionalList.begin())->second )->getVars();
+	ASSERT( discreteVars.size() == 1, "discreteRV cannot be a distribution over " 
+			<< discreteVars.size() << " variables, it must be non-vacuous over a single variable." );
+
+	// Assign the discrete component
+	vars.push_back(discreteVars[0]);
+	isContinuous_[discreteVars[0]] = false;
+	discreteRV_ = uniqptr<Factor>(discreteRV->copy());
+
+	// Assign the continuous components
+	for (auto& i : continuousVars) {
+		vars.push_back(i);
+		isContinuous_[i] = true;
 	}
-} // Default Constructor
+
+	for (auto& i : conditionalList) {
+		ASSERT( continuousVars == (i.second)->getVars(), "All continuous distrubtions must be held the same variables " 
+				<< continuousVars << " not" << (i.second)->getVars() );
+		conditionalList_[i.first] = uniqptr<Factor>((i.second)->copy());
+	}
+
+	// Sort the variables
+	std::vector<size_t> sorted = sortIndices(vars, std::less<unsigned>() );
+	vars_ = extract<unsigned>(vars, sorted);
+} // Class Specific Constructor
 
 LinearGaussian::~LinearGaussian() {} // Default Destructor
 
 unsigned LinearGaussian::classSpecificConfigure(
-		const emdw::RVIds& vars,
-		bool presorted,
+		const rcptr<Factor>& discreteRV,
+		const std::map<unsigned, rcptr<Factor>>& conditionalList,
 		const rcptr<FactorOperator>& inplaceNormalizer,
 		const rcptr<FactorOperator>& normalizer,
 		const rcptr<FactorOperator>& inplaceAbsorber,
@@ -75,13 +115,14 @@ unsigned LinearGaussian::classSpecificConfigure(
 		const rcptr<FactorOperator>& observerAndReducer,
 		const rcptr<FactorOperator>& inplaceDamper
 		) {
+	
 	// Destroy existing ...
 	this->~LinearGaussian();
 
 	// .. and begin anew!
 	new(this) LinearGaussian(
-			vars,
-			presorted,
+			discreteRV,
+			conditionalList,
 			inplaceNormalizer,
 			normalizer,
 			inplaceAbsorber,
@@ -173,6 +214,10 @@ emdw::RVIds LinearGaussian::getVars() const { return vars_; } // getVars()
 
 emdw::RVIdType LinearGaussian::getVar(unsigned varNo) const { return vars_[varNo]; } // getVar()
 
+rcptr<Factor> LinearGaussian::getDiscretePrior() const { return discreteRV_; }
+
+std::map<unsigned, rcptr<Factor>> LinearGaussian::getConditionalList() const { return conditionalList_; }
+
 //TODO: Complete this!!!
 std::istream& LinearGaussian::txtRead(std::istream& file) { return file; } // txtRead()
 
@@ -189,6 +234,24 @@ const std::string& InplaceNormalizeLG::isA() const {
 } // isA()
 
 void InplaceNormalizeLG::inplaceProcess(LinearGaussian* lhsPtr) {
+	LinearGaussian& lhs(*lhsPtr);
+
+	// Normalize the conditional Gaussians
+	std::map<unsigned, rcptr<Factor>> map;
+	for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->normalize();
+
+	// Reconfigure the class
+	lhs.classSpecificConfigure( (lhs.discreteRV_)->normalize(),
+			        map,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_);
 } // inplaceProcess()
 
 const std::string& NormalizeLG::isA() const {
@@ -219,6 +282,51 @@ const std::string& InplaceAbsorbLG::isA() const {
 } // isA()
 
 void InplaceAbsorbLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
+	LinearGaussian& lhs(*lhsPtr);
+
+	// Temporary variables
+	rcptr<Factor> discretePrior;
+	std::map<unsigned, rcptr<Factor>> map;
+	rcptr<Factor> rhs = uniqptr<Factor>( rhsFPtr->copy() );
+	const LinearGaussian* downCast;
+
+	// An endless amount of options
+	if (dynamic_cast<const LinearGaussian*>(rhsFPtr)) {
+		downCast = dynamic_cast<const LinearGaussian*>(rhsFPtr);
+		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), "The discrete components have the same single variable scope: "
+			<< (lhs.discreteRV_)->getVars() << " != " << (downCast->discreteRV_)->getVars() );
+		
+		discretePrior = (lhs.discreteRV_)->absorb(rhs); // If the domains don't match everything should break here.
+		for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->absorb( (downCast->conditionalList_)[i.first] );
+
+	} else if (dynamic_cast<const GaussCanonical*>(rhsFPtr)) {
+		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
+		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( (i.second)->absorb(rhs) );
+
+	} else if (dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr)) {
+		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
+		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( rhs->absorb(i.second) );
+
+	} else if (dynamic_cast<const DiscreteTable<unsigned>*>(rhsFPtr)) {
+		ASSERT( (lhs.discreteRV_)->getVars() == rhs->getVars(), "The discrete components have the same single variable scope: "
+			<< (lhs.discreteRV_)->getVars() << " != " << rhs->getVars() );
+
+		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->absorb(rhs) );
+		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( (i.second)->copy() );
+	}
+
+	// Reconfigure the class
+	lhs.classSpecificConfigure( discretePrior,
+			        map,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_);
 } // inplaceProcess()
 
 const std::string& AbsorbLG::isA() const {
@@ -246,6 +354,58 @@ const std::string& InplaceCancelLG::isA() const {
 } // isA()
 
 void InplaceCancelLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
+	LinearGaussian& lhs(*lhsPtr);
+
+	// Temporary variables
+	rcptr<Factor> discretePrior;
+	rcptr<Factor> mProj;
+	std::map<unsigned, rcptr<Factor>> map;
+	rcptr<Factor> rhs = uniqptr<Factor>( rhsFPtr->copy() );
+	
+	const LinearGaussian* downCast;
+	const CanonicalGaussianMixture* gm;
+
+	// An endless amount of options
+	if (dynamic_cast<const LinearGaussian*>(rhsFPtr)) {
+		downCast = dynamic_cast<const LinearGaussian*>(rhsFPtr);
+		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), "The discrete components have the same single variable scope: "
+			<< (lhs.discreteRV_)->getVars() << " != " << (downCast->discreteRV_)->getVars() );
+		
+		discretePrior = (lhs.discreteRV_)->cancel(rhs); // If the domains don't match everything should break here.
+		for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->cancel( (downCast->conditionalList_)[i.first] );
+
+	} else if (dynamic_cast<const GaussCanonical*>(rhsFPtr)) {
+		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
+		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( (i.second)->cancel(rhs) );
+
+	} else if (dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr)) {
+		gm = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
+		mProj = gm->momentMatch();
+		
+		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
+		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( (i.second)->cancel(mProj) );
+
+	} else if (dynamic_cast<const DiscreteTable<unsigned>*>(rhsFPtr)) {
+		ASSERT( (lhs.discreteRV_)->getVars() == rhs->getVars(), "The discrete components have the same single variable scope: "
+			<< (lhs.discreteRV_)->getVars() << " != " << rhs->getVars() );
+
+		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->cancel(rhs) );
+		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( (i.second)->copy() );
+	}
+
+	// Reconfigure the class
+	lhs.classSpecificConfigure( discretePrior,
+			        map,
+				lhs.inplaceNormalizer_,
+				lhs.normalizer_,
+				lhs.inplaceAbsorber_,
+				lhs.absorber_,
+				lhs.inplaceCanceller_,
+				lhs.canceller_,
+				lhs.marginalizer_,
+				lhs.observeAndReducer_,
+				lhs.inplaceDamper_);
+
 } // inplaceCancel()
 
 const std::string& CancelLG::isA() const {
@@ -278,13 +438,58 @@ const std::string& MarginalizeLG::isA() const {
 
 Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& variablesToKeep, 
 		bool presorted) {
-	return new GaussCanonical();
+	const LinearGaussian& lhs(*lhsPtr);
+
+	// Temporary variables
+	emdw::RVIds continuousVars;
+	emdw::RVIds discreteVar;
+
+	std::map<unsigned, rcptr<Factor>> map;
+	std::vector<rcptr<Factor>> mixtureComponents;
+	rcptr<Factor> component;
+	rcptr<Factor> discretePrior;
+	rcptr<GaussCanonical> convert;
+
+	// Determine if the varaibles are discrete or not
+	for (auto& i : variablesToKeep) {
+		if ((lhs.isContinuous_)[i]) continuousVars.push_back(i);
+		else discreteVar.push_back(i);
+	}
+
+	// Getting rid of continuous stuff usually happens
+	discretePrior = uniqptr<Factor>( (lhs.discreteRV_)->copy() );
+	for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->marginalize(continuousVars, presorted);
+
+	// If you're not keeping the discrete variable, you get a mixture.
+	if (discreteVar.size()) { 
+		for(auto& i : lhs.conditionalList_) {
+			component = uniqptr<Factor>((i.second)->copy());
+			
+			convert = std::dynamic_pointer_cast<GaussCanonical>(component);
+			convert->adjustMass(1.0*(i.first));
+
+			mixtureComponents.push_back(component);
+		}
+		return new CanonicalGaussianMixture(component->getVars(), mixtureComponents); // Default GM.
+	} 
+
+	return new LinearGaussian(discretePrior, 
+			map,
+			lhs.inplaceNormalizer_,
+			lhs.normalizer_,
+			lhs.inplaceAbsorber_,
+			lhs.absorber_,
+			lhs.inplaceCanceller_,
+			lhs.canceller_,
+			lhs.marginalizer_,
+			lhs.observeAndReducer_,
+			lhs.inplaceDamper_);
 } // process()
 
 
 //------------------Family 4: ObserveAndReduce
 
-const std::string& ObserveAndReduceCGM::isA() const {
+const std::string& ObserveAndReduceLG::isA() const {
 	static const std::string CLASSNAME("ObserveAndReduceLG");
 	return CLASSNAME;
 } // isA()

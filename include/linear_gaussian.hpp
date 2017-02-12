@@ -8,10 +8,12 @@
 #ifndef LINEARGAUSSIAN_HPP
 #define LINEARGAUSSIAN_HPP
 
+#include <map>
 #include "factor.hpp"
 #include "factoroperator.hpp"
 #include "emdw.hpp"
 #include "anytype.hpp"
+#include "discretetable.hpp"
 #include "gausscanonical.hpp"
 #include "canonical_gaussian_mixture.hpp"
 #include "v2vtransform.hpp"
@@ -140,21 +142,46 @@ class LinearGaussian : public Factor {
 	public:
 		/** 
 		 * @brief Default vacuous constructor.
-		 * 
-		 * Creates a single vacuous component Gaussian mixture.
-		 * 
-		 * @param vars Each variable in the PGM will be identified
-		 * with a specific integer that indentifies it.
-		 *
-		 * @param presorted Set to true if vars is sorted according to their 
-		 * integer values.
+		 *  
+		 * Default constrcutor.
 		 *
 		 * A list of Factor operators, if it equals zero it will be set to a default
 		 * operator.
 		 */
 		LinearGaussian (
-				const emdw::RVIds& vars = {},
-				bool presorted = false,
+				const rcptr<FactorOperator>& inplaceNormalizer = 0,
+				const rcptr<FactorOperator>& normalizer = 0,
+				const rcptr<FactorOperator>& inplaceAbsorber = 0,
+				const rcptr<FactorOperator>& absorber = 0,
+				const rcptr<FactorOperator>& inplaceCanceller = 0,
+				const rcptr<FactorOperator>& canceller = 0,
+				const rcptr<FactorOperator>& marginalizer = 0,
+				const rcptr<FactorOperator>& observerAndReducer = 0,
+				const rcptr<FactorOperator>& inplaceDamper = 0
+				);
+
+		/** 
+		 * @brief Class specific constructor
+		 *
+		 * Create a condtional linear Gaussian. The discrete RV is
+		 * the prior over the conditioning variable. There must be
+		 * a conditinuous fator assigned to every element in the discrete RV's
+		 * domain. All continuous factors must have the same scope.
+		 * 
+		 * @param discreteRV A pointer to a distribution held over a
+		 * single discrete random variable, it must be a DiscreteTable. 
+		 * This is the prior held over the conditioning RV.
+		 *
+		 * @param conditionalList A map of the discrete variables domain
+		 * to a continuous factor. Each factor in the list must have the same scope
+		 * and the discrete RVs entire domain must map to a distribution.
+		 *
+		 * A list of Factor operators, if it equals zero it will be set to a default
+		 * operator.
+		 */
+		LinearGaussian (
+				const rcptr<Factor>& discreteRV,
+				const std::map<unsigned, rcptr<Factor>>& conditionalList,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -167,6 +194,7 @@ class LinearGaussian : public Factor {
 				);
 
 		LinearGaussian(const LinearGaussian& st) = default;
+		
 		LinearGaussian(LinearGaussian&& st) = default;
 
 		/**
@@ -188,21 +216,20 @@ class LinearGaussian : public Factor {
 		 * ones. It may seem pointless, but it greatly simplifies the 
 		 * inplaceProcesses.
 		 *
-		 * @param vars Each variable in the PGM will be identified
-		 * with a specific integer that indentifies it.
+		 * @param discreteRV A pointer to a distribution held over a
+		 * single discrete random variable, it must be a DiscreteTable. 
+		 * This is the prior held over the conditioning RV.
 		 *
-		 * @param components A vector of GaussCanonical components, their
-		 * variables must be the same as vars
-		 *
-		 * @param presorted Set to true if vars is sorted according to their 
-		 * integer values.
+		 * @param conditionalList A map of the discrete variables domain
+		 * to a continuous factor. Each factor in the list must have the same scope
+		 * and the discrete RVs entire domain must map to a distribution.
 		 *
 		 * A list of Factor operators, if it equals zero it will be set to a default
 		 * operator.
 		 */
 		unsigned classSpecificConfigure(
-				const emdw::RVIds& vars,
-				bool presorted = false,
+				const rcptr<Factor>& discreteRV,
+				const std::map<unsigned, rcptr<Factor>>& conditionalList,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -381,6 +408,16 @@ class LinearGaussian : public Factor {
 		 */
 		virtual emdw::RVIdType getVar(unsigned varNo) const;
 
+		/**
+		 * @brief Return the prior over the discrete conditioning RV
+		 */
+		rcptr<Factor> getDiscretePrior() const;
+
+		/**
+		 * @brief Returns the continuous conditional distributions
+		 */
+		std::map<unsigned, rcptr<Factor>> getConditionalList() const;
+
 	public:
 		/**
 		 * @brief Read information from an input stream.
@@ -396,6 +433,11 @@ class LinearGaussian : public Factor {
 	private:
 		// Scope and components
 		emdw::RVIds vars_;
+		mutable std::map<unsigned, bool> isContinuous_; // Waste of space, but convinient
+
+		// Factors
+		rcptr<Factor> discreteRV_;
+		mutable std::map<unsigned, rcptr<Factor>> conditionalList_;
 
 		// Operators
 		rcptr<FactorOperator> marginalizer_;

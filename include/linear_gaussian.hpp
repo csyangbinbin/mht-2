@@ -118,11 +118,12 @@ class InplaceWeakDampingLG : public Operator1<LinearGaussian> {
  *
  * This is a simplified version of the CLG class.
  * The Gaussians are only allowed to be conditioned
- * on a single discrete RV.
+ * on a single discrete RV. The prior over the
+ * discrete varaible is assumed to abosrbed into the
+ * factor.
  *
- * The CLG class in the emdw is a confusing mess,
- * and its easier just to recreate a simple class
- * that I understand.
+ * The CLG class in the emdw easily deal with 
+ * GMM, so I recreated a simple class I understand.
  *
  * @author SCJ Robertson
  * @since 10/02/17

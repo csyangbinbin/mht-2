@@ -710,7 +710,6 @@ class CanonicalGaussianMixture : public Factor {
 		 */
 		std::vector<rcptr<Factor>> getComponents() const;
 
-
 		/**
 		 * @brief Return number of Gaussian mixture components.
 		 */

@@ -163,12 +163,12 @@ inline uniqptr<Factor> LinearGaussian::absorb(const Factor* rhsPtr, FactorOperat
 
 inline void LinearGaussian::inplaceCancel(const Factor* rhsPtr, FactorOperator* procPtr) {
 	if (procPtr) dynamicInplaceApply(procPtr, this, rhsPtr);
-	else dynamicInplaceApply(inplaceAbsorber_.get(), this, rhsPtr);
+	else dynamicInplaceApply(inplaceCanceller_.get(), this, rhsPtr);
 } // inplaceCancel()
 
 inline uniqptr<Factor> LinearGaussian::cancel(const Factor* rhsPtr, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, rhsPtr));
-	else return uniqptr<Factor> (dynamicApply(absorber_.get(), this, rhsPtr));
+	else return uniqptr<Factor> (dynamicApply(canceller_.get(), this, rhsPtr));
 } // cancel()
 
 //------------------Family 4: Marginalization
@@ -184,7 +184,7 @@ inline uniqptr<Factor> LinearGaussian::marginalize(const emdw::RVIds& variablesT
 inline uniqptr<Factor> LinearGaussian::observeAndReduce( const emdw::RVIds& variables,
 		const emdw::RVVals& assignedVals, bool presorted, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, variables, assignedVals, presorted));
-	else return uniqptr<Factor> (dynamicApply(marginalizer_.get(), this, variables, assignedVals, presorted));
+	else return uniqptr<Factor> (dynamicApply(observeAndReducer_.get(), this, variables, assignedVals, presorted));
 } // observeAndReduce()
 
 
@@ -293,8 +293,9 @@ void InplaceAbsorbLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 	// An endless amount of options
 	if (dynamic_cast<const LinearGaussian*>(rhsFPtr)) {
 		downCast = dynamic_cast<const LinearGaussian*>(rhsFPtr);
-		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), "The discrete components have the same single variable scope: "
-			<< (lhs.discreteRV_)->getVars() << " != " << (downCast->discreteRV_)->getVars() );
+		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), 
+				"The discrete components must have the same scope: "
+				<< (lhs.discreteRV_)->getVars() << " != " << (downCast->discreteRV_)->getVars() );
 		
 		discretePrior = (lhs.discreteRV_)->absorb(rhs); // If the domains don't match everything should break here.
 		for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->absorb( (downCast->conditionalList_)[i.first] );
@@ -307,16 +308,16 @@ void InplaceAbsorbLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
 		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( rhs->absorb(i.second) );
 
-	} else if (dynamic_cast<const DiscreteTable<unsigned>*>(rhsFPtr)) {
-		ASSERT( (lhs.discreteRV_)->getVars() == rhs->getVars(), "The discrete components have the same single variable scope: "
-			<< (lhs.discreteRV_)->getVars() << " != " << rhs->getVars() );
+	} else if (dynamic_cast<const DiscreteTable<unsigned short>*>(rhsFPtr)) {
+		ASSERT( (lhs.discreteRV_)->getVars() == rhs->getVars(), "The discrete distributions must have the same scope:" 
+				<< (lhs.discreteRV_)->getVars() << " != " << rhs->getVars() );
 
 		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->absorb(rhs) );
 		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( (i.second)->copy() );
 	}
 
 	// Reconfigure the class
-	lhs.classSpecificConfigure( discretePrior,
+	lhs.classSpecificConfigure(discretePrior,
 			        map,
 				lhs.inplaceNormalizer_,
 				lhs.normalizer_,
@@ -368,8 +369,9 @@ void InplaceCancelLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 	// An endless amount of options
 	if (dynamic_cast<const LinearGaussian*>(rhsFPtr)) {
 		downCast = dynamic_cast<const LinearGaussian*>(rhsFPtr);
-		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), "The discrete components have the same single variable scope: "
-			<< (lhs.discreteRV_)->getVars() << " != " << (downCast->discreteRV_)->getVars() );
+		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), 
+				"The discrete components have the same single variable scope: " << (lhs.discreteRV_)->getVars() 
+				<< " != " << (downCast->discreteRV_)->getVars() );
 		
 		discretePrior = (lhs.discreteRV_)->cancel(rhs); // If the domains don't match everything should break here.
 		for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->cancel( (downCast->conditionalList_)[i.first] );
@@ -381,12 +383,13 @@ void InplaceCancelLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 	} else if (dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr)) {
 		gm = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
 		mProj = gm->momentMatch();
-		
+
 		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
 		for (auto& i : lhs.conditionalList_) map[i.first] = uniqptr<Factor> ( (i.second)->cancel(mProj) );
 
-	} else if (dynamic_cast<const DiscreteTable<unsigned>*>(rhsFPtr)) {
-		ASSERT( (lhs.discreteRV_)->getVars() == rhs->getVars(), "The discrete components have the same single variable scope: "
+	} else if (dynamic_cast<const DiscreteTable<unsigned short>*>(rhsFPtr)) {
+		ASSERT( (lhs.discreteRV_)->getVars() == rhs->getVars(), 
+			"The discrete components have the same single variable scope: "
 			<< (lhs.discreteRV_)->getVars() << " != " << rhs->getVars() );
 
 		discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->cancel(rhs) );
@@ -394,7 +397,7 @@ void InplaceCancelLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 	}
 
 	// Reconfigure the class
-	lhs.classSpecificConfigure( discretePrior,
+	lhs.classSpecificConfigure(discretePrior,
 			        map,
 				lhs.inplaceNormalizer_,
 				lhs.normalizer_,
@@ -439,18 +442,19 @@ const std::string& MarginalizeLG::isA() const {
 Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& variablesToKeep, 
 		bool presorted) {
 	const LinearGaussian& lhs(*lhsPtr);
-
+	
 	// Temporary variables
-	emdw::RVIds continuousVars;
-	emdw::RVIds discreteVar;
+	emdw::RVIds continuousVars, discreteVar;
+	double potential;
 
 	std::map<unsigned, rcptr<Factor>> map;
 	std::vector<rcptr<Factor>> mixtureComponents;
-	rcptr<Factor> component;
-	rcptr<Factor> discretePrior;
-	rcptr<GaussCanonical> convert;
+	
+	rcptr<Factor> component, discretePrior;
+	rcptr<DiscreteTable<unsigned short>> dtConvert;
+	rcptr<GaussCanonical> gcConvert;
 
-	// Determine if the varaibles are discrete or not
+	// Determine if the variables are discrete or not
 	for (auto& i : variablesToKeep) {
 		if ((lhs.isContinuous_)[i]) continuousVars.push_back(i);
 		else discreteVar.push_back(i);
@@ -460,13 +464,22 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 	discretePrior = uniqptr<Factor>( (lhs.discreteRV_)->copy() );
 	for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->marginalize(continuousVars, presorted);
 
+	// If you marginalize out all the continuous variables, you only have a discrete potential left.
+	if ( !(map.begin()->second)->noOfVars() && discreteVar.size() ) {
+		return discretePrior->copy();
+	} 
+
 	// If you're not keeping the discrete variable, you get a mixture.
-	if (discreteVar.size()) { 
-		for(auto& i : lhs.conditionalList_) {
+	if (!discreteVar.size()) { 
+		for(auto& i : lhs.conditionalList_) {			
+			// Get the potential of the discrete variable
+			dtConvert = std::dynamic_pointer_cast<DiscreteTable<unsigned short>>(discretePrior);
+			potential = dtConvert->potentialAt(discretePrior->getVars(), emdw::RVVals{ (unsigned short)(i.first) });
+
+			// Adjust the mass
 			component = uniqptr<Factor>((i.second)->copy());
-			
-			convert = std::dynamic_pointer_cast<GaussCanonical>(component);
-			convert->adjustMass(1.0*(i.first));
+			gcConvert = std::dynamic_pointer_cast<GaussCanonical>(component);
+			gcConvert->adjustMass(potential);
 
 			mixtureComponents.push_back(component);
 		}
@@ -496,7 +509,58 @@ const std::string& ObserveAndReduceLG::isA() const {
 
 Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& variables,
 		const emdw::RVVals& assignedVals, bool presorted) {
-	return new GaussCanonical();
+	const LinearGaussian& lhs(*lhsPtr);
+	
+	std::cout << "ObserveAndReduce" << std::endl;
+
+	// Temporary variables
+	emdw::RVIds continuousVars, discreteVar;
+	emdw::RVVals continuousVals, discreteVal;
+	double potential;
+
+	std::map<unsigned, rcptr<Factor>> map;
+	rcptr<Factor> discretePrior;
+	rcptr<DiscreteTable<unsigned short>> dtConvert;
+	rcptr<GaussCanonical> gcConvert;
+
+	// Separate out continuous and discrete variables
+	for (unsigned i = 0; i < variables.size(); i++) {
+		if ((lhs.isContinuous_)[variables[i]]) {
+			continuousVars.push_back(variables[i]);
+			continuousVals.push_back(assignedVals[i]);
+		} 
+		else {
+			discreteVar.push_back(variables[i]);
+			discreteVal.push_back(assignedVals[i]);
+		}
+	}
+
+	// Observing continuous things usually happens
+	discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
+	for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->observeAndReduce(continuousVars, continuousVals);
+
+	if ( !(discreteVar.size()) ) {
+		discretePrior = (lhs.discreteRV_)->observeAndReduce(discreteVar, discreteVal);
+		dtConvert = std::dynamic_pointer_cast<DiscreteTable<unsigned short>>(discretePrior);
+		potential = dtConvert->potentialAt(discreteVar, discreteVal);
+
+		gcConvert = std::dynamic_pointer_cast<GaussCanonical>( map[ (unsigned)(discreteVal[0]) ] );
+		gcConvert->adjustMass(potential);
+
+		return gcConvert->copy();
+	}
+
+	return new LinearGaussian(discretePrior, 
+			map,
+			lhs.inplaceNormalizer_,
+			lhs.normalizer_,
+			lhs.inplaceAbsorber_,
+			lhs.absorber_,
+			lhs.inplaceCanceller_,
+			lhs.canceller_,
+			lhs.marginalizer_,
+			lhs.observeAndReducer_,
+			lhs.inplaceDamper_);
 } // process()
 
 

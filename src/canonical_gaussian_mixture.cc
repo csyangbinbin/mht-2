@@ -413,12 +413,12 @@ inline uniqptr<Factor> CanonicalGaussianMixture::absorb(const Factor* rhsPtr, Fa
 
 inline void CanonicalGaussianMixture::inplaceCancel(const Factor* rhsPtr, FactorOperator* procPtr) {
 	if (procPtr) dynamicInplaceApply(procPtr, this, rhsPtr);
-	else dynamicInplaceApply(inplaceAbsorber_.get(), this, rhsPtr);
+	else dynamicInplaceApply(inplaceCanceller_.get(), this, rhsPtr);
 } // inplaceCancel()
 
 inline uniqptr<Factor> CanonicalGaussianMixture::cancel(const Factor* rhsPtr, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, rhsPtr));
-	else return uniqptr<Factor> (dynamicApply(absorber_.get(), this, rhsPtr));
+	else return uniqptr<Factor> (dynamicApply(canceller_.get(), this, rhsPtr));
 } // cancel()
 
 //------------------Family 4: Marginalization
@@ -434,7 +434,7 @@ inline uniqptr<Factor> CanonicalGaussianMixture::marginalize(const emdw::RVIds& 
 inline uniqptr<Factor> CanonicalGaussianMixture::observeAndReduce( const emdw::RVIds& variables,
 		const emdw::RVVals& assignedVals, bool presorted, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, variables, assignedVals, presorted));
-	else return uniqptr<Factor> (dynamicApply(marginalizer_.get(), this, variables, assignedVals, presorted));
+	else return uniqptr<Factor> (dynamicApply(observeAndReducer_.get(), this, variables, assignedVals, presorted));
 } // observeAndReduce()
 
 

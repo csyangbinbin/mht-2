@@ -28,11 +28,5 @@
  */
 int main(int, char *argv[]) {
 	
-
-	std::map<unsigned, bool> test;
-	test[0] = true;
-
-	std::cout << test[0] << std::endl;
-
 	return 0;
 }

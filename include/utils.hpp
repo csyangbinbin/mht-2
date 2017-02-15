@@ -9,26 +9,30 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-/** 
- * Almost all operator return a pointer Factor rather than the derived class,
- * making it difficult to access derived class members. This function
- * returns the mean of a GaussianCanonical factor when represented as 
- * its supertype.
- *
- * @param factor A GaussCanonical factor represented in its abstract type.
- * @return The mean of the given factor.
- */
-ColVector<double> ReadMean(rcptr<Factor> factor);
+#include <iostream>
+#include <map>
+#include "emdw.hpp"
 
-/** 
- * Almost all operator return a pointer Factor rather than the derived class,
- * making it difficult to access derived class members. This function
- * returns the covariance of a GaussianCanonical factor when represented as 
- * its supertype.
+/**
+ * @brief Add a new vector valued variable to map collection.
  *
- * @param factor A GaussCanonical factor represented in its abstract type.
- * @return The covariance of the given factor.
+ * Add a new vector valued variable to map collection.
+ *
+ * @param globalVariables A vector of all exisitng variables.
+ *
+ * @param localVariables A vector containing IDs of all
+ * specific types of vector valued variables.
+ *
+ * @param map A map of vector valued IDs to its elements
+ *
+ * @param L The dimension of the vector variable.
+ *
+ * @return The identity of the new vector valued
+ * variable.
  */
-Matrix<double> ReadCovariance(rcptr<Factor> factor);
+unsigned addVariables (emdw::RVIds& globalVariables, 
+		emdw::RVIds& localVariables, 
+		std::map<unsigned,emdw::RVIds>& map,
+		const unsigned L);
 
 #endif // UTILS_HPP

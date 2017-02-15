@@ -22,6 +22,8 @@ std::vector<ColVector<double>> initialiseSensorLocations();
 std::vector<rcptr<V2VTransform>> initialiseMeasurementModels();
 std::vector<ColVector<double>> initialiseLaunchStateMean();
 std::vector<Matrix<double>> initialiseLaunchStateCov();
+ColVector<double> initialiseGenericMean();
+Matrix<double> initialiseGenericCov();
 
 // Discrete time step
 extern const double kTimeStep;
@@ -48,11 +50,13 @@ extern const double kMergeDistance;
 // Launch locations
 extern std::vector<ColVector<double>> kLaunchStateMean;
 extern std::vector<Matrix<double>> kLaunchStateCov;
+extern ColVector<double> kGenericMean;
+extern Matrix<double> kGenericCov;
 
 // Variable management
-extern emdw::RVIds variables;
-extern emdw::RVIds vectorVars;
-extern std::vector<std::map<unsigned, bool>> present;
-extern std::map<unsigned, emdw::RVIds> vecElements;
+extern emdw::RVIds variables; // Global variables
+extern emdw::RVIds vecX;
+extern emdw::RVIds vecZ;
+extern std::map<unsigned, emdw::RVIds> elementsOf;
 
 #endif // SYSTEMCONSTANTS_HPP

@@ -32,12 +32,14 @@ const double kMergeDistance = 5;
 // Launch locations
 std::vector<ColVector<double>> kLaunchStateMean = initialiseLaunchStateMean();
 std::vector<Matrix<double>> kLaunchStateCov = initialiseLaunchStateCov();
+ColVector<double> kGenericMean = initialiseGenericMean();
+Matrix<double> kGenericCov = initialiseGenericCov();
 
 // Variable management
 emdw::RVIds variables;
-emdw::RVIds vectorVars;
-std::vector<std::map<unsigned, bool>> present;
-std::map<unsigned, emdw::RVIds> vecElements;
+emdw::RVIds vecX;
+emdw::RVIds vecZ;
+std::map<unsigned, emdw::RVIds> elementsOf;
 
 std::vector<ColVector<double>> initialiseSensorLocations() {
 	std::vector<ColVector<double>> locations(kNumSensors);
@@ -119,9 +121,9 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 
 	for (unsigned i = 0; i < N; i++) {
 		if (i % 2 == 0) {
-			(launchState[0])(i, i) = 1;
-			(launchState[1])(i, i) = 1;
-			(launchState[2])(i, i) = 1;
+			(launchState[0])(i, i) = 0.5;
+			(launchState[1])(i, i) = 0.5;
+			(launchState[2])(i, i) = 0.5;
 		} else {
 			(launchState[0])(i, i) = 5;
 			(launchState[1])(i, i) = 5;
@@ -132,3 +134,26 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 	return launchState;
 } // initialiseLaunchStateCov()
 
+ColVector<double> initialiseGenericMean() {
+	ColVector<double> genericMean(N); genericMean *= 0;
+
+	genericMean[0] = -14.3310; genericMean[1] = -10.00;
+	genericMean[2] = 11.8510; genericMean[3] = -10.00;
+	genericMean[4] = -1.3352; genericMean[5] = 18.0380;
+
+	return genericMean;
+} // initialiseGenricMean()
+
+Matrix<double> initialiseGenericCov() {
+	Matrix<double> genericCov = gLinear::zeros<double>(N, N);
+
+	for (unsigned i = 0; i < N; i++) {
+		if (i % 2 == 0) (genericCov)(i, i) = 6.440;
+		else {
+			(genericCov)(i, i) = 30.00;
+			(genericCov)(i - 1, i) = (genericCov)(i, i - 1) = 3.0;
+		} 
+	}
+
+	return genericCov;
+} // initialiseGenricMean()

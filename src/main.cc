@@ -28,5 +28,10 @@
  */
 int main(int, char *argv[]) {
 	
+	emdw::RVIds currentX;
+	currentX.push_back(addVariables(variables, vecX, elementsOf, N));
+
+	rcptr<Factor> prior = uniqptr<Factor>(new CanonicalGaussianMixture(elementsOf[currentX[0]], {1.0}, {kLaunchStateMean[0]}, {kLaunchStateCov[0]}));
+
 	return 0;
 }

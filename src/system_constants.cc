@@ -40,6 +40,15 @@ emdw::RVIds variables;
 emdw::RVIds vecX;
 emdw::RVIds vecZ;
 std::map<unsigned, emdw::RVIds> elementsOf;
+std::map<unsigned, emdw::RVIds> presentAt;
+
+// Measurement management
+rcptr<MeasurementManager> manager;
+unsigned kNumberOfTimeSteps;
+
+// Graph representation
+std::map<unsigned, std::vector<rcptr<Node>>> nodes;
+std::map<unsigned, std::vector<rcptr<Factor>>> factors;
 
 std::vector<ColVector<double>> initialiseSensorLocations() {
 	std::vector<ColVector<double>> locations(kNumSensors);

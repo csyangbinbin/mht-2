@@ -15,6 +15,10 @@
 #include "gausscanonical.hpp"
 #include "canonical_gaussian_mixture.hpp"
 #include "linear_gaussian.hpp"
+#include "node.hpp"
+#include "graph.hpp"
+#include "graph_builder.hpp"
+#include "measurement_manager.hpp"
 #include "transforms.hpp"
 
 // Function prototypes
@@ -24,6 +28,12 @@ std::vector<ColVector<double>> initialiseLaunchStateMean();
 std::vector<Matrix<double>> initialiseLaunchStateCov();
 ColVector<double> initialiseGenericMean();
 Matrix<double> initialiseGenericCov();
+
+// Typedefs
+typedef DiscreteTable<unsigned> DT;
+typedef GaussCanonical GC;
+typedef CanonicalGaussianMixture CGM;
+typedef LinearGaussian LG;
 
 // Discrete time step
 extern const double kTimeStep;
@@ -58,5 +68,14 @@ extern emdw::RVIds variables; // Global variables
 extern emdw::RVIds vecX;
 extern emdw::RVIds vecZ;
 extern std::map<unsigned, emdw::RVIds> elementsOf;
+extern std::map<unsigned, emdw::RVIds> presentAt;
+
+// Measurement management
+extern rcptr<MeasurementManager> manager;
+extern unsigned kNumberOfTimeSteps;
+
+// Graph representation
+extern std::map<unsigned, std::vector<rcptr<Node>>> nodes;
+extern std::map<unsigned, std::vector<rcptr<Factor>>> factors;
 
 #endif // SYSTEMCONSTANTS_HPP

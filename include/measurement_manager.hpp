@@ -23,28 +23,59 @@ class MeasurementManager{
 
 	public:
 		/**
+		 * @brief Constructor
 		 *
+		 * Reads in measurements from a set of input files.
+		 *
+		 * @param fileNameFormat The location of the files and their root
+		 * format.
+		 *
+		 * @param N The number of files in the batch.
 		 */
 		MeasurementManager(const std::string& fileNameFormat, const unsigned N);
 
 		/**
-		 *
+		 * @brief Default destructor.
 		 */
 		~MeasurementManager();
 
 	public:
 		/**
+		 * @brief Return a set of measurements from a sensor at a given time step.
 		 *
+		 * Returns a set of measurements from a sensor at a given time step. This 
+		 * returns a set of gLinear::ColVectors. Missed detections are
+		 * given by an empty vector.
+		 *
+		 * @param i The sensor number
+		 *
+		 * @param j The current time step indice. 
+		 *
+		 * @return A vector of ColVectors of Range-Doppler measurements from a particular
+		 * sensor.
 		 */
 		std::vector<ColVector<double>> getSensorPoints(const unsigned i, const unsigned j);
 
 		/**
+		 * @brief Return a set of measurements from a sensor at a given time step. 
 		 *
+		 * Returns a set of measurements from a sensor at a given time step. This returns
+		 * a set of emdw::RVVals to intorduced as evidence in a factor. Missed detections
+		 * are given by an empty set.
+		 *
+		 * @param i The sensor number
+		 *
+		 * @param j The current time step indice. 
+		 *
+		 * @return A vector emdw::RVVals of Range-Doppler measureemtns from a particular
+		 * sensor.
 		 */
 		std::vector<emdw::RVVals> getSensorMeasurements(const unsigned i, const unsigned j);
 
 		/**
+		 * @brief Returns the total number of time steps over which the data was collected.
 		 *
+		 * @return The total number of time steps.
 		 */
 		unsigned getNumberOfTimeSteps() const;
 	

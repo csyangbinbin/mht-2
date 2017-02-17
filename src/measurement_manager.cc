@@ -64,14 +64,16 @@ std::map<unsigned, std::vector< ColVector<double>  >> MeasurementManager::readMe
 		std::vector<double> result;
 		
 		while(std::getline(lineStream, cell, ';')) result.push_back( strtod(cell.c_str(), NULL) );
+		
 		unsigned N = (unsigned) result[0];
+		map[N].push_back( {} );
 
-		if (!isinf(result[1])) 
+		if (std::isfinite(result[1])) 
 		{
 			ColVector<double> vals = ColVector<double>(2);
 			vals[0] = result[1]; vals[1] = result[2];
 			map[N].push_back(vals);
-		}
+		} 
 	}
 	
 	return map;

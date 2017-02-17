@@ -18,9 +18,10 @@ unsigned addVariables (emdw::RVIds& globalVariables,
 	localVariables.push_back(M);
 
 	N = globalVariables.size();
-	for (unsigned i = 0; i < L; i++) globalVariables.push_back(N + i);
-
-	map[M] = emdw::RVIds(&globalVariables[N+L], &globalVariables[N+L] + L);
+	for (unsigned i = 0; i < L; i++) {
+		globalVariables.push_back(N + i);
+		map[M].push_back(N + i);
+	}
 
 	return localVariables[M];
 } // addVariables()

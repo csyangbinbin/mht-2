@@ -21,12 +21,10 @@ int main(int, char *argv[]) {
 	kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
 
 	// Step 2 : Set up the prior
-	emdw::RVIds currentX;
-	currentX.push_back(addVariables(variables, vecX, elementsOf, N));
-	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOf[currentX[0]], {1.0}, {kLaunchStateMean[0]}, {kLaunchStateCov[0]}));
+	currentStates[0].push_back(addVariables(variables, vecX, elementsOf, kStateSpaceDim));
+	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOf[currentStates[0][0]], {1.0}, {kLaunchStateMean[0]}, {kLaunchStateCov[0]}));
 
-	nodes[0].push_back( uniqptr<Node> (new Node(prior) ) );
-	factors[0].push_back(prior);
+	stateNodes[0].push_back( uniqptr<Node> (new Node(prior) ) );
 
 	// Step 3: Loop every time step
 	for (unsigned i = 5; i < 6; i++) {

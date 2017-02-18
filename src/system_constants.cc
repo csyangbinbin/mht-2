@@ -15,14 +15,16 @@ const unsigned short kNumSensors = 6;
 std::vector<ColVector<double>> kSensorLocation = initialiseSensorLocations();
 
 // Dimension of state and observation vectors
-const unsigned short N = 6;
-const unsigned short M = 2;
+const unsigned short kStateSpaceDim = 6;
+const unsigned short kMeasSpaceDim = 2;
 
 // Motion model
 rcptr<V2VTransform> kMotionModel = uniqptr<V2VTransform>(new MotionModel(kTimeStep));
+Matrix<double> kRCovMat = initialiseRCovMat();
 
 // Measurement model
 std::vector<rcptr<V2VTransform>> kMeasurementModel = initialiseMeasurementModels();
+Matrix<double> kQCovMat = initialiseQCovMat();
 
 // Gaussian mixture pruning parameters
 const unsigned kMaxComponents = 100;
@@ -39,6 +41,7 @@ Matrix<double> kGenericCov = initialiseGenericCov();
 emdw::RVIds variables;
 emdw::RVIds vecX;
 emdw::RVIds vecZ;
+std::map<unsigned, emdw::RVIds> currentStates;
 std::map<unsigned, emdw::RVIds> elementsOf;
 std::map<unsigned, emdw::RVIds> presentAt;
 
@@ -47,8 +50,26 @@ rcptr<MeasurementManager> manager;
 unsigned kNumberOfTimeSteps;
 
 // Graph representation
-std::map<unsigned, std::vector<rcptr<Node>>> nodes;
+std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;
+std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
 std::map<unsigned, std::vector<rcptr<Factor>>> factors;
+
+Matrix<double> initialiseRCovMat () {
+	Matrix<double> R = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
+	
+	for (unsigned i = 0; i < kStateSpaceDim; i++) {
+		if (i % 2 == 0) R(i, i) = 1;
+		else R(i, i) = 5;
+	}
+	
+	return R;
+} // initialiseRCovMat()
+
+Matrix<double> initialiseQCovMat () {
+	Matrix<double> Q = gLinear::zeros<double>(kMeasSpaceDim, kMeasSpaceDim);
+	Q(0, 0) = 9; Q(1, 1) = 1.5;
+	return Q;
+} // initialiseQCovMat()
 
 std::vector<ColVector<double>> initialiseSensorLocations() {
 	std::vector<ColVector<double>> locations(kNumSensors);
@@ -101,19 +122,19 @@ std::vector<ColVector<double>> initialiseLaunchStateMean() {
 	std::vector<ColVector<double>> launchState(3);
 
 	// Launch state 1
-	launchState[0] = ColVector<double>(N); launchState[0] *= 0;
+	launchState[0] = ColVector<double>(kStateSpaceDim); launchState[0] *= 0;
 	launchState[0][0] = -12.331; launchState[0][1] = -10;
 	launchState[0][2] = 13.851; launchState[0][3] = -10;
 	launchState[0][4] = -5.139; launchState[0][5] = 20;
 
 	// Launch state 2
-	launchState[1] = ColVector<double>(N); launchState[1] *= 0;
+	launchState[1] = ColVector<double>(kStateSpaceDim); launchState[1] *= 0;
 	launchState[1][0] = -12.997; launchState[1][1] = -10;
 	launchState[1][2] = 17.325; launchState[1][3] = -10;
 	launchState[1][4] = -5.151; launchState[1][5] = 20;
 
 	// Launch state 3
-	launchState[2] = ColVector<double>(N); launchState[2] *= 0;
+	launchState[2] = ColVector<double>(kStateSpaceDim); launchState[2] *= 0;
 	launchState[2][0] = -13.65; launchState[2][1] = -10;
 	launchState[2][2] = 20.784; launchState[2][3] = -10;
 	launchState[2][4] = -5.186; launchState[2][5] = 20;
@@ -124,11 +145,11 @@ std::vector<ColVector<double>> initialiseLaunchStateMean() {
 std::vector<Matrix<double>> initialiseLaunchStateCov() {
 	std::vector<Matrix<double>> launchState(3);
 
-	launchState[0] = gLinear::zeros<double>(N, N);
-	launchState[1] = gLinear::zeros<double>(N, N);
-	launchState[2] = gLinear::zeros<double>(N, N);
+	launchState[0] = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
+	launchState[1] = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
+	launchState[2] = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
 
-	for (unsigned i = 0; i < N; i++) {
+	for (unsigned i = 0; i < kStateSpaceDim; i++) {
 		if (i % 2 == 0) {
 			(launchState[0])(i, i) = 0.5;
 			(launchState[1])(i, i) = 0.5;
@@ -144,7 +165,7 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 } // initialiseLaunchStateCov()
 
 ColVector<double> initialiseGenericMean() {
-	ColVector<double> genericMean(N); genericMean *= 0;
+	ColVector<double> genericMean(kStateSpaceDim); genericMean *= 0;
 
 	genericMean[0] = -14.3310; genericMean[1] = -10.00;
 	genericMean[2] = 11.8510; genericMean[3] = -10.00;
@@ -154,9 +175,9 @@ ColVector<double> initialiseGenericMean() {
 } // initialiseGenricMean()
 
 Matrix<double> initialiseGenericCov() {
-	Matrix<double> genericCov = gLinear::zeros<double>(N, N);
+	Matrix<double> genericCov = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
 
-	for (unsigned i = 0; i < N; i++) {
+	for (unsigned i = 0; i < kStateSpaceDim; i++) {
 		if (i % 2 == 0) (genericCov)(i, i) = 6.440;
 		else {
 			(genericCov)(i, i) = 30.00;

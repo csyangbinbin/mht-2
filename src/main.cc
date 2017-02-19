@@ -21,8 +21,8 @@ int main(int, char *argv[]) {
 	kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
 
 	// Step 2 : Set up the prior
-	currentStates[0].push_back(addVariables(variables, vecX, elementsOf, kStateSpaceDim));
-	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOf[currentStates[0][0]], {1.0}, {kLaunchStateMean[0]}, {kLaunchStateCov[0]}));
+	currentStates[0].push_back(addVariables(variables, vecX, elementsOfX, kStateSpaceDim));
+	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], {1.0}, {kLaunchStateMean[0]}, {kLaunchStateCov[0]}));
 
 	stateNodes[0].push_back( uniqptr<Node> (new Node(prior) ) );
 

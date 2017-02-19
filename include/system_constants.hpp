@@ -72,8 +72,10 @@ extern emdw::RVIds variables; // Global variables
 extern emdw::RVIds vecX;
 extern emdw::RVIds vecZ;
 extern std::map<unsigned, emdw::RVIds> currentStates;
-extern std::map<unsigned, emdw::RVIds> elementsOf;
+extern std::map<unsigned, emdw::RVIds> elementsOfX;
+extern std::map<unsigned, emdw::RVIds> elementsOfZ;
 extern std::map<unsigned, emdw::RVIds> presentAt;
+extern std::vector<emdw::RVIds> virtualMeasurements;
 
 // Measurement management
 extern rcptr<MeasurementManager> manager;
@@ -82,6 +84,7 @@ extern unsigned kNumberOfTimeSteps;
 // Graph representation
 extern std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;
 extern std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
-extern std::map<unsigned, std::vector<rcptr<Factor>>> factors;
+extern std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
+extern std::map<unsigned, std::vector<rcptr<GC>>> validationRegion;
 
 #endif // SYSTEMCONSTANTS_HPP

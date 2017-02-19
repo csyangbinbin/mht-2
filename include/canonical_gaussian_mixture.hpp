@@ -749,7 +749,7 @@ class CanonicalGaussianMixture : public Factor {
 	private:
 		// Scope and components
 		emdw::RVIds vars_;
-		std::vector<rcptr<Factor>> comps_;
+		mutable std::vector<rcptr<Factor>> comps_;
 		mutable unsigned N_;
 
 		// Pruning and merging characteristics

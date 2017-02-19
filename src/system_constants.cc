@@ -42,8 +42,10 @@ emdw::RVIds variables;
 emdw::RVIds vecX;
 emdw::RVIds vecZ;
 std::map<unsigned, emdw::RVIds> currentStates;
-std::map<unsigned, emdw::RVIds> elementsOf;
+std::map<unsigned, emdw::RVIds> elementsOfX;
+std::map<unsigned, emdw::RVIds> elementsOfZ;
 std::map<unsigned, emdw::RVIds> presentAt;
+std::vector<emdw::RVIds> virtualMeasurements;
 
 // Measurement management
 rcptr<MeasurementManager> manager;
@@ -52,7 +54,8 @@ unsigned kNumberOfTimeSteps;
 // Graph representation
 std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;
 std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
-std::map<unsigned, std::vector<rcptr<Factor>>> factors;
+std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
+std::map<unsigned, std::vector<rcptr<GC>>> validationRegion;
 
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> R = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);

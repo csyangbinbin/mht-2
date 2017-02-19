@@ -282,7 +282,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	std::vector<rcptr<Factor>> oldComps = cgm->getComponents();
 	
 	// Allocate the new mixture.
-	unsigned N_ = oldComps.size();
+	N_ = oldComps.size();
 	comps_ = std::vector<rcptr<Factor>>(N_);
 
 	// Put each component through the linear transform.
@@ -330,7 +330,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	std::vector<rcptr<Factor>> oldComps = cgm->getComponents();
 	
 	// Allocate the new mixture.
-	unsigned N_ = oldComps.size();
+	N_ = oldComps.size();
 	comps_ = std::vector<rcptr<Factor>>(N_);
 
 	// Put each component through the transform.
@@ -449,6 +449,28 @@ double CanonicalGaussianMixture::inplaceDampen(const Factor* oldMsg, double df, 
 //------------------Other required virtual methods
 
 CanonicalGaussianMixture* CanonicalGaussianMixture::copy(const emdw::RVIds& newVars, bool presorted) const {
+	if (newVars.size()) {
+		// Copy components onto new scope
+		std::vector<rcptr<Factor>> components;
+		for (rcptr<Factor> i : comps_) components.push_back( uniqptr<Factor> (i->copy(newVars, presorted) ) );
+
+		return new CanonicalGaussianMixture(
+				newVars,
+				components,
+				true,
+				maxComp_,
+				threshold_,
+				unionDistance_,
+				inplaceNormalizer_,
+				normalizer_,
+				inplaceAbsorber_,
+				absorber_,
+				inplaceCanceller_,
+				canceller_,
+				marginalizer_,
+				observeAndReducer_,
+				inplaceDamper_);
+	} 
 	return new CanonicalGaussianMixture(*this);
 } // copy()
 
@@ -495,7 +517,7 @@ uniqptr<GaussCanonical> CanonicalGaussianMixture::momentMatch() const {
 			totalMass += w.back();
 		}
 	}
-	
+
 	// Determine the first two moments of the mixture
 	double weight;
 	for (unsigned i = 0; i < w.size(); i++) {
@@ -503,6 +525,7 @@ uniqptr<GaussCanonical> CanonicalGaussianMixture::momentMatch() const {
 		mean += (weight)*(mu[i]);
 		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
 	}
+	cov -= (mean)*(mean.transpose());
 
 	return uniqptr<GaussCanonical>(new GaussCanonical(vars_, mean, cov) );
 }
@@ -606,7 +629,13 @@ void CanonicalGaussianMixture::mergeComponents() {
 
 //---------------- Useful get methods
 
-std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { return comps_; } // getComponents()
+std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { 
+	std::vector<rcptr<Factor>> components;
+
+	for (rcptr<Factor> c : comps_) components.push_back(uniqptr<Factor>( c->copy() ) );
+	
+	return components; 
+} // getComponents()
 
 double CanonicalGaussianMixture::getNumberOfComponents() const { return N_; } // getNumberOfComponents()
 

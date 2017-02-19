@@ -12,6 +12,7 @@
 #include <iostream>
 #include <map>
 #include "emdw.hpp"
+#include "canonical_gaussian_mixture.hpp"
 
 /**
  * @brief Add a new vector valued variable to map collection.
@@ -34,5 +35,11 @@ unsigned addVariables (emdw::RVIds& globalVariables,
 		emdw::RVIds& localVariables, 
 		std::map<unsigned,emdw::RVIds>& map,
 		const unsigned L);
+
+/**
+ *
+ */
+void printCGM (const rcptr<Factor>& factor);
+
 
 #endif // UTILS_HPP

@@ -23,9 +23,9 @@ class MotionModel : public V2VTransform{
 		/**
 		 * Constructor for MotionModel.
 		 *
-		 * @param time_step The discrete time step over which the target is advanced.
+		 * @param timeStep The discrete time step over which the target is advanced.
 		 */
-		MotionModel(const double time_step) : delta_t_(time_step) {}
+		MotionModel(const double timeStep) : deltaT_(timeStep) {}
 
 		/**
 		 * Implements the motion model, \f$ \pmb{g} (\pmb{x}_{t-1}) \f$, in the prediction step
@@ -39,7 +39,7 @@ class MotionModel : public V2VTransform{
 		std::vector< ColVector<double> > operator()(const ColVector<double>& x) const;
 	
 	private:
-		double delta_t_;
+		double deltaT_;
 }; // MotionModel
 
 /**
@@ -54,11 +54,23 @@ class SensorModel : public V2VTransform{
 		/**
 		 * Default constructor.
 		 *
-		 * @param sensor_location The position of the sensor in cartesian coordinates.
+		 * @param sensorLocation The position of the sensor in cartesian coordinates.
+		 *
+		 * @param c The speed of light.
+		 *
+		 * @param fc The carrier frequency.
+		 *
+		 * @param tp The sweep period.
+		 *
+		 * @param bw The bandwidth.
 		 */
-		SensorModel(const ColVector<double> &sensor_location) {
-			ASSERT(sensor_location.size() == 3, "The sensor location must be defined in 3D space.");
-			sensor_position_ = sensor_location;
+		SensorModel(const ColVector<double>& sensorLocation, const double c, const double fc, 
+				const double tp, const double bw) 
+				: c_(c), fc_(fc),
+				tp_(tp), bw_(bw) {
+			ASSERT(sensorLocation.size() == 3, "The sensor location must be defined in 3D space.");
+			sensorPosition_ = sensorLocation;
+			vMax_ = (c/(4*fc*tp));
 		}
 	
 		/**
@@ -73,7 +85,12 @@ class SensorModel : public V2VTransform{
 		std::vector< ColVector<double> > operator()(const ColVector<double>& x) const;
 
 	private:
-		ColVector<double> sensor_position_;
+		ColVector<double> sensorPosition_;
+		double c_;
+		double fc_;
+		double tp_;
+		double bw_;
+		double vMax_;
 }; // SensorModel
 
 #endif // TRANSFORMS_HPP

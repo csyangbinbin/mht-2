@@ -36,10 +36,4 @@ unsigned addVariables (emdw::RVIds& globalVariables,
 		std::map<unsigned,emdw::RVIds>& map,
 		const unsigned L);
 
-/**
- *
- */
-void printCGM (const rcptr<Factor>& factor);
-
-
 #endif // UTILS_HPP

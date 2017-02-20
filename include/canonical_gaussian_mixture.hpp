@@ -5,7 +5,6 @@
  *
  * Header file for the Canonical Gaussian Mixture implementation.
  *************************************************************************/
-
 #ifndef CANONICALGAUSSIANMIXTURE_HPP
 #define CANONICALGAUSSIANMIXTURE_HPP
 
@@ -685,7 +684,7 @@ class CanonicalGaussianMixture : public Factor {
 		 * @return A unique pointer to a single GaussCanonical Factor
 		 * with matching moments.
 		 */
-		uniqptr<GaussCanonical> momentMatch() const;
+		uniqptr<Factor> momentMatch() const;
 
 	public:
 		/**

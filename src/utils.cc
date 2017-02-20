@@ -25,11 +25,3 @@ unsigned addVariables (emdw::RVIds& globalVariables,
 
 	return localVariables[M];
 } // addVariables()
-
-void printCGM (const rcptr<Factor>& factor) {
-	rcptr<CanonicalGaussianMixture> cgm = std::dynamic_pointer_cast<CanonicalGaussianMixture>(factor);
-	std::vector<rcptr<Factor>> components = cgm->getComponents();
-
-	std::cout << "Number of components: " << cgm->getNumberOfComponents() << "\n\n" << std::endl;
-	for (rcptr<Factor> c : components) std::cout << *c << std::endl;
-}

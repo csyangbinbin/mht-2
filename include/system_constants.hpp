@@ -30,6 +30,7 @@ std::vector<ColVector<double>> initialiseLaunchStateMean();
 std::vector<Matrix<double>> initialiseLaunchStateCov();
 ColVector<double> initialiseGenericMean();
 Matrix<double> initialiseGenericCov();
+void initialiseVariables();
 
 // Typedefs
 typedef DiscreteTable<unsigned> DT;
@@ -53,6 +54,11 @@ extern rcptr<V2VTransform> kMotionModel;
 extern Matrix<double> kRCovMat;
 
 // Measurement model
+extern const double kC; // Speed of light
+extern const double kFc; // Carrier frequency
+extern const double kTp; // Sweep period
+extern const double kBw; // Bandwidth
+
 extern std::vector<rcptr<V2VTransform>> kMeasurementModel;
 extern Matrix<double> kQCovMat;
 
@@ -85,6 +91,6 @@ extern unsigned kNumberOfTimeSteps;
 extern std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;
 extern std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
 extern std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
-extern std::map<unsigned, std::vector<rcptr<GC>>> validationRegion;
+extern std::map<unsigned, std::vector<rcptr<Factor>>> validationRegion;
 
 #endif // SYSTEMCONSTANTS_HPP

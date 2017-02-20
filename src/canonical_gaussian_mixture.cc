@@ -490,11 +490,22 @@ emdw::RVIdType CanonicalGaussianMixture::getVar(unsigned varNo) const { return v
 std::istream& CanonicalGaussianMixture::txtRead(std::istream& file) { return file; } // txtRead()
 
 //TODO: Complete this!!
-std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const { return file; } // txtWrite()
+std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const { 
+	std::vector<rcptr<Factor>> components = getComponents();
+	
+	for (unsigned i = 0; i < N_; i++) {
+		file << "=========================\n";
+		file << "Component " << i << "\n";
+		file << *components[i] << "\n\n";
+		file << "=========================\n";
+	}
+	
+	return file; 
+} // txtWrite()
 
 //------------------ M-Projections
 
-uniqptr<GaussCanonical> CanonicalGaussianMixture::momentMatch() const {
+uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	// Old means and covariances
 	std::vector<double> w;
 	std::vector<ColVector<double>> mu;
@@ -527,7 +538,7 @@ uniqptr<GaussCanonical> CanonicalGaussianMixture::momentMatch() const {
 	}
 	cov -= (mean)*(mean.transpose());
 
-	return uniqptr<GaussCanonical>(new GaussCanonical(vars_, mean, cov) );
+	return uniqptr<Factor>(new GaussCanonical(vars_, mean, cov) );
 }
 
 //------------------ Pruning and Merging

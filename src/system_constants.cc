@@ -23,6 +23,11 @@ rcptr<V2VTransform> kMotionModel = uniqptr<V2VTransform>(new MotionModel(kTimeSt
 Matrix<double> kRCovMat = initialiseRCovMat();
 
 // Measurement model
+const double kC = 3e8;
+const double kFc = 10.525e9;
+const double kTp = 200e-6; 
+const double kBw = 47e6; 
+
 std::vector<rcptr<V2VTransform>> kMeasurementModel = initialiseMeasurementModels();
 Matrix<double> kQCovMat = initialiseQCovMat();
 
@@ -53,9 +58,25 @@ unsigned kNumberOfTimeSteps;
 
 // Graph representation
 std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;
-std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
+std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes; 
 std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
-std::map<unsigned, std::vector<rcptr<GC>>> validationRegion;
+std::map<unsigned, std::vector<rcptr<Factor>>> validationRegion;
+
+void initialiseVariables() {
+	variables.clear();
+	vecX.clear();
+	vecZ.clear();
+	currentStates.clear();
+	elementsOfX.clear();
+	elementsOfZ.clear();
+	presentAt.clear();
+	virtualMeasurements.clear();
+
+	stateNodes.clear();
+	measurementNodes.clear();
+	predMeasurements.clear();
+	validationRegion.clear();
+} // initialiseVariables();
 
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> R = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
@@ -104,8 +125,8 @@ std::vector<ColVector<double>> initialiseSensorLocations() {
 
 	// Sensor 5
 	locations[5] = ColVector<double>(3); locations[5] *= 0;
-	locations[5][0] = 28.9590; locations[5][1] = 3.3760;
-	locations[5][2] = 77.7540;
+	locations[5][0] = 28.9590; locations[5][1] = 77.7540;
+	locations[5][2] = 3.3760;
 
 	return locations;
 } // initialiseSensorLocations()
@@ -115,7 +136,7 @@ std::vector<rcptr<V2VTransform>> initialiseMeasurementModels() {
 	std::vector<ColVector<double>> locations = initialiseSensorLocations();
 
 	for (unsigned i = 0; i < kNumSensors; i++) {
-		models[i] = uniqptr<V2VTransform>(new SensorModel(locations[i]));
+		models[i] = uniqptr<V2VTransform>(new SensorModel(locations[i], 3e8, 10.525e9, 200e-6, 47e6));
 	}
 		
 	return models;

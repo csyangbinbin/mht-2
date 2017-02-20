@@ -16,15 +16,21 @@
  * @since 03/10/16
  */
 int main(int, char *argv[]) {
+	
+	initialiseVariables();
+	
 	// Step 1 : Get the measurements
 	manager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", kNumSensors));
 	kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
 
 	// Step 2 : Set up the prior
 	currentStates[0].push_back(addVariables(variables, vecX, elementsOfX, kStateSpaceDim));
-	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], {1.0}, {kLaunchStateMean[0]}, {kLaunchStateCov[0]}));
+	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], 
+				{1.0}, {kLaunchStateMean[0]}, 
+				{kLaunchStateCov[0]}));
 
-	stateNodes[0].push_back( uniqptr<Node> (new Node(prior) ) );
+	stateNodes[0].clear(); stateNodes[0].resize(1);
+	stateNodes[0][0] =  uniqptr<Node> (new Node(prior) );
 
 	// Step 3: Loop every time step
 	for (unsigned i = 5; i < 6; i++) {

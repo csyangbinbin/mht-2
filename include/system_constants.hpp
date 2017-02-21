@@ -22,15 +22,15 @@
 #include "transforms.hpp"
 
 // Function prototypes
-void initialiseRCovMat(Matrix<double>& RCov);
-void initialiseQCovMat(Matrix<double>& QCov);
-void initialiseSensorLocations(std::vector<ColVector<double>>& locations);
-void initialiseMeasurementModels(std::vector<rcptr<V2VTransform>>& models, std::vector<ColVector<double>>& locations);
-void initialiseLaunchStateMean(std::vector<ColVector<double>>& launchState);
-void initialiseLaunchStateCov(std::vector<Matrix<double>>& launchCov);
-void initialiseGenericMean(ColVector<double>& genericMean);
-void initialiseGenericCov(Matrix<double>& genericCov);
-void initialiseGenericWeights(std::vector<double>& weights);
+Matrix<double> initialiseRCovMat();
+Matrix<double> initialiseQCovMat();
+std::vector<ColVector<double>> initialiseSensorLocations();
+std::vector<rcptr<V2VTransform>> initialiseMeasurementModels();
+std::vector<ColVector<double>> initialiseLaunchStateMean();
+std::vector<Matrix<double>> initialiseLaunchStateCov();
+ColVector<double> initialiseGenericMean();
+Matrix<double> initialiseGenericCov();
+std::vector<double> initialiseGenericWeights();
 bool initialiseVariables();
 
 // Typedefs
@@ -51,7 +51,6 @@ namespace mht {
 	extern const unsigned short kStateSpaceDim;
 	extern const unsigned short kMeasSpaceDim;
 
-	
 	// Motion model
 	extern rcptr<V2VTransform> kMotionModel;
 	extern Matrix<double> kRCovMat;
@@ -70,14 +69,13 @@ namespace mht {
 	extern const double kThreshold;
 	extern const double kMergeDistance;
 
-	
 	// Launch locations
 	extern std::vector<ColVector<double>> kLaunchStateMean;
 	extern std::vector<Matrix<double>> kLaunchStateCov;
 
 	extern ColVector<double> kGenericMean;
 	extern Matrix<double> kGenericCov;
-	extern std::vector<double> kGenericWeights;
+	extern std::vector<double> kGenericWeight;
 
 	// Force initialisation
 	extern bool init;

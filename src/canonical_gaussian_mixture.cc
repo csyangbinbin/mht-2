@@ -68,7 +68,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	}
 
 	// Create a mixture with a single vacuous component.
-	comps_.push_back( uniqptr<GaussCanonical> ( new GaussCanonical(vars_, true ) ) );
+	comps_.push_back( uniqptr<Factor> ( new GaussCanonical(vars_, true ) ) );
 	N_ = 1;
 } // Default Constructor
 
@@ -129,7 +129,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		g = -0.5*( (K*means[i]).transpose() )*means[i] 
 			- log( ( pow(2*M_PI, (1.0*vars.size())/2) * pow(detcov, 0.5) ) / weights[i]);
 
-		comps_[i] = uniqptr<GaussCanonical> ( new GaussCanonical(vars, K, h, g, false) );
+		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, g, false) );
 	}
 
 	// Make the sure high level description is sorted.
@@ -179,7 +179,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 			info.size() << "and prec.size() = " << prec.size() );
 
 	for (unsigned i = 0; i < N_; i++) {
-		comps_[i] = uniqptr<GaussCanonical> ( new GaussCanonical(vars, prec[i], info[i], g[i], false ) );
+		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, prec[i], info[i], g[i], false ) );
 	}
 
 	// Make the sure high level description is sorted.
@@ -236,7 +236,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 				<< ". All components must be distributions in " << vars);
 		
 		gc = std::dynamic_pointer_cast<GaussCanonical>(components[i]);
-		comps_[i] = uniqptr<GaussCanonical>(gc->copy());
+		comps_[i] = uniqptr<Factor>(gc->copy());
 	}
 
 	// Prune and merge if necessary - or something
@@ -287,7 +287,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 
 	// Put each component through the linear transform.
 	for (unsigned i = 0; i < N_; i++) {
-		comps_[i] = uniqptr<GaussCanonical>(new GaussCanonical(oldComps[i]->copy(), A, newVars, Q, false ) );
+		comps_[i] = uniqptr<Factor>(new GaussCanonical(oldComps[i]->copy(), A, newVars, Q, false ) );
 	}
 
 	// Make the new variables are sorted in CanonicalGaussianMixture
@@ -335,7 +335,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 
 	// Put each component through the transform.
 	for (unsigned i = 0; i < N_; i++) {
-		comps_[i] = uniqptr<GaussCanonical>(new GaussCanonical(oldComps[i]->copy(), *transform, newVars, Q, false ) );
+		comps_[i] = uniqptr<Factor>(new GaussCanonical(oldComps[i]->copy(), *transform, newVars, Q, false ) );
 	}
 
 	// Make the new variables are sorted in CanonicalGaussianMixture
@@ -343,7 +343,6 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 } // Non-linear Gaussian constructor
 
 CanonicalGaussianMixture::~CanonicalGaussianMixture() {} // Default Destructor
-
 
 unsigned CanonicalGaussianMixture::classSpecificConfigure(
 		const emdw::RVIds& vars,
@@ -641,9 +640,11 @@ void CanonicalGaussianMixture::mergeComponents() {
 //---------------- Useful get methods
 
 std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { 
-	std::vector<rcptr<Factor>> components;
+	std::vector<rcptr<Factor>> components(comps_.size());
 
-	for (rcptr<Factor> c : comps_) components.push_back(uniqptr<Factor>( c->copy() ) );
+	for (unsigned i = 0; i < comps_.size(); i++) {
+		components[i] = uniqptr<Factor>( comps_[i]->copy() ) ;
+	}
 	
 	return components; 
 } // getComponents()
@@ -914,7 +915,7 @@ Factor* MarginalizeCGM::process(const CanonicalGaussianMixture* lhsPtr, const em
 		result[i] = (lhsComps[i])->marginalize(variablesToKeep, presorted);
 	}
 
-	return new CanonicalGaussianMixture(variablesToKeep, 
+	return new CanonicalGaussianMixture(result[0]->getVars(), 
 				result, 
 				true,
 				lhs.maxComp_,

@@ -23,6 +23,11 @@
 /**
  * @brief Predict the current state of the x variables
  */
-void predictStates ();
+void predictStates();
+
+/**
+ * @brief Performs measurement updates on the existing targets
+ */
+void measurementUpdate();
 
 #endif // ALGORITHMICSTEPS_HPP

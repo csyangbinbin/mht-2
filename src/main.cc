@@ -27,14 +27,22 @@ int main(int, char *argv[]) {
 	currentStates[0].clear(); currentStates[0].resize(1);
 	currentStates[0][0] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 	
-	std::vector<rcptr<Factor>> gc(1);
+	std::vector<rcptr<Factor>> gc(3);
 	gc[0] = uniqptr<Factor>(new GC(elementsOfX[currentStates[0][0]],
-				mht::kGenericMean,
-				mht::kGenericCov) );
+				mht::kLaunchStateMean[0],
+				mht::kLaunchStateCov[0] ) );
+
+
+	gc[1] = uniqptr<Factor>(new GC(elementsOfX[currentStates[0][0]],
+				mht::kLaunchStateMean[1],
+				mht::kLaunchStateCov[1] ) );
+
+
+	gc[2] = uniqptr<Factor>(new GC(elementsOfX[currentStates[0][0]],
+				mht::kLaunchStateMean[2],
+				mht::kLaunchStateCov[2] ) );
 
 	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], gc));
-
-	std::cout << *prior << std::endl;
 
 	stateNodes[0].clear(); stateNodes[0].resize(1);
 	stateNodes[0][0] = uniqptr<Node> (new Node(prior) );
@@ -46,6 +54,7 @@ int main(int, char *argv[]) {
 		predictStates();
 		
 		// Measurement update
+		measurementUpdate();
 		
 		// Backwards pass
 		

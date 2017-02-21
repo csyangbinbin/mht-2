@@ -22,15 +22,16 @@
 #include "transforms.hpp"
 
 // Function prototypes
-Matrix<double> initialiseRCovMat();
-Matrix<double> initialiseQCovMat();
-std::vector<ColVector<double>> initialiseSensorLocations();
-std::vector<rcptr<V2VTransform>> initialiseMeasurementModels();
-std::vector<ColVector<double>> initialiseLaunchStateMean();
-std::vector<Matrix<double>> initialiseLaunchStateCov();
-ColVector<double> initialiseGenericMean();
-Matrix<double> initialiseGenericCov();
-void initialiseVariables();
+void initialiseRCovMat(Matrix<double>& RCov);
+void initialiseQCovMat(Matrix<double>& QCov);
+void initialiseSensorLocations(std::vector<ColVector<double>>& locations);
+void initialiseMeasurementModels(std::vector<rcptr<V2VTransform>>& models, std::vector<ColVector<double>>& locations);
+void initialiseLaunchStateMean(std::vector<ColVector<double>>& launchState);
+void initialiseLaunchStateCov(std::vector<Matrix<double>>& launchCov);
+void initialiseGenericMean(ColVector<double>& genericMean);
+void initialiseGenericCov(Matrix<double>& genericCov);
+void initialiseGenericWeights(std::vector<double>& weights);
+bool initialiseVariables();
 
 // Typedefs
 typedef DiscreteTable<unsigned> DT;
@@ -38,40 +39,49 @@ typedef GaussCanonical GC;
 typedef CanonicalGaussianMixture CGM;
 typedef LinearGaussian LG;
 
-// Discrete time step
-extern const double kTimeStep;
+namespace mht {
+	// Discrete time stepI
+	extern const double kTimeStep;
 
-// Sensor location information
-extern const unsigned short kNumSensors;
-extern std::vector<ColVector<double>> kSensorLocation;
+	// Sensor location information
+	extern const unsigned short kNumSensors;
+	extern std::vector<ColVector<double>> kSensorLocation;
 
-// Dimension of state and observation vectors
-extern const unsigned short kStateSpaceDim;
-extern const unsigned short kMeasSpaceDim;
+	// Dimension of state and observation vectors
+	extern const unsigned short kStateSpaceDim;
+	extern const unsigned short kMeasSpaceDim;
 
-// Motion model
-extern rcptr<V2VTransform> kMotionModel;
-extern Matrix<double> kRCovMat;
+	
+	// Motion model
+	extern rcptr<V2VTransform> kMotionModel;
+	extern Matrix<double> kRCovMat;
 
-// Measurement model
-extern const double kC; // Speed of light
-extern const double kFc; // Carrier frequency
-extern const double kTp; // Sweep period
-extern const double kBw; // Bandwidth
+	// Measurement model
+	extern const double kC; // Speed of light
+	extern const double kFc; // Carrier frequency
+	extern const double kTp; // Sweep period
+	extern const double kBw; // Bandwidth
 
-extern std::vector<rcptr<V2VTransform>> kMeasurementModel;
-extern Matrix<double> kQCovMat;
+	extern std::vector<rcptr<V2VTransform>> kMeasurementModel;
+	extern Matrix<double> kQCovMat;
 
-// Gaussian mixture pruning parameters
-extern const unsigned kMaxComponents;
-extern const double kThreshold;
-extern const double kMergeDistance;
+	// Gaussian mixture pruning parameters
+	extern const unsigned kMaxComponents;
+	extern const double kThreshold;
+	extern const double kMergeDistance;
 
-// Launch locations
-extern std::vector<ColVector<double>> kLaunchStateMean;
-extern std::vector<Matrix<double>> kLaunchStateCov;
-extern ColVector<double> kGenericMean;
-extern Matrix<double> kGenericCov;
+	
+	// Launch locations
+	extern std::vector<ColVector<double>> kLaunchStateMean;
+	extern std::vector<Matrix<double>> kLaunchStateCov;
+
+	extern ColVector<double> kGenericMean;
+	extern Matrix<double> kGenericCov;
+	extern std::vector<double> kGenericWeights;
+
+	// Force initialisation
+	extern bool init;
+} // class
 
 // Variable management
 extern emdw::RVIds variables; // Global variables
@@ -81,7 +91,7 @@ extern std::map<unsigned, emdw::RVIds> currentStates;
 extern std::map<unsigned, emdw::RVIds> elementsOfX;
 extern std::map<unsigned, emdw::RVIds> elementsOfZ;
 extern std::map<unsigned, emdw::RVIds> presentAt;
-extern std::vector<emdw::RVIds> virtualMeasurements;
+extern emdw::RVIds virtualMeasurementVars;
 
 // Measurement management
 extern rcptr<MeasurementManager> manager;

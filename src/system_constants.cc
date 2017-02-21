@@ -8,39 +8,43 @@
 #include "system_constants.hpp"
 
 // Discrete time step
-const double kTimeStep = 0.04;
+const double mht::kTimeStep = 0.04;
 
 // Sensor location information
-const unsigned short kNumSensors = 6;
-std::vector<ColVector<double>> kSensorLocation = initialiseSensorLocations();
+const unsigned short mht::kNumSensors = 6;
+std::vector<ColVector<double>> mht::kSensorLocation; //= initialiseSensorLocations();
 
 // Dimension of state and observation vectors
-const unsigned short kStateSpaceDim = 6;
-const unsigned short kMeasSpaceDim = 2;
+const unsigned short mht::kStateSpaceDim = 6;
+const unsigned short mht::kMeasSpaceDim = 2;
 
 // Motion model
-rcptr<V2VTransform> kMotionModel = uniqptr<V2VTransform>(new MotionModel(kTimeStep));
-Matrix<double> kRCovMat = initialiseRCovMat();
+rcptr<V2VTransform> mht::kMotionModel = uniqptr<V2VTransform>(new MotionModel(mht::kTimeStep));
+Matrix<double> mht::kRCovMat;
 
 // Measurement model
-const double kC = 3e8;
-const double kFc = 10.525e9;
-const double kTp = 200e-6; 
-const double kBw = 47e6; 
+const double mht::kC = 3e8;
+const double mht::kFc = 10.525e9;
+const double mht::kTp = 200e-6; 
+const double mht::kBw = 47e6; 
 
-std::vector<rcptr<V2VTransform>> kMeasurementModel = initialiseMeasurementModels();
-Matrix<double> kQCovMat = initialiseQCovMat();
+std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
+Matrix<double> mht::kQCovMat;
 
 // Gaussian mixture pruning parameters
-const unsigned kMaxComponents = 100;
-const double kThreshold = 0.01;
-const double kMergeDistance = 5;
+const unsigned mht::kMaxComponents = 100;
+const double mht::kThreshold = 0.01;
+const double mht::kMergeDistance = 5;
 
 // Launch locations
-std::vector<ColVector<double>> kLaunchStateMean = initialiseLaunchStateMean();
-std::vector<Matrix<double>> kLaunchStateCov = initialiseLaunchStateCov();
-ColVector<double> kGenericMean = initialiseGenericMean();
-Matrix<double> kGenericCov = initialiseGenericCov();
+std::vector<ColVector<double>> mht::kLaunchStateMean;
+std::vector<Matrix<double>> mht::kLaunchStateCov;
+
+ColVector<double> mht::kGenericMean;
+Matrix<double> mht::kGenericCov;
+std::vector<double> mht::kGenericWeights;
+
+bool init = initialiseVariables();
 
 // Variable management
 emdw::RVIds variables;
@@ -50,7 +54,7 @@ std::map<unsigned, emdw::RVIds> currentStates;
 std::map<unsigned, emdw::RVIds> elementsOfX;
 std::map<unsigned, emdw::RVIds> elementsOfZ;
 std::map<unsigned, emdw::RVIds> presentAt;
-std::vector<emdw::RVIds> virtualMeasurements;
+emdw::RVIds virtualMeasurementVars;
 
 // Measurement management
 rcptr<MeasurementManager> manager;
@@ -62,41 +66,45 @@ std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
 std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
 std::map<unsigned, std::vector<rcptr<Factor>>> validationRegion;
 
-void initialiseVariables() {
-	variables.clear();
-	vecX.clear();
-	vecZ.clear();
-	currentStates.clear();
-	elementsOfX.clear();
-	elementsOfZ.clear();
-	presentAt.clear();
-	virtualMeasurements.clear();
+bool initialiseVariables() {
+	initialiseSensorLocations(mht::kSensorLocation);
 
-	stateNodes.clear();
-	measurementNodes.clear();
-	predMeasurements.clear();
-	validationRegion.clear();
+	// Sensor location
+	initialiseRCovMat(mht::kRCovMat);
+	
+	// Measurement models
+	initialiseQCovMat(mht::kQCovMat);
+	initialiseMeasurementModels(mht::kMeasurementModel, mht::kSensorLocation);
+	
+	// Launch covs
+	initialiseLaunchStateMean(mht::kLaunchStateMean);
+	initialiseLaunchStateCov(mht::kLaunchStateCov);
+
+	// Generic covs
+	initialiseGenericMean(mht::kGenericMean);
+	initialiseGenericCov(mht::kGenericCov);
+	initialiseGenericWeights(mht::kGenericWeights);
+
+	return true;
 } // initialiseVariables();
 
-Matrix<double> initialiseRCovMat () {
-	Matrix<double> R = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
+
+void initialiseRCovMat (Matrix<double>& RCov) {
+	RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 	
-	for (unsigned i = 0; i < kStateSpaceDim; i++) {
-		if (i % 2 == 0) R(i, i) = 1;
-		else R(i, i) = 5;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) {
+		if (i % 2 == 0) RCov(i, i) = 1;
+		else RCov(i, i) = 5;
 	}
-	
-	return R;
 } // initialiseRCovMat()
 
-Matrix<double> initialiseQCovMat () {
-	Matrix<double> Q = gLinear::zeros<double>(kMeasSpaceDim, kMeasSpaceDim);
-	Q(0, 0) = 9; Q(1, 1) = 1.5;
-	return Q;
+void initialiseQCovMat (Matrix<double>& QCov) {
+	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	QCov(0, 0) = 9; QCov(1, 1) = 1.5;
 } // initialiseQCovMat()
 
-std::vector<ColVector<double>> initialiseSensorLocations() {
-	std::vector<ColVector<double>> locations(kNumSensors);
+void initialiseSensorLocations(std::vector<ColVector<double>>& locations) {
+	locations.resize(mht::kNumSensors);
 
 	// Sensor 1
 	locations[0] = ColVector<double>(3); locations[0] *= 0;
@@ -115,7 +123,7 @@ std::vector<ColVector<double>> initialiseSensorLocations() {
 
 	// Sensor 4
 	locations[3] = ColVector<double>(3); locations[3] *= 0;
-	locations[3][0] = -185.7750; locations[3][1] = -43.614;
+	locations[3][0] = -185.7750; locations[3][1] = 43.614;
 	locations[3][2] = -0.8730;
 
 	// Sensor 5
@@ -127,87 +135,77 @@ std::vector<ColVector<double>> initialiseSensorLocations() {
 	locations[5] = ColVector<double>(3); locations[5] *= 0;
 	locations[5][0] = 28.9590; locations[5][1] = 77.7540;
 	locations[5][2] = 3.3760;
-
-	return locations;
 } // initialiseSensorLocations()
 
-std::vector<rcptr<V2VTransform>> initialiseMeasurementModels() {
-	std::vector<rcptr<V2VTransform>> models(kNumSensors);
-	std::vector<ColVector<double>> locations = initialiseSensorLocations();
+void initialiseMeasurementModels(std::vector<rcptr<V2VTransform>>& models, std::vector<ColVector<double>>& locations) {
+	models.resize(mht::kNumSensors);
 
-	for (unsigned i = 0; i < kNumSensors; i++) {
+	for (unsigned i = 0; i < 6; i++) {
 		models[i] = uniqptr<V2VTransform>(new SensorModel(locations[i], 3e8, 10.525e9, 200e-6, 47e6));
 	}
-		
-	return models;
 } // initialiseMeasurementModels()
 
-std::vector<ColVector<double>> initialiseLaunchStateMean() {
-	std::vector<ColVector<double>> launchState(3);
+
+void initialiseLaunchStateMean(std::vector<ColVector<double>>& launchState) {
+	launchState.resize(3);
 
 	// Launch state 1
-	launchState[0] = ColVector<double>(kStateSpaceDim); launchState[0] *= 0;
+	launchState[0] = ColVector<double>(mht::kStateSpaceDim); launchState[0] *= 0;
 	launchState[0][0] = -12.331; launchState[0][1] = -10;
 	launchState[0][2] = 13.851; launchState[0][3] = -10;
 	launchState[0][4] = -5.139; launchState[0][5] = 20;
 
 	// Launch state 2
-	launchState[1] = ColVector<double>(kStateSpaceDim); launchState[1] *= 0;
+	launchState[1] = ColVector<double>(mht::kStateSpaceDim); launchState[1] *= 0;
 	launchState[1][0] = -12.997; launchState[1][1] = -10;
 	launchState[1][2] = 17.325; launchState[1][3] = -10;
 	launchState[1][4] = -5.151; launchState[1][5] = 20;
 
 	// Launch state 3
-	launchState[2] = ColVector<double>(kStateSpaceDim); launchState[2] *= 0;
+	launchState[2] = ColVector<double>(mht::kStateSpaceDim); launchState[2] *= 0;
 	launchState[2][0] = -13.65; launchState[2][1] = -10;
 	launchState[2][2] = 20.784; launchState[2][3] = -10;
 	launchState[2][4] = -5.186; launchState[2][5] = 20;
-
-	return launchState;
 } // initialiseLaunchStateMean()
 
-std::vector<Matrix<double>> initialiseLaunchStateCov() {
-	std::vector<Matrix<double>> launchState(3);
+void initialiseLaunchStateCov(std::vector<Matrix<double>>& launchCov) {
+	launchCov.resize(3);
 
-	launchState[0] = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
-	launchState[1] = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
-	launchState[2] = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
+	launchCov[0] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
+	launchCov[1] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
+	launchCov[2] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	for (unsigned i = 0; i < kStateSpaceDim; i++) {
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) {
 		if (i % 2 == 0) {
-			(launchState[0])(i, i) = 0.5;
-			(launchState[1])(i, i) = 0.5;
-			(launchState[2])(i, i) = 0.5;
+			(launchCov[0])(i, i) = 0.5;
+			(launchCov[1])(i, i) = 0.5;
+			(launchCov[2])(i, i) = 0.5;
 		} else {
-			(launchState[0])(i, i) = 5;
-			(launchState[1])(i, i) = 5;
-			(launchState[2])(i, i) = 5;
+			(launchCov[0])(i, i) = 5;
+			(launchCov[1])(i, i) = 5;
+			(launchCov[2])(i, i) = 5;
 		}
 	}
-
-	return launchState;
 } // initialiseLaunchStateCov()
 
-ColVector<double> initialiseGenericMean() {
-	ColVector<double> genericMean(kStateSpaceDim); genericMean *= 0;
 
-	genericMean[0] = -14.3310; genericMean[1] = -10.00;
-	genericMean[2] = 11.8510; genericMean[3] = -10.00;
-	genericMean[4] = -1.3352; genericMean[5] = 18.0380;
-
-	return genericMean;
+void initialiseGenericMean(ColVector<double>& genericMean) {
+	genericMean.resize(mht::kStateSpaceDim); genericMean *= 0;
+	
+	genericMean[0] = -12.331; genericMean[1] = -10;
+	genericMean[2] = 13.851; genericMean[3] = -10;
+	genericMean[4] = -5.139; genericMean[5] = 20;
 } // initialiseGenricMean()
 
-Matrix<double> initialiseGenericCov() {
-	Matrix<double> genericCov = gLinear::zeros<double>(kStateSpaceDim, kStateSpaceDim);
+void initialiseGenericCov(Matrix<double>& genericCov) {
+	genericCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	for (unsigned i = 0; i < kStateSpaceDim; i++) {
-		if (i % 2 == 0) (genericCov)(i, i) = 6.440;
-		else {
-			(genericCov)(i, i) = 30.00;
-			(genericCov)(i - 1, i) = (genericCov)(i, i - 1) = 3.0;
-		} 
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) {
+		if (i % 2 == 0) (genericCov)(i, i) = 0.5;
+		else (genericCov)(i, i) = 5;
 	}
+} // initialiseGenericMean()
 
-	return genericCov;
-} // initialiseGenricMean()
+void initialiseGenericWeights(std::vector<double>& weights) {
+	weights.clear(); weights = {1.0};
+} // initialiseGenericWeights()

@@ -886,7 +886,8 @@ Factor* MarginalizeCGM::process(const CanonicalGaussianMixture* lhsPtr, const em
 		bool presorted) {
 	const CanonicalGaussianMixture& lhs(*lhsPtr);
 	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
-	std::vector<rcptr<Factor>> result;
+	unsigned M = lhsComps.size();	
+	std::vector<rcptr<Factor>> result(M);
 
 	// If everything is marginalized out.
 	if (!variablesToKeep.size()) {
@@ -909,9 +910,13 @@ Factor* MarginalizeCGM::process(const CanonicalGaussianMixture* lhsPtr, const em
 	}
 
 	// Let GaussCanonical sort it all out for us.
-	for (rcptr<Factor> c : lhsComps) result.push_back(c->marginalize(variablesToKeep, presorted));
+	for (unsigned i = 0; i < M; i++) {
+		result[i] = (lhsComps[i])->marginalize(variablesToKeep, presorted);
+	}
 
-	return new CanonicalGaussianMixture(result[0]->getVars(), result, true,
+	return new CanonicalGaussianMixture(variablesToKeep, 
+				result, 
+				true,
 				lhs.maxComp_,
 				lhs.threshold_,
 				lhs.unionDistance_,

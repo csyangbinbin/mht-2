@@ -10,25 +10,20 @@
 void predictStates() {
 	unsigned N = stateNodes.size();
 	unsigned M = currentStates[N-1].size();
-	
+
+	// Resize for indices access
 	stateNodes[N].resize(M);
 	currentStates[N].resize(M);
-	virtualMeasurements.resize(kNumSensors);
-
-	rcptr<Factor> prevMarginal = 0;
-	rcptr<Factor> stateJoint = 0;
-	rcptr<Factor> curMarginal = 0;
-	rcptr<Factor> mProj = 0;
-	rcptr<Factor> measMarginal = 0;
-
+	virtualMeasurementVars.resize(M);
+	
 	for (unsigned i = 0; i < M; i++) {
 		// Get the marginal over previous variables
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, kStateSpaceDim);
-		prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
+		rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 
 		// Create a new factor over current variables
-		stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
-					kMotionModel, 
+		rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
+					mht::kMotionModel, 
 					elementsOfX[currentStates[N][i]], 
 					kRCovMat  ));
 		stateNodes[N][i] = uniqptr<Node> (new Node(stateJoint));
@@ -37,22 +32,23 @@ void predictStates() {
 		stateNodes[N-1][i]->addEdge(stateNodes[N][i], elementsOfX[currentStates[N][i]]);
 		stateNodes[N][i]->addEdge(stateNodes[N-1][i], elementsOfX[currentStates[N][i]]);
 
+		// Assign new virtual measurement nodes
+		rcptr<Factor> curMarginal = stateJoint->marginalize( elementsOfX[currentStates[N][i]] );
+		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, kMeasSpaceDim);
+
 		// Create measurement distributions for each measurement space
-		virtualMeasurements[i].clear(); virtualMeasurements[i].resize(1);
-		virtualMeasurements[i][0] = addVariables(variables, vecZ, elementsOfZ, kMeasSpaceDim);
-		
 		predMeasurements[i].resize(kNumSensors); validationRegion[i].resize(kNumSensors);
 		for (unsigned j = 0; j < kNumSensors; j++) {
-			curMarginal = stateJoint->marginalize( elementsOfX[currentStates[N][i]] );
 			predMeasurements[i][j] = uniqptr<Factor>(new CGM( curMarginal, 
-						kMeasurementModel[j], 
-						elementsOfZ[virtualMeasurements[i][0]],
+						mht::kMeasurementModel[j], 
+						elementsOfZ[virtualMeasurementVars[i]],
 						kQCovMat ));
 
-			measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurements[i][0]]); 
-			mProj  = std::dynamic_pointer_cast<CGM>(measMarginal)->momentMatch();
+			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]); 
+			rcptr<CGM> cgm = (std::dynamic_pointer_cast<CGM>(measMarginal));
+			validationRegion[i][j]  = cgm->momentMatch();
+
+			std::cout << *validationRegion[i][j] << std::endl;
 		}
 	}
-
-	predMeasurements.clear(); validationRegion.clear();
 } // predictStates()

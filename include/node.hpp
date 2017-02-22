@@ -37,7 +37,7 @@ class Node {
 		 * 
 		 * @param factor The cluster the node is to contain.
 		 */
-		Node(const rcptr<Factor> factor);
+		Node(const rcptr<Factor>& factor);
 
 		/**
 		 * @brief Default destructor.
@@ -58,7 +58,7 @@ class Node {
 		 *
 		 * @param message An initial message sent to the cluster.
 		 */
-		void addEdge(const rcptr<Node> w, const emdw::RVIds& sepset, const rcptr<Factor> message = 0);
+		void addEdge(const rcptr<Node>& w, const emdw::RVIds& sepset, const rcptr<Factor>& message = 0);
 
 		/**
 		 * @brief Add a newly received message to the log.
@@ -71,7 +71,7 @@ class Node {
 		 *
 		 * @param message The newly received message.
 		 */
-		void logMessage(const rcptr<Node> w, const rcptr<Factor> message);
+		void logMessage(const rcptr<Node>& w, const rcptr<Factor>& message);
 
 
 		/**
@@ -82,7 +82,7 @@ class Node {
 		 *
 		 * @param factor The current status of the factor.
 		 */
-		void cacheFactor(const rcptr<Factor> factor);
+		void cacheFactor(const rcptr<Factor>& factor);
 
 	public:
 		/**
@@ -103,12 +103,12 @@ class Node {
 		/**
 		 * @brief Return sepset variables
 		 */
-		emdw::RVIds getSepset(const rcptr<Node> w);
+		emdw::RVIds getSepset(const rcptr<Node>& w);
 
 		/**
 		 * @brief Return last message received from a given neighbour.
 		 */
-		rcptr<Factor> getReceivedMessage(const rcptr<Node> w);
+		rcptr<Factor> getReceivedMessage(const rcptr<Node>& w);
 
 		/**
 		 * @brief Return the adjacent nodes

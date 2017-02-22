@@ -67,12 +67,15 @@ std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
 std::map<unsigned, std::vector<rcptr<Factor>>> validationRegion;
 
 bool initialiseVariables() {
+	mht::kTimeStep;
+
 	// Sensor locations
+	mht::kNumSensors;
 	mht::kSensorLocation = initialiseSensorLocations();
 
 	// Sensor location
 	mht::kRCovMat = initialiseRCovMat();
-	mht::kMotionModel = uniqptr<V2VTransform>(new MotionModel(mht::kTimeStep));
+	mht::kMotionModel = initialiseMotionModel();
 
 	// Measurement models
 	mht::kQCovMat = initialiseQCovMat();
@@ -146,6 +149,10 @@ std::vector<ColVector<double>> initialiseSensorLocations() {
 	return locations;
 } // initialiseSensorLocations()
 
+rcptr<V2VTransform> initialiseMotionModel() {
+	return uniqptr<V2VTransform>(new MotionModel(mht::kTimeStep));
+} // initialiseMotionModel()
+
 std::vector<rcptr<V2VTransform>> initialiseMeasurementModels() {
 	std::vector<rcptr<V2VTransform>> models(6);
 	std::vector<ColVector<double>> locations = initialiseSensorLocations();
@@ -156,7 +163,6 @@ std::vector<rcptr<V2VTransform>> initialiseMeasurementModels() {
 
 	return models;
 } // initialiseMeasurementModels()
-
 
 std::vector<ColVector<double>> initialiseLaunchStateMean() {
 	std::vector<ColVector<double>> launchState(3);

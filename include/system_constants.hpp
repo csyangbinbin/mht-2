@@ -25,6 +25,7 @@
 Matrix<double> initialiseRCovMat();
 Matrix<double> initialiseQCovMat();
 std::vector<ColVector<double>> initialiseSensorLocations();
+rcptr<V2VTransform> initialiseMotionModel();
 std::vector<rcptr<V2VTransform>> initialiseMeasurementModels();
 std::vector<ColVector<double>> initialiseLaunchStateMean();
 std::vector<Matrix<double>> initialiseLaunchStateCov();

@@ -15,7 +15,7 @@ void predictStates() {
 	stateNodes[N].resize(M);
 	currentStates[N].resize(M);
 	virtualMeasurementVars.resize(M);
-	
+
 	for (unsigned i = 0; i < M; i++) {
 		// Get the marginal over previous variables
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
@@ -30,7 +30,6 @@ void predictStates() {
 
 		// Link Node to preceding node
 		stateNodes[N-1][i]->addEdge(stateNodes[N][i], elementsOfX[currentStates[N-1][i]]);
-		stateNodes[N][i]->addEdge(stateNodes[N-1][i], elementsOfX[currentStates[N-1][i]]);
 
 		// Assign new virtual measurement nodes
 		rcptr<Factor> curMarginal = stateJoint->marginalize( elementsOfX[currentStates[N][i]] );
@@ -45,19 +44,19 @@ void predictStates() {
 						elementsOfZ[virtualMeasurementVars[i]],
 						mht::kQCovMat ) );
 
+			
 			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]); 
 			rcptr<CGM> cgm = (std::dynamic_pointer_cast<CGM>(measMarginal));
-			validationRegion[i][j]  = cgm->momentMatch();
+			//validationRegion[i][j]  = cgm->momentMatch();
 		}
 	}
+
 } // predictStates()
 
 void measurementUpdate() {
-	unsigned M = validationRegion[0].size();
-
-	std::cout << M << std::endl;
+	unsigned M = predMeasurements[0].size();
 
 	for (unsigned i = 0; i < M; i++) {
-		std::cout << *validationRegion[0][i] << std::endl;
+		std::cout << *predMeasurements[0][i] << std::endl;
 	}
 } // measurementUpdate()

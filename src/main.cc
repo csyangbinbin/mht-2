@@ -20,8 +20,8 @@ int main(int, char *argv[]) {
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	manager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
-	kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
+	//manager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
+	//kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
 
 	// Step 2 : Set up the prior
 	currentStates[0].clear(); currentStates[0].resize(1);
@@ -46,7 +46,6 @@ int main(int, char *argv[]) {
 
 	stateNodes[0].clear(); stateNodes[0].resize(1);
 	stateNodes[0][0] = uniqptr<Node> (new Node(prior) );
-
 
 	// Step 3: Loop every time step
 	for (unsigned i = 5; i < 6; i++) {

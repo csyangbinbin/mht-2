@@ -17,7 +17,7 @@
 #include "vecset.hpp"
 #include "node.hpp"
 
-Node::Node(const rcptr<Factor> factor) 
+Node::Node(const rcptr<Factor>& factor) 
 	: vars_(factor->getVars()),
 	factor_(factor->copy()),
 	prevFactor_(factor->copy()) {
@@ -25,17 +25,17 @@ Node::Node(const rcptr<Factor> factor)
 
 Node::~Node() {} // Default destructor()
 
-void Node::addEdge(const rcptr<Node> w, const emdw::RVIds& sepset, const rcptr<Factor> message) {
+void Node::addEdge(const rcptr<Node>& w, const emdw::RVIds& sepset, const rcptr<Factor>& message) {
 	sepsets_[w] = sepset;
 	if (!message) recMsg_[w] =  uniqptr<Factor> ( factor_->vacuousCopy(sepset, false) );
 	else recMsg_[w] = uniqptr<Factor> (factor_->copy());
 } // addEdge()
 
-void Node::logMessage(const rcptr<Node> w, const rcptr<Factor> message) {
+void Node::logMessage(const rcptr<Node>& w, const rcptr<Factor>& message) {
 	recMsg_[w] = message;
 } // logMessage()
 
-void Node::cacheFactor(const rcptr<Factor> factor) {
+void Node::cacheFactor(const rcptr<Factor>& factor) {
 	prevFactor_ = uniqptr<Factor>(factor->copy());
 } // cacheFactor()
 
@@ -51,11 +51,11 @@ rcptr<Factor> Node::getCachedFactor() const {
 	return uniqptr<Factor> ( (prevFactor_)->copy() );
 } // getCachedFactor()
 
-emdw::RVIds Node::getSepset(const rcptr<Node> w) {
+emdw::RVIds Node::getSepset(const rcptr<Node>& w) {
 	return sepsets_[w];
 } // getSepset()
 
-rcptr<Factor> Node::getReceivedMessage(const rcptr<Node> w) {
+rcptr<Factor> Node::getReceivedMessage(const rcptr<Node>& w) {
 	return recMsg_[w];
 } // getSentMessage()
 

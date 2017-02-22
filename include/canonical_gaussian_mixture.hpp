@@ -365,7 +365,7 @@ class CanonicalGaussianMixture : public Factor {
 		 * operator.
 		 */
 		CanonicalGaussianMixture(
-				const rcptr<Factor> xFPtr,
+				const rcptr<Factor>& xFPtr,
 				const Matrix<double>& A,
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
@@ -415,8 +415,8 @@ class CanonicalGaussianMixture : public Factor {
 		 * operator.
 		 */
 		CanonicalGaussianMixture(
-				const rcptr<Factor> xFPtr,
-				const rcptr<V2VTransform> transform,
+				const rcptr<Factor>& xFPtr,
+				const rcptr<V2VTransform>& transform,
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
 				bool presorted = false,

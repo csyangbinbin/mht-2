@@ -54,7 +54,7 @@ class MeasurementManager{
 		 * @return A vector of ColVectors of Range-Doppler measurements from a particular
 		 * sensor.
 		 */
-		std::vector<ColVector<double>> getSensorPoints(const unsigned i, const unsigned j);
+		std::vector<ColVector<double>> getSensorPoints(const unsigned i, const unsigned j) const;
 
 		/**
 		 * @brief Return a set of measurements from a sensor at a given time step. 
@@ -70,7 +70,7 @@ class MeasurementManager{
 		 * @return A vector emdw::RVVals of Range-Doppler measureemtns from a particular
 		 * sensor.
 		 */
-		std::vector<emdw::RVVals> getSensorMeasurements(const unsigned i, const unsigned j);
+		std::vector<emdw::RVVals> getSensorMeasurements(const unsigned i, const unsigned j) const;
 
 		/**
 		 * @brief Returns the total number of time steps over which the data was collected.
@@ -91,7 +91,7 @@ class MeasurementManager{
 		std::map<unsigned, std::vector< ColVector<double> >> readMeasurementFile(const std::string& fileName) const;
 
 	private:
-		std::map<unsigned, std::map<unsigned, std::vector< ColVector<double> >>> sensor_; // Fun!
+		mutable std::map<unsigned, std::map<unsigned, std::vector< ColVector<double> >>> sensor_; // Fun!
 		unsigned N_;
 		unsigned M_;
 };

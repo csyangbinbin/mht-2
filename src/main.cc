@@ -20,8 +20,10 @@ int main(int, char *argv[]) {
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	//manager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
-	//kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
+	manager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
+	kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
+
+	std::vector<ColVector<double>> sample = manager->getSensorPoints(5, 0);
 
 	// Step 2 : Set up the prior
 	currentStates[0].clear(); currentStates[0].resize(1);
@@ -43,6 +45,7 @@ int main(int, char *argv[]) {
 				mht::kLaunchStateCov[2] ) );
 
 	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], gc));
+	prior->inplaceNormalize();
 
 	stateNodes[0].clear(); stateNodes[0].resize(1);
 	stateNodes[0][0] = uniqptr<Node> (new Node(prior) );
@@ -53,7 +56,7 @@ int main(int, char *argv[]) {
 		predictStates();
 		
 		// Measurement update
-		measurementUpdate();
+		//measurementUpdate();
 		
 		// Backwards pass
 		

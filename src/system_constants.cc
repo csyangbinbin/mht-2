@@ -197,9 +197,9 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 
 	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) {
 		if (i % 2 == 0) {
-			(launchCov[0])(i, i) = 0.5;
-			(launchCov[1])(i, i) = 0.5;
-			(launchCov[2])(i, i) = 0.5;
+			(launchCov[0])(i, i) = 1;
+			(launchCov[1])(i, i) = 1;
+			(launchCov[2])(i, i) = 1;
 		} else {
 			(launchCov[0])(i, i) = 5;
 			(launchCov[1])(i, i) = 5;
@@ -233,6 +233,6 @@ Matrix<double> initialiseGenericCov() {
 } // initialiseGenericMean()
 
 std::vector<double> initialiseGenericWeights() {
-	std::vector<double> weights = {1.0, 1.0, 1.0};
+	std::vector<double> weights = {1.0/3, 1.0/3, 1.0/3};
 	return weights;
 } // initialiseGenericWeights()

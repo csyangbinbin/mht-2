@@ -23,7 +23,6 @@ MeasurementManager::MeasurementManager(const std::string& fileNameFormat, const 
 
 MeasurementManager::~MeasurementManager() {  } // Default destructor
 
-
 std::vector<ColVector<double>> MeasurementManager::getSensorPoints(const unsigned i, const unsigned j) const {
 	return (sensor_[i])[j];
 } // getSensorMeasurements()

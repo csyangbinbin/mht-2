@@ -245,22 +245,18 @@ class Node {
 		uniqptr<Factor> observeAndReduce( const emdw::RVIds& variables,
 				const emdw::RVVals& assignedVals, bool presorted = false,
 				FactorOperator* procPtr = 0) const;
-
-	public:
-		template<typename T>
-		friend std::ostream& operator<<(std::ostream& file, const Node& n);
-
 	private:
 		// Current information and scope
-		emdw::RVIds vars_;
 		rcptr<Factor> factor_;
+		emdw::RVIds vars_;
 		
 		// Neighbouring vertices
-		std::map<rcptr<Node>, emdw::RVIds> sepsets_; // Contains adjacency list
+		mutable std::vector<std::weak_ptr<Node>> adjacent_;
+		mutable std::vector<emdw::RVIds> sepsets_;
 		
 		// Past and passed information
 		rcptr<Factor> prevFactor_;
-		std::map<rcptr<Node>, rcptr<Factor>> recMsg_;
+		mutable std::vector<rcptr<Factor>> recMsg_;
 }; // Node
 
 #endif // NODE_HPP

@@ -133,18 +133,18 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 
 	// Convert from Covariance to Canonical form, this is done upfront
 	// as using adjustMass after initialisation is more expensive.
-	int fail;
-	double detcov, g;
+	int fail = 0;
+	double detK, g;
 	ColVector<double> h;
 	Matrix<double> K;
 
 	for (unsigned i = 0; i < N_; i++) {
-		K = inv(covs[i], detcov, fail);
+		K = inv(covs[i], detK, fail);
 		if (fail) printf("Could not invert cov[%d] at line number %d in file %s\n", i, __LINE__, __FILE__);
 
 		h = K*means[i];
 		g = -0.5*( (K*means[i]).transpose() )*means[i] 
-			- log( ( pow(2*M_PI, (1.0*vars.size())/2) * pow(detcov, 0.5) ) / weights[i]);
+			- log( (pow(2*M_PI, 0.5*vars.size()) / pow(detK, 0.5) ) / weights[i]);
 
 		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, g, false) );
 	}
@@ -397,6 +397,10 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	// Put each component through the transform.
 	for (unsigned i = 0; i < N_; i++) {
 		comps_[i] = uniqptr<Factor>(new GaussCanonical(oldComps[i].get(), *transform, newVars, Q, false ) );
+
+		// Preserve the mass
+		double mass = (std::dynamic_pointer_cast<GaussCanonical>(oldComps[i]))->getMass();
+		(std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->adjustMass(mass);
 	}
 
 	// Make the new variables are sorted in CanonicalGaussianMixture
@@ -594,7 +598,6 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 
 			// Determine the weight
 			w[i] = gc->getMass();
-			std::cout << "Weight: " << w[i] << std::endl;
 			totalMass += w[i];
 		} else {
 			w[i] = 0; mu[i] *= 0;
@@ -728,8 +731,6 @@ std::vector<double> CanonicalGaussianMixture::getWeights() const {
 	std::vector<double> weights(comps_.size());
 	for (unsigned i = 0; i < comps_.size(); i++) {
 		weights[i]  = (std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getMass() ;
-		std::cout << "g " << i << ": "<<  (std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getG() << std::endl;
-		std::cout << "Mass " << i << ": "<< weights[i] << std::endl;
 	}
 	return weights;
 } // getWeights()
@@ -978,6 +979,10 @@ Factor* MarginalizeCGM::process(const CanonicalGaussianMixture* lhsPtr, const em
 	// Let GaussCanonical sort it all out for us.
 	for (unsigned i = 0; i < M; i++) {
 		result[i] = (lhsComps[i])->marginalize(variablesToKeep, presorted);
+		result[i]->inplaceNormalize();
+
+		double weight = (std::dynamic_pointer_cast<GaussCanonical>(lhsComps[i]))->getMass();
+		(std::dynamic_pointer_cast<GaussCanonical>(result[i])->adjustMass(weight));
 	}
 
 	return new CanonicalGaussianMixture(result[0]->getVars(), 

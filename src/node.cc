@@ -17,22 +17,27 @@
 #include "vecset.hpp"
 #include "node.hpp"
 
-Node::Node(const rcptr<Factor>& factor) 
-	: vars_(factor->getVars()),
-	factor_(factor->copy()),
-	prevFactor_(factor->copy()) {
+Node::Node(const rcptr<Factor>& factor) {
+	factor_ = uniqptr<Factor>( factor->copy() );
+	vars_ = factor_->getVars();
+	
+	adjacent_.clear();
+	sepsets_.clear();
+
+	prevFactor_ = uniqptr<Factor>( factor->copy() );
+	recMsg_.clear();
 } // Constructor()
 
-Node::~Node() {} // Default destructor()
+Node::~Node() {
+} // Default destructor()
 
 void Node::addEdge(const rcptr<Node>& w, const emdw::RVIds& sepset, const rcptr<Factor>& message) {
-	sepsets_[w] = sepset;
-	if (!message) recMsg_[w] =  uniqptr<Factor> ( factor_->vacuousCopy(sepset, false) );
-	else recMsg_[w] = uniqptr<Factor> (factor_->copy());
+	adjacent_.push_back(w);
+	sepsets_.push_back(sepset);
 } // addEdge()
 
 void Node::logMessage(const rcptr<Node>& w, const rcptr<Factor>& message) {
-	recMsg_[w] = message;
+	//recMsg_[w] = message;
 } // logMessage()
 
 void Node::cacheFactor(const rcptr<Factor>& factor) {
@@ -52,17 +57,17 @@ rcptr<Factor> Node::getCachedFactor() const {
 } // getCachedFactor()
 
 emdw::RVIds Node::getSepset(const rcptr<Node>& w) {
-	return sepsets_[w];
+	//return sepsets_[w];
+	return emdw::RVIds{0};
 } // getSepset()
 
 rcptr<Factor> Node::getReceivedMessage(const rcptr<Node>& w) {
-	return recMsg_[w];
+	//return recMsg_[w];
+	return uniqptr<Factor>(factor_->copy());
 } // getSentMessage()
 
 std::vector<rcptr<Node>> Node::getAdjacentNodes() const {
-	std::vector<rcptr<Node>> neighbours;
-	for (auto it = sepsets_.begin(); it != sepsets_.end(); it++) neighbours.push_back(it->first);
-	return neighbours;
+	return std::vector<rcptr<Node>>(2);
 } //getAdjacentNodes()
 
 void Node::inplaceNormalize (FactorOperator* procPtr) {
@@ -105,8 +110,3 @@ uniqptr<Factor> Node::observeAndReduce (const emdw::RVIds& variables, const emdw
 		bool presorted, FactorOperator* procPtr) const {
 	return (factor_)->observeAndReduce(variables, assignedVals, presorted, procPtr);
 } // observeAndReduce()
-
-template<typename T>
-std::ostream& operator<<(std::ostream& file, const Node& n) {
-	return (n.getFactor())->txtWrite(file);
-} // operator<<

@@ -27,7 +27,7 @@ class GraphBuilder;
  * This does not construct a general cluster graph, but the name
  * stuck.
  *
- * TODO: This should be a module that shits out
+ * TODO: This should be a module that just shits out
  * association Graphs for given hypotheses. I need to
  * rewrite most of this object.
  *
@@ -45,12 +45,8 @@ class GraphBuilder {
 		/**
 		 * Construct a pairwise network of unnormalized measures over
 		 * the association hypotheses.
-		 *
-		 * @param assoc_hypotheses The association hypotheses formed
-		 * over each measurement. Presented as a DiscreteTable's domain.
 		 */
 		GraphBuilder(
-			const std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses,
 			const double floor = 0.0,
 			const double margin = 0.0,
 			const double defProb = 0.0,
@@ -58,11 +54,6 @@ class GraphBuilder {
 			const rcptr<FactorOperator>& normalizer = 0,
 			const rcptr<FactorOperator>& marginalizer = 0
 			);
-
-		/**
-		 * Default constructor.
-		 */
-		GraphBuilder();
 
 		/**
 		 * Default destructor.
@@ -73,21 +64,35 @@ class GraphBuilder {
 		/**
 		 * Return the constructed graphs.
 		 */
-		std::vector<rcptr<Graph>> getGraphs() const;
+		std::vector<rcptr<Graph>> getGraphs(std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
 
 	private:
 		/**
 		 * Get the association RV IDs from the given map. Initialises
 		 * the a_ member and sorts the association hypotheses domains.
+		 *
+		 * @param assocHypotheses The association hypotheses formed over
+		 * each measurement, presented as a DiscreteTables domain.
+		 *
+		 * @return emdw::RVIds of the variables contained in the map. 
 		 */
-		void extractRVIds();
+		emdw::RVIds extractRVIds(const std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
 
 		/**
 		 * Construct DiscreteTable factors over single
 		 * association hypotheses. Initialises the distribution_
 		 * member.
+		 *
+		 * @param vars The association variables contianed with the map.
+		 *
+		 * @param assocHypotheses The association hypotheses formed over
+		 * each measurement, presented as a DiscreteTables domain.
+		 *
+		 * @return A map of the association variable to the distribution 
+		 * held over it.
 		 */
-		void constructDistributions();
+		std::map<emdw::RVIdType, rcptr<Factor>> constructDistributions(const emdw::RVIds& vars,
+				std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
 
 		/**
 		 * Constructs the pairwise factors required in the network.
@@ -95,24 +100,23 @@ class GraphBuilder {
 		 *
 		 * TODO: This is the worst code ever. May take longer to construct
 		 * than explicitly using a massive table.
+		 *
+		 * @return A vector of disjoint graphs, representing 
+		 * association networks.
 		 */
-		void constructClusters ();
-
+		std::vector<rcptr<Graph>> constructClusters() const;
 
 	private:
-		emdw::RVIds a_;
-		std::vector<rcptr<Graph>> graphs_;
+		// DiscreteTable properties
+		double floor_;
+		double margin_;
+		double defProb_;
 
-		std::map <emdw::RVIdType, rcptr<Factor>> dist_;
-		std::map <emdw::RVIdType, rcptr<DASS>> assocHypotheses_;
-
+		// DiscreteTable factor operators
 		rcptr<FactorOperator> inplaceNormalizer_;
 		rcptr<FactorOperator> normalizer_;
 		rcptr<FactorOperator> marginalizer_;
 
-		double floor_;
-		double margin_;
-		double defProb_;
 }; // GraphBuilder()
 
 #endif // GRAPH_BUILDER_HPP

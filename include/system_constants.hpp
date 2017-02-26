@@ -65,6 +65,9 @@ namespace mht {
 	extern std::vector<rcptr<V2VTransform>> kMeasurementModel;
 	extern Matrix<double> kQCovMat;
 
+	// Mahanalobis thresholding distance
+	extern const double kValidationThreshold;
+
 	// Gaussian mixture pruning parameters
 	extern const unsigned kMaxComponents;
 	extern const double kThreshold;
@@ -93,8 +96,11 @@ extern std::map<unsigned, emdw::RVIds> presentAt;
 extern emdw::RVIds virtualMeasurementVars;
 
 // Measurement management
-extern rcptr<MeasurementManager> manager;
+extern rcptr<MeasurementManager> measurementManager;
 extern unsigned kNumberOfTimeSteps;
+
+// GraphBuilder
+extern rcptr<GraphBuilder> graphBuilder;
 
 // Graph representation
 extern std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;

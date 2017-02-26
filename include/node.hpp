@@ -251,12 +251,11 @@ class Node {
 		emdw::RVIds vars_;
 		
 		// Neighbouring vertices
-		mutable std::vector<std::weak_ptr<Node>> adjacent_;
-		mutable std::vector<emdw::RVIds> sepsets_;
+		mutable std::map<std::weak_ptr<Node>, emdw::RVIds, std::owner_less<std::weak_ptr<Node>>> sepsets_;
 		
 		// Past and passed information
 		rcptr<Factor> prevFactor_;
-		mutable std::vector<rcptr<Factor>> recMsg_;
+		mutable std::map<std::weak_ptr<Node>, rcptr<Factor>, std::owner_less<std::weak_ptr<Node>>> recMsg_;
 }; // Node
 
 #endif // NODE_HPP

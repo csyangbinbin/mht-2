@@ -19,13 +19,13 @@
 
 Graph::Graph () {} // Default constructor
 
-Graph::Graph (const std::vector<rcptr<Node>> nodes) {
+Graph::Graph (const std::vector<rcptr<Node>>& nodes) {
 	for (rcptr<Node> n : nodes) addNode(n);
 } // Node vector constructor
 
 Graph::~Graph () {} // Default destructor
 
-void Graph::addNode (const rcptr<Node> v) {
+void Graph::addNode (const rcptr<Node>& v) {
 	emdw::RVIds tempUnion;
 	emdw::RVIds vVars = v->getVars();
 
@@ -42,7 +42,7 @@ void Graph::addNode (const rcptr<Node> v) {
 	tempUnion.clear(); vVars.clear();
 } // addNode()
 
-void Graph::addEdge (const rcptr<Node> v, const rcptr<Node> w) {
+void Graph::addEdge (const rcptr<Node>& v, const rcptr<Node>& w) {
 	emdw::RVIds l2i, r2i;
 	emdw::RVIds sepset = sortedIntersection(v->getVars(), w->getVars(), l2i, r2i);
 
@@ -65,7 +65,7 @@ void Graph::depthFirstMessagePassing () {
 
 } // depthFirstMessagePassing()
 
-void Graph::dfmp(const rcptr<Node> v) {
+void Graph::dfmp(const rcptr<Node>& v) {
 	std::vector<rcptr<Node>> adjacent = v->getAdjacentNodes();
 
 	marked_[v] = true;
@@ -75,7 +75,7 @@ void Graph::dfmp(const rcptr<Node> v) {
 	v->cacheFactor(v->getFactor());
 } // dfmp()
 
-void Graph::bupReceiveMessage(const rcptr<Node> v, const rcptr<Node> w) {
+void Graph::bupReceiveMessage(const rcptr<Node>& v, const rcptr<Node>& w) {
 	emdw::RVIds sepset = v->getSepset(w);
 
 	// Divide the incoming message by the previous sent information

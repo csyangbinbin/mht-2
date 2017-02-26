@@ -17,13 +17,17 @@
  */
 int main(int, char *argv[]) {
 
+	// Step 0: Initialise the variables
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	manager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
-	kNumberOfTimeSteps = manager->getNumberOfTimeSteps();
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
+	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
-	// Step 2 : Set up the prior
+	// Step 2 : Create a GraphBuilder object
+	graphBuilder = uniqptr<GraphBuilder>(new GraphBuilder());
+
+	// Step 3 : Set up the prior
 	currentStates[0].clear(); currentStates[0].resize(1);
 	currentStates[0][0] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 
@@ -37,13 +41,13 @@ int main(int, char *argv[]) {
 	stateNodes[0].clear(); stateNodes[0].resize(1);
 	stateNodes[0][0] = uniqptr<Node> (new Node(prior) );
 
-	// Step 3: Loop every time step
+	// Step 4: Loop through every time step
 	for (unsigned i = 5; i < 6; i++) {
 		// Prediction
-		//predictStates();
+		predictStates();
 		
 		// Measurement update
-		//measurementUpdate();
+		measurementUpdate();
 		
 		// Backwards pass
 		

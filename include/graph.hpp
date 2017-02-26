@@ -35,7 +35,7 @@ class Graph {
 		 *
 		 * @param nodes A collection of nodes.
 		 */
-		Graph(const std::vector<rcptr<Node>> nodes);
+		Graph(const std::vector<rcptr<Node>>& nodes);
 
 		/**
 		 * @brief Default destructor.
@@ -48,7 +48,7 @@ class Graph {
 		 *
 		 * @param v A node within the graph.
 		 */
-		void addNode (const rcptr<Node> v);
+		void addNode (const rcptr<Node>& v);
 
 		/**
 		 * @brief Add an edge between two clusters
@@ -63,7 +63,7 @@ class Graph {
 		 * @param w A node within the graph, to 
 		 * be connected to v.
 		 */
-		void addEdge (const rcptr<Node> v, const rcptr<Node> w);
+		void addEdge (const rcptr<Node>& v, const rcptr<Node>& w);
 
 	public:
 		/**
@@ -81,7 +81,7 @@ class Graph {
 		 *
 		 * @param v The current node in the graph.
 		 */
-		void dfmp(const rcptr<Node> v);
+		void dfmp(const rcptr<Node>& v);
 
 		/**
 		 * @brief Incoporate a message into a given cluster.
@@ -93,7 +93,7 @@ class Graph {
 		 *
 		 * @param w The transimitting node.
 		 */
-		void bupReceiveMessage(const rcptr<Node> v, const rcptr<Node> w);
+		void bupReceiveMessage(const rcptr<Node>& v, const rcptr<Node>& w);
 
 	public:
 		/**

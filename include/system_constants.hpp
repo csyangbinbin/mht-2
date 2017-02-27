@@ -35,6 +35,8 @@ std::vector<double> initialiseGenericWeights();
 bool initialiseVariables();
 
 // Typedefs
+typedef unsigned short T;
+typedef std::vector<T> DASS;
 typedef DiscreteTable<unsigned> DT;
 typedef GaussCanonical GC;
 typedef CanonicalGaussianMixture CGM;

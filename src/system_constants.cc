@@ -32,7 +32,7 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 10;
+const double mht::kValidationThreshold = 5;
 
 // Gaussian mixture pruning parameters
 const unsigned mht::kMaxComponents = 100;

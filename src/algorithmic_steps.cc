@@ -57,22 +57,34 @@ void measurementUpdate() {
 	// Time step and current number of targets
 	unsigned N = stateNodes.size() - 1;
 	unsigned M = currentStates[N].size();
-	
-	// For every target
-	for (unsigned i = 0; i < M; i++) {
-		
-		// For every sensor
-		for (unsigned j = 0; j < mht::kNumSensors; j++) {
 
-			std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(j, N + 6);
-			for (unsigned k = 0; k < measurements.size(); k++) {
-				if (measurements[k].size()) {
-					double distance = (std::dynamic_pointer_cast<GC>( validationRegion[i][j] ))->mahanalobis(measurements[k]);
-					std::cout << distance << std::endl;
-				} // if
-			} // for
+	// For each sensor
+	for (unsigned i = 1; i < 2; i++) {
 
+		std::map<emdw::RVIdType, rcptr<DASS>> assocHypotheses; assocHypotheses.clear();
+		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 6);
+
+		// For each measurement
+		for (unsigned j = 0; j < measurements.size(); j++) {
+			if (measurements[j].size()) {
+
+				assocHypotheses[j] = uniqptr<DASS>(new DASS{0});
+
+				// Form hypotheses over each measurement
+				for (unsigned k = 0; k < M; k++) {
+					double distance = 
+						(std::dynamic_pointer_cast<GC>(validationRegion[k][j]))->mahanalobis(measurements[j]);
+						
+					if (distance < mht::kValidationThreshold) {
+						assocHypotheses[j]->push_back(k+1); // Note the addition!
+					} // if
+				} // for
+			} // if
 		} // for
+
+		if (assocHypotheses.size()) {
+			std::vector<rcptr<Graph>> graphs = graphBuilder->getGraphs(assocHypotheses);
+		}
 
 	} // for
 

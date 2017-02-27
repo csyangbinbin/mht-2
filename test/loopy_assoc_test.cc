@@ -84,7 +84,6 @@ class LoopyAssocTest : public testing::Test {
 // GraphBuilder tests
 TEST_F (LoopyAssocTest, GraphBuilderInit) {
 
-	/*
 	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
 	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
 	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
@@ -94,13 +93,13 @@ TEST_F (LoopyAssocTest, GraphBuilderInit) {
 	assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
 	assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
 
-	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(assocHypotheses,  kFloor_, kMargin_, kDefProb_, 
+	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(kFloor_, kMargin_, kDefProb_, 
 				marginalizer_, inplaceNormalizer_, normalizer_));
 
 
-	std::vector<rcptr<Graph>> graphs = gb->getGraphs();
-	graphs[1]->depthFirstMessagePassing();
-	*/
+	
+	std::vector<rcptr<Graph>> graphs = gb->getGraphs( assocHypotheses );
+
 	
 	EXPECT_EQ(0, 0);
 } // GraphBuilderInit()

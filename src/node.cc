@@ -21,7 +21,6 @@ Node::Node(const rcptr<Factor>& factor) {
 	factor_ = uniqptr<Factor>( factor->copy() );
 	vars_ = factor_->getVars();
 	
-	adjacent_.clear();
 	sepsets_.clear();
 
 	prevFactor_ = uniqptr<Factor>( factor->copy() );
@@ -32,12 +31,13 @@ Node::~Node() {
 } // Default destructor()
 
 void Node::addEdge(const rcptr<Node>& w, const emdw::RVIds& sepset, const rcptr<Factor>& message) {
-	adjacent_.push_back(w);
-	sepsets_.push_back(sepset);
+	sepsets_[w] = sepset;
+	if (!message) recMsg_[w] = uniqptr<Factor>( (factor_)->vacuousCopy(vars_, true) );
+	else recMsg_[w] = uniqptr<Factor>( message->copy() );
 } // addEdge()
 
 void Node::logMessage(const rcptr<Node>& w, const rcptr<Factor>& message) {
-	//recMsg_[w] = message;
+	recMsg_[w] = uniqptr<Factor>(message->copy() );
 } // logMessage()
 
 void Node::cacheFactor(const rcptr<Factor>& factor) {
@@ -57,13 +57,11 @@ rcptr<Factor> Node::getCachedFactor() const {
 } // getCachedFactor()
 
 emdw::RVIds Node::getSepset(const rcptr<Node>& w) {
-	//return sepsets_[w];
-	return emdw::RVIds{0};
+	return sepsets_[w];
 } // getSepset()
 
 rcptr<Factor> Node::getReceivedMessage(const rcptr<Node>& w) {
-	//return recMsg_[w];
-	return uniqptr<Factor>(factor_->copy());
+	return uniqptr<Factor>( (recMsg_[w])->copy() );
 } // getSentMessage()
 
 std::vector<rcptr<Node>> Node::getAdjacentNodes() const {

@@ -76,7 +76,9 @@ class GraphBuilder {
 		 *
 		 * @return emdw::RVIds of the variables contained in the map. 
 		 */
-		emdw::RVIds extractRVIds(const std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
+		emdw::RVIds extractRVIds(
+				const std::map<emdw::RVIdType, 
+				rcptr<DASS>>& assocHypotheses) const;
 
 		/**
 		 * Construct DiscreteTable factors over single
@@ -91,7 +93,8 @@ class GraphBuilder {
 		 * @return A map of the association variable to the distribution 
 		 * held over it.
 		 */
-		std::map<emdw::RVIdType, rcptr<Factor>> constructDistributions(const emdw::RVIds& vars,
+		std::map<emdw::RVIdType, rcptr<Factor>> constructDistributions(
+				const emdw::RVIds& vars,
 				std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
 
 		/**
@@ -104,7 +107,11 @@ class GraphBuilder {
 		 * @return A vector of disjoint graphs, representing 
 		 * association networks.
 		 */
-		std::vector<rcptr<Graph>> constructClusters() const;
+		std::vector<rcptr<Graph>> constructClusters(
+				const emdw::RVIds& vars,
+				std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses,
+				std::map<emdw::RVIdType, rcptr<Factor>>& dist
+				) const;
 
 	private:
 		// DiscreteTable properties

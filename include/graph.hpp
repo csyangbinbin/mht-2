@@ -95,7 +95,19 @@ class Graph {
 		 */
 		void bupReceiveMessage(const rcptr<Node>& v, const rcptr<Node>& w);
 
+		/**
+		 * @brief Recursive Depth First Search Plot, as called by plotGraph.
+		 *
+		 * @param v The current node in the graph.
+		 */
+		void dfp(const rcptr<Node>& v);
+
 	public:
+		/**
+		 * @brief Returns the factors in the graph.
+		 */
+		std::vector<rcptr<Factor>> getFactors() const;
+
 		/**
 		 * @brief Return number of nodes in the graph.
 		 */
@@ -106,13 +118,19 @@ class Graph {
 		 */
 		unsigned getNoOfEdges() const;
 
+	public:
+		/**
+		 * @brief Print the Graph in DFS order.
+		 */
+		void plotGraph();
+
 	private:
 		std::set<rcptr<Node>> nodes_;
 		mutable unsigned n_, e_;
 		emdw::RVIds vars_;
 
-		std::map<rcptr<Node>, bool> marked_;
-		std::map<rcptr<Node>, bool> converged_;
+		std::map<std::weak_ptr<Node>, bool, std::owner_less<std::weak_ptr<Node>>> marked_;
+		std::map<std::weak_ptr<Node>, bool, std::owner_less<std::weak_ptr<Node>>> converged_;
 
 }; // Graph
 

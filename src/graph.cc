@@ -65,12 +65,20 @@ void Graph::depthFirstMessagePassing () {
 
 } // depthFirstMessagePassing()
 
+void Graph::plotGraph () {
+	marked_.clear();
+
+	for(rcptr<Node> v : nodes_) marked_[v] = false; 
+
+	dfp(*(nodes_.begin()));	
+} // plotGraph()
+
 void Graph::dfmp(const rcptr<Node>& v) {
-	std::vector<rcptr<Node>> adjacent = v->getAdjacentNodes();
+	std::vector<std::weak_ptr<Node>> adjacent = v->getAdjacentNodes();
 
 	marked_[v] = true;
-	for (rcptr<Node> w : adjacent) bupReceiveMessage(v, w);
-	for (rcptr<Node> w : adjacent) if (!marked_[w]) dfmp(w);
+	for (std::weak_ptr<Node> w : adjacent) bupReceiveMessage(v, w.lock());
+	for (std::weak_ptr<Node> w : adjacent) if (!marked_[w]) dfmp(w.lock());
 
 	v->cacheFactor(v->getFactor());
 } // dfmp()
@@ -83,10 +91,36 @@ void Graph::bupReceiveMessage(const rcptr<Node>& v, const rcptr<Node>& w) {
 	rcptr<Factor> incomingMsg = (w->marginalize(sepset))->cancel(receivedMsg);
 
 	// Absorb and log the message
-	v->inplaceAbsorb(incomingMsg->copy());
+	v->inplaceAbsorb(incomingMsg.get());
 	v->inplaceNormalize();
 	v->logMessage(w, incomingMsg);
 } // bupReceiveMessage()
+
+void Graph::dfp(const rcptr<Node>& v) {
+	std::vector<std::weak_ptr<Node>> adjacent = v->getAdjacentNodes();
+	marked_[v] = true;
+
+	std::cout << "========================================" << std::endl;
+	std::cout << *(v->getFactor()) << std::endl;
+	std::cout << "----------------------------------------" << std::endl;
+	std::cout << "Sepsets: " << std::endl;
+	for (std::weak_ptr<Node> w: adjacent) {
+		emdw::RVIds scope = (w.lock())->getVars();
+		std::cout << v->getSepset(w.lock())[0] << " -> " << 
+			"(" << scope[0] << "," << scope[1] << ")" << std::endl;
+	}
+	std::cout << "========================================" << std::endl;
+
+	for (std::weak_ptr<Node> w : adjacent) if (!marked_[w]) dfp(w.lock());
+} // dfp
+
+std::vector<rcptr<Factor>> Graph::getFactors() const {
+	std::vector<rcptr<Factor>> factors; factors.clear();
+
+	for ( rcptr<Node> v : nodes_ ) factors.push_back( uniqptr<Factor>( (v->getFactor())->copy() ) );
+
+	return factors;
+} // getFactors()
 
 unsigned Graph::getNoOfNodes() const {
 	return n_;

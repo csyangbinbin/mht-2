@@ -113,7 +113,7 @@ class Node {
 		/**
 		 * @brief Return the adjacent nodes
 		 */
-		std::vector<rcptr<Node>> getAdjacentNodes() const;
+		std::vector<std::weak_ptr<Node>> getAdjacentNodes() const;
 	
 	public:
 		/** 
@@ -252,6 +252,7 @@ class Node {
 		
 		// Neighbouring vertices
 		mutable std::map<std::weak_ptr<Node>, emdw::RVIds, std::owner_less<std::weak_ptr<Node>>> sepsets_;
+		mutable std::vector<std::weak_ptr<Node>> adjacent_;
 		
 		// Past and passed information
 		rcptr<Factor> prevFactor_;

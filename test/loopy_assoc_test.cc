@@ -82,8 +82,29 @@ class LoopyAssocTest : public testing::Test {
 
 
 // GraphBuilder tests
-TEST_F (LoopyAssocTest, GraphBuilderInit) {
+TEST_F (LoopyAssocTest, SmallTest) {
+	// Association hypotheses
+	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
+	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
+	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
+	assocHypotheses[3] = uniqptr<DASS>(new DASS{0, 1, 2});
 
+	// Build the graphs
+	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
+	std::vector<rcptr<Graph>> graph = gb->getGraphs( assocHypotheses );
+
+	graph[0]->plotGraph();
+
+	// Message passing
+	for(unsigned i = 0; i < 25; i++) graph[0]->depthFirstMessagePassing();
+
+	graph[0]->plotGraph();
+
+	EXPECT_EQ(0, 0);
+} // GraphBuilderInit()
+
+TEST_F (LoopyAssocTest, LargeTest) {
+	// Association hypotheses
 	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
 	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
 	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
@@ -93,19 +114,21 @@ TEST_F (LoopyAssocTest, GraphBuilderInit) {
 	assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
 	assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
 
-	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder(kFloor_, kMargin_, kDefProb_, 
-				marginalizer_, inplaceNormalizer_, normalizer_));
+	// Build the graphs
+	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
+	std::vector<rcptr<Graph>> graph = gb->getGraphs( assocHypotheses );
 
+	//graph[0]->plotGraph();
 
-	
-	std::vector<rcptr<Graph>> graphs = gb->getGraphs( assocHypotheses );
+	// Message passing
+	for (unsigned i = 0; i < 25; i++) graph[0]->depthFirstMessagePassing();
 
-	
+	//graph[0]->depthPlot();
+
 	EXPECT_EQ(0, 0);
 } // GraphBuilderInit()
 
-
- // Explicit handmade example, just to get a rough idea of the process.
+// Explicit handmade example, just to get a rough idea of the process.
 TEST_F (LoopyAssocTest, HandHolding) {	
 	vector<rcptr<Factor>> clusters;
 	clusters.push_back(hypotheses_[0]->absorb(hypotheses_[1]));

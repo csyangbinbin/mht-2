@@ -511,8 +511,6 @@ Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RV
 		const emdw::RVVals& assignedVals, bool presorted) {
 	const LinearGaussian& lhs(*lhsPtr);
 	
-	std::cout << "ObserveAndReduce" << std::endl;
-
 	// Temporary variables
 	emdw::RVIds continuousVars, discreteVar;
 	emdw::RVVals continuousVals, discreteVal;

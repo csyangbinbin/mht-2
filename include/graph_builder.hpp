@@ -4,7 +4,7 @@
  *  Dependencies: None
  *
  * Header file for the tentative graph builder class. The GraphBuilder
- * class creates a pairwise network of unnormalized measures over the 
+ * class creates a pairwise network of measures over the 
  * association hypotheses.
  *************************************************************************/
 
@@ -16,21 +16,14 @@
 #include "emdw.hpp"
 #include "factor.hpp"
 #include "discretetable.hpp"
-#include "graph.hpp"
-
-// Forward declaration
-class GraphBuilder;
+#include "clustergraph.hpp"
+#include "lbp_cg.hpp"
+#include "lbu_cg.hpp"
 
 /**
- * The GraphBuilder class creates a pairwise network of unnormalized 
- * measures over the association hypotheses. 
- *
- * This does not construct a general cluster graph, but the name
- * stuck.
- *
- * TODO: This should be a module that just shits out
- * association Graphs for given hypotheses. I need to
- * rewrite most of this object.
+ * The GraphBuilder class creates a pairwise network of 
+ * measures over the association hypotheses and 
+ * determines the marginal beliefs held over them.
  *
  * @author SCJ Robertson
  * @since 23/01/17
@@ -44,8 +37,7 @@ class GraphBuilder {
 
 	public:
 		/**
-		 * Construct a pairwise network of unnormalized measures over
-		 * the association hypotheses.
+		 * Default destructor
 		 */
 		GraphBuilder(
 			const double floor = 0.0,
@@ -63,14 +55,13 @@ class GraphBuilder {
 
 	public:
 		/**
-		 * Return the constructed graphs.
+		 * Return the marginal beliefs over the association variables.
 		 */
-		std::vector<rcptr<Graph>> getGraphs(std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
+		std::map<emdw::RVIdType, rcptr<Factor>> getMarginals(std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
 
 	private:
 		/**
-		 * Get the association RV IDs from the given map. Initialises
-		 * the a_ member and sorts the association hypotheses domains.
+		 * Get the association RV IDs from the given map. 
 		 *
 		 * @param assocHypotheses The association hypotheses formed over
 		 * each measurement, presented as a DiscreteTables domain.
@@ -82,9 +73,7 @@ class GraphBuilder {
 				rcptr<DASS>>& assocHypotheses) const;
 
 		/**
-		 * Construct DiscreteTable factors over single
-		 * association hypotheses. Initialises the distribution_
-		 * member.
+		 * Construct DiscreteTable factors over single association hypotheses.
 		 *
 		 * @param vars The association variables contianed with the map.
 		 *
@@ -99,20 +88,25 @@ class GraphBuilder {
 				std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;
 
 		/**
-		 * Constructs the pairwise factors required in the network.
-		 * Initialises the cluster_ member.
+		 * Constructs the pairwise factors required in the network, creates a
+		 * cluster graph, passes messages and extracts the marginals.
 		 *
-		 * TODO: This is the worst code ever. May take longer to construct
-		 * than explicitly using a massive table.
+		 * @param vars The association variables contianed with the map.
 		 *
-		 * @return A vector of disjoint graphs, representing 
-		 * association networks.
+		 * @param assocHypotheses The association hypotheses formed over
+		 * each measurement, presented as a DiscreteTables domain.
+		 *
+		 * @param dist A map of the association variable to the belief
+		 * held over it.
+		 *
+		 * @return A map of the association variables to the marginal 
+		 * beliefs held over them.  
 		 */
-		std::vector<rcptr<Graph>> constructClusters(
-				const emdw::RVIds& vars,
-				std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses,
-				std::map<emdw::RVIdType, rcptr<Factor>>& dist
-				) const;
+		std::map<emdw::RVIdType, rcptr<Factor>> constructClusters(
+					const emdw::RVIds& vars,
+					std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses,
+					std::map<emdw::RVIdType, rcptr<Factor>>& dist
+					) const;
 
 	private:
 		// DiscreteTable properties

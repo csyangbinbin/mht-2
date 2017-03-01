@@ -26,39 +26,11 @@ class LoopyAssocTest : public testing::Test {
 	protected:
 		virtual void SetUp() {
 			inplaceNormalizer_ = uniqptr<FactorOperator> (new DiscreteTable_InplaceNormalize<T>);
-			normalizer_ = uniqptr<FactorOperator> (new DiscreteTable_MaxNormalize<T>);
+			normalizer_ = uniqptr<FactorOperator> (new DiscreteTable_Normalize<T>);
 			marginalizer_ = uniqptr<FactorOperator> (new DiscreteTable_Marginalize<T>);
-
-			// Probability table for a0
-			a0Dom_ = uniqptr<DASS>(new DASS{0, 1});
-			sparseProbs_.clear();
-			sparseProbs_[DASS{0}] = sparseProbs_[DASS{1}] = 1;
-
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a0}, {a0Dom_}, kDefProb_, 
-					sparseProbs_, kMargin_, kFloor_, false, marginalizer_, inplaceNormalizer_, normalizer_) ) );
-
-			// Probability table for a1
-			a1Dom_ = uniqptr<DASS>(new DASS{0, 1, 2});
-			sparseProbs_.clear();
-			sparseProbs_[DASS{0}] = sparseProbs_[DASS{1}] = sparseProbs_[DASS{2}] = 1;
-
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a1}, {a1Dom_}, kDefProb_, 
-					sparseProbs_, kMargin_, kFloor_, false, marginalizer_, inplaceNormalizer_, normalizer_) ) );
-
-			// Probability table for a2
-			a2Dom_ = uniqptr<DASS>(new DASS{0, 2});
-			sparseProbs_.clear();
-			sparseProbs_[DASS{0}] = sparseProbs_[DASS{2}] = 1;
-
-			hypotheses_.push_back(uniqptr<DT> (new DT(RVIds{a2}, {a2Dom_}, kDefProb_, 
-					sparseProbs_, kMargin_, kFloor_, false, marginalizer_, inplaceNormalizer_, normalizer_) ) );
-
 		}
 
-		virtual void TearDown() {
-			hypotheses_.clear();
-			sparseProbs_.clear();
-		}
+		virtual void TearDown() {}
 
 	protected:
 		typedef unsigned short T;
@@ -74,18 +46,13 @@ class LoopyAssocTest : public testing::Test {
 		rcptr<FactorOperator> inplaceNormalizer_;
 		rcptr<FactorOperator> normalizer_;
 		rcptr<FactorOperator> marginalizer_;
-
-		rcptr<DASS> a0Dom_;
-		rcptr<DASS> a1Dom_;
-		rcptr<DASS> a2Dom_;
-
-		vector<rcptr<Factor>> hypotheses_;
-		map<DASS, FProb> sparseProbs_;
 }; // LoopyAssocTest
 
 
 // GraphBuilder tests
 TEST_F (LoopyAssocTest, SmallTest) {
+	emdw::RVIds vars = {1, 2, 3};
+
 	// Association hypotheses
 	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
 	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
@@ -94,26 +61,18 @@ TEST_F (LoopyAssocTest, SmallTest) {
 
 	// Build the graphs
 	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
-	std::vector<rcptr<Graph>> graph = gb->getGraphs( assocHypotheses );
-	unsigned i = 1;
+	std::map<emdw::RVIdType, rcptr<Factor>> marginals = gb->getMarginals( assocHypotheses );
 
-	// Marginal over var i
-	//graph[0]->plotGraph();
-	rcptr<Factor> prevMarginal = graph[0]->getMarginalBelief(i);
-
-	// Message passing
-	//for(unsigned i = 0; i < 25; i++) graph[0]->depthFirstMessagePassing();
-
-	// Marginal over var i
-	//graph[0]->plotGraph();
-	rcptr<Factor> postMarginal = graph[0]->getMarginalBelief(i);
+	for (emdw::RVIdType i : vars) {
+		 std::cout << "Belief held over var " << i << "\n" << *(marginals[i]) << 
+			 "=====================================" << std::endl;
+	}
 
 	EXPECT_EQ(0, 0);
-} // GraphBuilderInit()
+} // SmallTest()
 
-TEST_F (LoopyAssocTest, FullJointSanityTest) {
-	rcptr<Factor> table;
-	emdw::RVIds vars = {1, 2, 3, 4, 5};
+TEST_F (LoopyAssocTest, LargeTest) {
+	emdw::RVIds vars = {1, 2, 3, 4, 5, 6, 7};
 
 	// Association hypotheses
 	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
@@ -122,10 +81,38 @@ TEST_F (LoopyAssocTest, FullJointSanityTest) {
 	assocHypotheses[3] = uniqptr<DASS>(new DASS{0, 3});
 	assocHypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 3});
 	assocHypotheses[5] = uniqptr<DASS>(new DASS{0, 1, 2, 3});
+	assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
+	assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
+
+	// Build the graphs
+	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
+	std::map<emdw::RVIdType, rcptr<Factor>> marginals = gb->getMarginals( assocHypotheses );
+
+	for (emdw::RVIdType i : vars) {
+		 std::cout << "Belief held over var " << i << "\n" << *(marginals[i]) << 
+			 "=====================================" << std::endl;
+	}
+
+	EXPECT_EQ(0, 0);
+} // LargeTest()
+
+TEST_F (LoopyAssocTest, FullJointSanityTest) {
+	rcptr<Factor> table;
+	emdw::RVIds vars = {1, 2, 3, 4, 5, 6, 7};
+
+	// Association hypotheses
+	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
+	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
+	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
+	assocHypotheses[3] = uniqptr<DASS>(new DASS{0, 3});
+	assocHypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 3});
+	assocHypotheses[5] = uniqptr<DASS>(new DASS{0, 1, 2, 3});
+	assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
+	assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
 
 	// Create factors
-	std::vector<rcptr<Factor>> factors(5);;
-	for (unsigned i = 0; i < 5; i++) {
+	std::vector<rcptr<Factor>> factors(7);
+	for (unsigned i = 0; i < 7; i++) {
 		std::map<DASS, FProb> sparseProbs;
 		rcptr<DASS> aDom = assocHypotheses[vars[i]];
 
@@ -140,7 +127,7 @@ TEST_F (LoopyAssocTest, FullJointSanityTest) {
 	}
 
 	// Create full joint
-	std::vector<rcptr<Factor>> pairwise(6);
+	std::vector<rcptr<Factor>> pairwise(7);
 
 	// Pairwise factor (1, 4)
 	pairwise[0] = factors[0]->absorb(factors[3]);
@@ -179,117 +166,25 @@ TEST_F (LoopyAssocTest, FullJointSanityTest) {
 	cancel->setEntry(emdw::RVIds{4, 5}, emdw::RVVals{T(3), T(3)}, 0);
 	pairwise[5]->inplaceNormalize();
 
+	// Pairwise factor (4, 5)
+	pairwise[6] = factors[5]->absorb(factors[6]);
+	cancel = std::dynamic_pointer_cast<DT>(pairwise[6]);
+	cancel->setEntry(emdw::RVIds{6, 7}, emdw::RVVals{T(4), T(4)}, 0);
+	pairwise[6]->inplaceNormalize();
+
 	rcptr<ClusterGraph> clusterGraph = uniqptr<ClusterGraph>( new ClusterGraph( pairwise ) );
-	//clusterGraph->exportToGraphViz("pairwise");
+	clusterGraph->exportToGraphViz("pairwise");
 
 	std::map<Idx2, rcptr<Factor>> msgs; msgs.clear();
 	MessageQueue msgQ; msgQ.clear();
 
 	unsigned nMsgs = loopyBU_CG(*clusterGraph, msgs, msgQ, 0.0);
-	for (unsigned i = 0; i < clusterGraph->factorPtrs.size(); i++ ) {
-		std::cout << "The distribution over message " << i << " is "
-			<< *queryLBU_CG(*clusterGraph, msgs, clusterGraph->factorPtrs[i]->getVars() ) << std::endl;
+		
+	for (emdw::RVIdType i : vars) {
+		 std::cout << "Belief held over var " << i << "\n" <<
+		 *(queryLBU_CG(*clusterGraph, msgs, emdw::RVIds{ i  } )->normalize()) <<
+			 "=====================================" << std::endl;
 	}
-
-	rcptr<Factor> joint = queryLBU_CG(*clusterGraph, msgs, clusterGraph->factorPtrs[4]->getVars() );
-	//rcptr<Factor> marginal = (joint->marginalize(emdw::RVIds{3}))->normalize(); 
-	//std::cout << *joint << std::endl;
 
 	EXPECT_EQ(0, 0);
 }
-
-TEST_F (LoopyAssocTest, LargeTest) {
-	// Association hypotheses
-	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
-	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
-	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
-	assocHypotheses[3] = uniqptr<DASS>(new DASS{0, 3});
-	assocHypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 3});
-	assocHypotheses[5] = uniqptr<DASS>(new DASS{0, 1, 2, 3});
-	assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
-	assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
-
-	// Build the graphs
-	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
-	std::vector<rcptr<Graph>> graph = gb->getGraphs( assocHypotheses );
-	unsigned i = 3;
-
-	// Marginal belief over var i
-	//graph[0]->plotGraph();
-	rcptr<Factor> prevMarginal = graph[0]->getMarginalBelief(i);
-	//std::cout << *prevMarginal << std::endl;
-
-	// Message passing
-	for (unsigned i = 0; i < 1; i++) graph[0]->depthFirstMessagePassing();
-
-	//graph[0]->plotGraph();
-	
-	// Marginal belief over var i
-	rcptr<Factor> postMarginal = graph[0]->getMarginalBelief(i);
-	//std::cout << *postMarginal << std::endl;
-
-	EXPECT_EQ(0, 0);
-} // GraphBuilderInit()
-
-// Explicit handmade example, just to get a rough idea of the process.
-TEST_F (LoopyAssocTest, HandHolding) {	
-	vector<rcptr<Factor>> clusters;
-	clusters.push_back(hypotheses_[0]->absorb(hypotheses_[1]));
-	clusters.push_back(hypotheses_[0]->absorb(hypotheses_[2]));
-	clusters.push_back(hypotheses_[1]->absorb(hypotheses_[2]));
-
-	enum{c0, c1, c2};
-	std::map<RVIds, rcptr<Factor>> old_messages;
-	old_messages.clear();
-
-	old_messages[RVIds{c0, c1}] = rcptr<Factor> (clusters[0]->vacuousCopy(RVIds{a0}));
-	old_messages[RVIds{c1, c2}] = rcptr<Factor> (clusters[1]->vacuousCopy(RVIds{a2}));
-	old_messages[RVIds{c2, c0}] = rcptr<Factor> (clusters[2]->vacuousCopy(RVIds{a1}));
-
-
-	//for (unsigned i = 0; i < 3; i++) cout << *clusters[i] << endl;
-
-	// Cluster 0 generates message 1
-	rcptr<DT> change = std::dynamic_pointer_cast<DT>(clusters[0]);
-	change->setEntry(RVIds{a0, a1}, RVVals{T(0), T(0)}, 0);
-	change->setEntry(RVIds{a0, a1}, RVVals{T(1), T(1)}, 0);
-	rcptr<Factor> msg = clusters[0]->marginalize(RVIds{a0});
-	
-	//cout << "a0 marginal" << endl;
-	//cout << *msg << endl;
-	
-	// Cluster 1 absorbs message 1
-	clusters[1]->inplaceAbsorb(msg);
-	change = std::dynamic_pointer_cast<DT>(clusters[1]);
-	change->setEntry(RVIds{a0, a2}, RVVals{T(0), T(0)}, 0);
-	msg = clusters[1]->marginalize(RVIds{a2});
-
-	//cout << "a2 marginal" << endl;
-	//cout << *msg << endl;
-	
-	// Cluster 2 absorbs message 2
-	clusters[2]->inplaceAbsorb(msg);
-	change = std::dynamic_pointer_cast<DT>(clusters[2]);
-	change->setEntry(RVIds{a1, a2}, RVVals{T(0), T(0)}, 0);
-	change->setEntry(RVIds{a1, a2}, RVVals{T(2), T(2)}, 0);
-	msg = clusters[2]->marginalize(RVIds{a1});
-
-	//cout << "a1 marginal" << endl;
-	//cout << *msg << endl;
-
-	//cout << "a2 marginal" << endl;
-	//cout << *clusters[2]->marginalize(RVIds{a2}) << endl;
-
-	// Cluster 0 absorbs message 3
-	
-	clusters[0]->inplaceAbsorb(msg);
-	change = std::dynamic_pointer_cast<DT>(clusters[0]);
-	change->setEntry(RVIds{a0, a1}, RVVals{T(0), T(0)}, 0);
-	change->setEntry(RVIds{a0, a1}, RVVals{T(1), T(1)}, 0);
-	msg = clusters[0]->marginalize(RVIds{a0});
-
-	//cout << "a0 marginal" << endl;
-	//cout << *msg << endl;
-
-	EXPECT_EQ(0, 0);
-} // HandHolding()

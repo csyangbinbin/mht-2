@@ -16,7 +16,6 @@
 #include "canonical_gaussian_mixture.hpp"
 #include "linear_gaussian.hpp"
 #include "node.hpp"
-#include "graph.hpp"
 #include "graph_builder.hpp"
 #include "measurement_manager.hpp"
 #include "transforms.hpp"

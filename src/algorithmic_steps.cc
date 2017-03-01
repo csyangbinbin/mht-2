@@ -83,8 +83,6 @@ void measurementUpdate() {
 		} // for
 
 		if (assocHypotheses.size()) {
-			std::vector<rcptr<Graph>> assocNetwork = graphBuilder->getGraphs(assocHypotheses);
-			assocNetwork[0]->plotGraph();
 		} // if
 
 	} // for

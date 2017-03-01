@@ -43,8 +43,8 @@ GraphBuilder::GraphBuilder(
 
 GraphBuilder::~GraphBuilder() {} // Default Destructor
 
-std::vector<rcptr<Graph>> GraphBuilder::getGraphs(std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const {
-	std::vector<rcptr<Graph>> graphs;
+std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::getMarginals(std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const {
+	std::map<emdw::RVIdType, rcptr<Factor>> graphs;
 
 	// Extract RVIds
 	emdw::RVIds vars = extractRVIds(assocHypotheses);
@@ -56,8 +56,7 @@ std::vector<rcptr<Graph>> GraphBuilder::getGraphs(std::map<emdw::RVIdType, rcptr
 	graphs = constructClusters(vars, assocHypotheses, dist);
 
 	return graphs;
-} // getGraphs()
-
+} // getMarginals()
 
 emdw::RVIds GraphBuilder::extractRVIds(const std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const {
 	emdw::RVIds vars; vars.clear();
@@ -79,8 +78,8 @@ std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::constructDistributions(
 		std::map<DASS, FProb> sparseProbs;
 		rcptr<DASS> aDom = assocHypotheses[vars[i]];
 		
-		sparseProbs[DASS{ (*aDom)[0] }] = 0.5;
-		for (unsigned j = 0; j < aDom->size(); j++) sparseProbs[DASS{(*aDom)[j]}] = 1;
+		sparseProbs[DASS{ (*aDom)[0] }] = 0.1;
+		for (unsigned j = 1; j < aDom->size(); j++) sparseProbs[DASS{(*aDom)[j]}] = 1;
 		
 		dist[vars[i]] = uniqptr<Factor> (new DT(emdw::RVIds{vars[i]}, {aDom}, defProb_,
 						sparseProbs, margin_, floor_, false,
@@ -92,19 +91,18 @@ std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::constructDistributions(
 	return dist;
 } // constructDistributions()
 
-std::vector<rcptr<Graph>> GraphBuilder::constructClusters(
+std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::constructClusters(
 		const emdw::RVIds& vars, 
 		std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses,
 		std::map<emdw::RVIdType, rcptr<Factor>>& dist) const {
 	
-	std::map<emdw::RVIds, rcptr<Node>> nodes;
-	std::vector<emdw::RVIds> subGraphScope(vars.size());
+	std::map<emdw::RVIdType, rcptr<Factor>> marginals; marginals.clear();
+	std::vector<rcptr<Factor>> nodes; nodes.clear();
 	std::vector<bool> connected(vars.size()); 
 	
 	// Step 1: Create the nodes and cancel conflicting hypotheses.
 	for (unsigned i = 0; i < vars.size(); i++) {
 		rcptr<DASS> aiDom = assocHypotheses[vars[i]];
-		subGraphScope[i].push_back(vars[i]);
 
 		for (unsigned j = i+1; j < vars.size(); j++) {
 			rcptr<DASS> ajDom = assocHypotheses[vars[j]];
@@ -116,21 +114,16 @@ std::vector<rcptr<Graph>> GraphBuilder::constructClusters(
 
 			if (domIntersection.size() > 1) {
 				connected[i] = true; connected[j] = true;
-				emdw::RVIds scope = emdw::RVIds{vars[i], vars[j]};
-				std::sort(scope.begin(), scope.end());
 				
-				if (!nodes[scope]) {
-					rcptr<Factor> product = dist[vars[i]]->absorb(dist[vars[j]]);
-					rcptr<DT> cancel = std::dynamic_pointer_cast<DT>(product);
-					
-					for (unsigned k = 1; k < domIntersection.size(); k++) {
-						cancel->setEntry(scope, emdw::RVVals{ domIntersection[k], domIntersection[k]}, 0);
-						product->inplaceNormalize();
-					} // for
-
-					nodes[scope] = uniqptr<Node>(new Node(product));
-				} // if
-				subGraphScope[i].push_back(vars[j]);
+				rcptr<Factor> product = dist[vars[i]]->absorb(dist[vars[j]]);
+				rcptr<DT> cancel = std::dynamic_pointer_cast<DT>(product);
+				emdw::RVIds scope = product->getVars();
+				
+				for (unsigned k = 1; k < domIntersection.size(); k++) {
+					cancel->setEntry(scope, emdw::RVVals{ domIntersection[k], domIntersection[k]}, 0);
+					product->inplaceNormalize();
+				} // for
+				nodes.push_back( product );
 			} // if
 			domIntersection.clear();
 		} // for
@@ -140,71 +133,21 @@ std::vector<rcptr<Graph>> GraphBuilder::constructClusters(
 	for (unsigned i = 0; i < vars.size(); i++) {
 		if (!connected[i]) {
 			dist[vars[i]]->inplaceNormalize();
-			nodes[emdw::RVIds{vars[i]}] = uniqptr<Node>(new Node(dist[vars[i]]));
+			nodes.push_back( uniqptr<Factor> (dist[vars[i]]->copy()) );
 		} // if
 	} // for
 
-	// Step 3: Determine all disjoint association networks
-	for (unsigned i = 0; i < vars.size(); i++) {
-		for (unsigned j = 0; j < vars.size(); j++) {
-			emdw::RVIds scopeIntersection;
-			std::set_intersection( subGraphScope[i].begin(), subGraphScope[i].end(),
-					subGraphScope[j].begin(), subGraphScope[j].end(),
-					std::back_inserter(scopeIntersection));
+	// Step 3: Create the cluster graph
+	rcptr<ClusterGraph> clusterGraph = uniqptr<ClusterGraph>(new ClusterGraph(nodes));
+	std::map<Idx2, rcptr<Factor>> msgs; msgs.clear();
+	MessageQueue msgQ; msgQ.clear();
 
-			if ( scopeIntersection.size() > 0 ) {
-				emdw::RVIds scopeUnion;
-				std::set_union( subGraphScope[i].begin(), subGraphScope[i].end(),
-						subGraphScope[j].begin(), subGraphScope[j].end(),
-						std::back_inserter(scopeUnion));
+	// Step 4: Pass messages until convergence
+	unsigned nMsg = loopyBU_CG(*clusterGraph, msgs, msgQ, 0.0);	
 
-				subGraphScope[i] = std::move(scopeUnion);
-				scopeUnion.clear();
-			} // if
-			scopeIntersection.clear();
-		} // for
-	} // for
+	// Step 5: Extract the marginals
+	for (emdw::RVIdType i : vars)  marginals[i] = queryLBU_CG(*clusterGraph, msgs, emdw::RVIds{i} )->normalize();
 
-	// Step 4: Determine disjoint subgraphs
-	std::sort(subGraphScope.begin(), subGraphScope.end());
-	subGraphScope.erase( unique(subGraphScope.begin(), subGraphScope.end()), subGraphScope.end() );
-
-	// Step 5: Link up subgraph nodes
-	std::vector<std::vector<rcptr<Node>>> subGraph(subGraphScope.size());
-	std::vector<rcptr<Graph>> graph(subGraphScope.size());
-	for (unsigned i = 0; i < subGraphScope.size(); i++) {
-		// Step 5.1: Determine whether a node is in a subgraph.
-		for (auto const& n : nodes) {
-			emdw::RVIds scopeIntersection;
-			emdw::RVIds scope = n.first;
-
-			std::set_intersection( subGraphScope[i].begin(), subGraphScope[i].end(),
-					scope.begin(), scope.end(),
-					std::back_inserter(scopeIntersection));
-
-			if (scopeIntersection.size() > 0) subGraph[i].push_back( nodes[scope] );
-			scopeIntersection.clear();
-		} // for
-
-		// Step 5.2 : Link up the nodes in a chain.
-		if (subGraph[i].size() > 1) {
-			graph[i] = uniqptr<Graph>(new Graph());
-			for (emdw::RVIdType j : subGraphScope[i]) {
-				int prev = -1;
-				for (unsigned k = 0; k < subGraph[i].size(); k++) {
-					bool intersects = false;
-					emdw::RVIds nodeVars = subGraph[i][k]->getVars();
-
-					if (j == nodeVars[0] || j == nodeVars[1]) intersects = true;
-					if (intersects && prev != -1) graph[i]->addEdge(subGraph[i][prev], subGraph[i][k]);
-					if (intersects) prev = (int) k;
-
-					nodeVars.clear();
-				} // for
-			} // for
-		} else graph[i] = uniqptr<Graph>(new Graph( { subGraph[i][0] } )); // If there is only a single node.
-	} // for
-
-	return graph;
+	return marginals;
 } // constructClusters()
 

@@ -28,7 +28,7 @@ int main(int, char *argv[]) {
 	graphBuilder = uniqptr<GraphBuilder>(new GraphBuilder());
 
 	// Step 3 : Set up the prior
-	currentStates[0].clear(); currentStates[0].resize(1);
+	currentStates[0].clear(); currentStates[0].resize(1); vecX.push_back(0);
 	currentStates[0][0] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 
 	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], 

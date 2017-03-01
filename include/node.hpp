@@ -73,6 +73,10 @@ class Node {
 		 */
 		void logMessage(const rcptr<Node>& w, const rcptr<Factor>& message);
 
+		/**
+		 *
+		 */
+		void setFactor(const rcptr<Factor>& factor);
 
 		/**
 		 * @brief Cache a the current status of the factor.

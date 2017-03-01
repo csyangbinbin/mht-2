@@ -59,13 +59,13 @@ void measurementUpdate() {
 	unsigned M = currentStates[N].size();
 
 	// For each sensor
-	for (unsigned i = 1; i < 2; i++) {
+	for (unsigned i = 1; i < 2; i++) { // Just Sensor 2 for now.
 
 		std::map<emdw::RVIdType, rcptr<DASS>> assocHypotheses; assocHypotheses.clear();
-		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 6);
+		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 6); // Hack time offset.
 
 		// For each measurement
-		for (unsigned j = 0; j < measurements.size(); j++) {
+		for (unsigned j = 0; j < measurements.size(); j++) { 
 			if (measurements[j].size()) {
 
 				assocHypotheses[j] = uniqptr<DASS>(new DASS{0});
@@ -83,8 +83,9 @@ void measurementUpdate() {
 		} // for
 
 		if (assocHypotheses.size()) {
-			std::vector<rcptr<Graph>> graphs = graphBuilder->getGraphs(assocHypotheses);
-		}
+			std::vector<rcptr<Graph>> assocNetwork = graphBuilder->getGraphs(assocHypotheses);
+			assocNetwork[0]->plotGraph();
+		} // if
 
 	} // for
 

@@ -104,6 +104,16 @@ class Graph {
 
 	public:
 		/**
+		 * @brief Does this graph contain the variable?
+		 */
+		bool containsVariable(const emdw::RVIdType i) const;
+
+		/**
+		 * @brief Get a marginal belief held over a particular variable.
+		 */
+		rcptr<Factor> getMarginalBelief(const emdw::RVIdType i) const;
+		
+		/**
 		 * @brief Returns the factors in the graph.
 		 */
 		std::vector<rcptr<Factor>> getFactors() const;
@@ -127,10 +137,13 @@ class Graph {
 	private:
 		std::set<rcptr<Node>> nodes_;
 		mutable unsigned n_, e_;
+		
 		emdw::RVIds vars_;
+		mutable std::map<emdw::RVIdType, bool> contains_;
+		mutable std::map<emdw::RVIdType, std::weak_ptr<Node>> varMap_;
 
-		std::map<std::weak_ptr<Node>, bool, std::owner_less<std::weak_ptr<Node>>> marked_;
-		std::map<std::weak_ptr<Node>, bool, std::owner_less<std::weak_ptr<Node>>> converged_;
+		mutable std::map<std::weak_ptr<Node>, bool, std::owner_less<std::weak_ptr<Node>>> marked_;
+		mutable std::map<std::weak_ptr<Node>, bool, std::owner_less<std::weak_ptr<Node>>> converged_;
 
 }; // Graph
 

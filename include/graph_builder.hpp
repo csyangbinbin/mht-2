@@ -12,6 +12,7 @@
 #define GRAPH_BUILDER_HPP
 
 #include <vector>
+#include <random>
 #include "emdw.hpp"
 #include "factor.hpp"
 #include "discretetable.hpp"

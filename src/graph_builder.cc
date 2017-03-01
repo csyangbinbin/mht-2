@@ -7,7 +7,6 @@
  * (in terms of sepsets) cluster graph. The nodes are pairwise unnormalised
  * measures.
  *************************************************************************/
-
 #include <vector>
 #include <iostream>
 #include "genvec.hpp"
@@ -75,14 +74,15 @@ std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::constructDistributions(
 		const emdw::RVIds& vars, 
 		std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const {
 	std::map<emdw::RVIdType, rcptr<Factor>> dist;
-
+	
 	for (unsigned i = 0; i < vars.size(); i++) {
 		std::map<DASS, FProb> sparseProbs;
 		rcptr<DASS> aDom = assocHypotheses[vars[i]];
 		
+		sparseProbs[DASS{ (*aDom)[0] }] = 0.5;
 		for (unsigned j = 0; j < aDom->size(); j++) sparseProbs[DASS{(*aDom)[j]}] = 1;
 		
-		dist[vars[i]] = uniqptr<DT> (new DT(emdw::RVIds{vars[i]}, {aDom}, defProb_,
+		dist[vars[i]] = uniqptr<Factor> (new DT(emdw::RVIds{vars[i]}, {aDom}, defProb_,
 						sparseProbs, margin_, floor_, false,
 						marginalizer_, inplaceNormalizer_, normalizer_ ) );
 
@@ -100,7 +100,7 @@ std::vector<rcptr<Graph>> GraphBuilder::constructClusters(
 	std::map<emdw::RVIds, rcptr<Node>> nodes;
 	std::vector<emdw::RVIds> subGraphScope(vars.size());
 	std::vector<bool> connected(vars.size()); 
-
+	
 	// Step 1: Create the nodes and cancel conflicting hypotheses.
 	for (unsigned i = 0; i < vars.size(); i++) {
 		rcptr<DASS> aiDom = assocHypotheses[vars[i]];
@@ -139,6 +139,7 @@ std::vector<rcptr<Graph>> GraphBuilder::constructClusters(
 	// Step 2: Add in disjoint nodes
 	for (unsigned i = 0; i < vars.size(); i++) {
 		if (!connected[i]) {
+			dist[vars[i]]->inplaceNormalize();
 			nodes[emdw::RVIds{vars[i]}] = uniqptr<Node>(new Node(dist[vars[i]]));
 		} // if
 	} // for

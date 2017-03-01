@@ -20,6 +20,16 @@
 Graph::Graph () {} // Default constructor
 
 Graph::Graph (const std::vector<rcptr<Node>>& nodes) {
+	nodes_.clear(); 
+	e_ = 0; n_ = 0;
+	
+	vars_.clear();
+	contains_.clear();
+	varMap_.clear();
+	
+	marked_.clear();
+	converged_.clear();
+
 	for (rcptr<Node> n : nodes) addNode(n);
 } // Node vector constructor
 
@@ -29,11 +39,17 @@ void Graph::addNode (const rcptr<Node>& v) {
 	emdw::RVIds tempUnion;
 	emdw::RVIds vVars = v->getVars();
 
-	// Add the node
+	// Append to the variable map.
+	for(emdw::RVIdType i : vVars) {
+		varMap_[i] = v;
+		contains_[i] = true;
+	} 
+	
+	// Add the node.
 	nodes_.insert(v);
 	n_ = nodes_.size();
 
-	// Expand the scope
+	// Expand the scope.
 	std::set_union(vVars.begin(), vVars.end(),
 			vars_.begin(), vars_.end(),
 			std::back_inserter(tempUnion));
@@ -89,9 +105,10 @@ void Graph::bupReceiveMessage(const rcptr<Node>& v, const rcptr<Node>& w) {
 	// Divide the incoming message by the previous sent information
 	rcptr<Factor> receivedMsg = w->getReceivedMessage(v);
 	rcptr<Factor> incomingMsg = (w->marginalize(sepset))->cancel(receivedMsg);
+	incomingMsg->inplaceNormalize();
 
 	// Absorb and log the message
-	v->inplaceAbsorb(incomingMsg.get());
+	v->inplaceAbsorb( incomingMsg.get() );
 	v->inplaceNormalize();
 	v->logMessage(w, incomingMsg);
 } // bupReceiveMessage()
@@ -121,6 +138,15 @@ std::vector<rcptr<Factor>> Graph::getFactors() const {
 
 	return factors;
 } // getFactors()
+
+bool Graph::containsVariable(const emdw::RVIdType i) const {
+	return contains_[i];
+} // containsVariable()
+
+rcptr<Factor> Graph::getMarginalBelief(const emdw::RVIdType i) const {
+	ASSERT( containsVariable(i), i << " is not in this graph!" );
+	return ((varMap_[i]).lock())->marginalize(emdw::RVIds{i}, true);
+} // getMarginalBelief()
 
 unsigned Graph::getNoOfNodes() const {
 	return n_;

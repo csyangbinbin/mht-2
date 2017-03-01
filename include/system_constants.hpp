@@ -43,7 +43,7 @@ typedef CanonicalGaussianMixture CGM;
 typedef LinearGaussian LG;
 
 namespace mht {
-	// Discrete time stepI
+	// Discrete time step
 	extern const double kTimeStep;
 
 	// Sensor location information

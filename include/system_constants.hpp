@@ -23,6 +23,7 @@
 // Function prototypes
 Matrix<double> initialiseRCovMat();
 Matrix<double> initialiseQCovMat();
+Matrix<double> initialiseClutterCovMat();
 std::vector<ColVector<double>> initialiseSensorLocations();
 rcptr<V2VTransform> initialiseMotionModel();
 std::vector<rcptr<V2VTransform>> initialiseMeasurementModels();
@@ -69,6 +70,9 @@ namespace mht {
 	// Mahanalobis thresholding distance
 	extern const double kValidationThreshold;
 
+	// Clutter distribution
+	extern Matrix<double> kClutterCov;
+
 	// Gaussian mixture pruning parameters
 	extern const unsigned kMaxComponents;
 	extern const double kThreshold;
@@ -91,6 +95,7 @@ extern emdw::RVIds variables; // Global variables
 extern emdw::RVIds vecX;
 extern emdw::RVIds vecZ;
 extern std::map<unsigned, emdw::RVIds> currentStates;
+extern std::map<unsigned, emdw::RVIds> currentMeasurements;
 extern std::map<unsigned, emdw::RVIds> elementsOfX;
 extern std::map<unsigned, emdw::RVIds> elementsOfZ;
 extern std::map<unsigned, emdw::RVIds> presentAt;
@@ -106,6 +111,7 @@ extern rcptr<GraphBuilder> graphBuilder;
 // Graph representation
 extern std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;
 extern std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
+extern std::vector<rcptr<Factor>> predMarginals;
 extern std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
 extern std::map<unsigned, std::vector<rcptr<Factor>>> validationRegion;
 

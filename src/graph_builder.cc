@@ -44,7 +44,7 @@ GraphBuilder::GraphBuilder(
 GraphBuilder::~GraphBuilder() {} // Default Destructor
 
 std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::getMarginals(std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const {
-	std::map<emdw::RVIdType, rcptr<Factor>> graphs;
+	std::map<emdw::RVIdType, rcptr<Factor>> marginals;
 
 	// Extract RVIds
 	emdw::RVIds vars = extractRVIds(assocHypotheses);
@@ -53,9 +53,9 @@ std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::getMarginals(std::map<emdw
 	std::map<emdw::RVIdType, rcptr<Factor>> dist = constructDistributions(vars, assocHypotheses);
 
 	// Construct the graphs
-	graphs = constructClusters(vars, assocHypotheses, dist);
+	marginals = constructClusters(vars, assocHypotheses, dist);
 
-	return graphs;
+	return marginals;
 } // getMarginals()
 
 emdw::RVIds GraphBuilder::extractRVIds(const std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const {
@@ -78,7 +78,7 @@ std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::constructDistributions(
 		std::map<DASS, FProb> sparseProbs;
 		rcptr<DASS> aDom = assocHypotheses[vars[i]];
 		
-		sparseProbs[DASS{ (*aDom)[0] }] = 0.1;
+		sparseProbs[DASS{ (*aDom)[0] }] = 1;
 		for (unsigned j = 1; j < aDom->size(); j++) sparseProbs[DASS{(*aDom)[j]}] = 1;
 		
 		dist[vars[i]] = uniqptr<Factor> (new DT(emdw::RVIds{vars[i]}, {aDom}, defProb_,
@@ -143,7 +143,7 @@ std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::constructClusters(
 	MessageQueue msgQ; msgQ.clear();
 
 	// Step 4: Pass messages until convergence
-	unsigned nMsg = loopyBU_CG(*clusterGraph, msgs, msgQ, 0.0);	
+	unsigned nMsg = loopyBU_CG(*clusterGraph, msgs, msgQ, 0.0);
 
 	// Step 5: Extract the marginals
 	for (emdw::RVIdType i : vars)  marginals[i] = queryLBU_CG(*clusterGraph, msgs, emdw::RVIds{i} )->normalize();

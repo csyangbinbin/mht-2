@@ -28,18 +28,32 @@ int main(int, char *argv[]) {
 	graphBuilder = uniqptr<GraphBuilder>(new GraphBuilder());
 
 	// Step 3 : Set up the prior
-	currentStates[0].clear(); currentStates[0].resize(1); vecX.push_back(0);
+	currentStates[0].clear(); currentStates[0].resize(3); vecX.push_back(0);
+	stateNodes[0].clear(); stateNodes[0].resize(3);;
+
+	// Tee 1
 	currentStates[0][0] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
+	rcptr<Factor> teeOne = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], 
+				{mht::kGenericWeight[0]},
+				{mht::kLaunchStateMean[0]},
+				{mht::kLaunchStateCov[0]}));
+	stateNodes[0][0] = uniqptr<Node> (new Node(teeOne) );
 
-	rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][0]], 
-				mht::kGenericWeight,
-				mht::kLaunchStateMean,
-				mht::kLaunchStateCov));
+	// Tee 2
+	currentStates[0][1] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
+	rcptr<Factor> teeTwo = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][1]], 
+				{mht::kGenericWeight[1]},
+				{mht::kLaunchStateMean[1]},
+				{mht::kLaunchStateCov[1]}));
+	stateNodes[0][1] = uniqptr<Node> (new Node(teeTwo) );
 
-	rcptr<Node> node = rcptr<Node> (new Node(prior));
-
-	stateNodes[0].clear(); stateNodes[0].resize(1);
-	stateNodes[0][0] = uniqptr<Node> (new Node(prior) );
+	// Tee 3
+	currentStates[0][2] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
+	rcptr<Factor> teeThree = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][2]], 
+				{mht::kGenericWeight[2]},
+				{mht::kLaunchStateMean[2]},
+				{mht::kLaunchStateCov[2]}));
+	stateNodes[0][2] = uniqptr<Node> (new Node(teeThree) );
 
 	// Step 4: Loop through every time step
 	for (unsigned i = 5; i < 6; i++) {

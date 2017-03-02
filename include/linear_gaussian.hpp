@@ -210,6 +210,8 @@ class LinearGaussian : public Factor {
 
 
 	public:
+		virtual unsigned configure(unsigned key = 0);
+
 		/**
 		 * @brief Class specific configuration
 		 *
@@ -441,13 +443,13 @@ class LinearGaussian : public Factor {
 		mutable std::map<unsigned, rcptr<Factor>> conditionalList_;
 
 		// Operators
-		rcptr<FactorOperator> marginalizer_;
 		rcptr<FactorOperator> inplaceNormalizer_;
 		rcptr<FactorOperator> normalizer_;
 		rcptr<FactorOperator> inplaceAbsorber_;
 		rcptr<FactorOperator> absorber_;
 		rcptr<FactorOperator> inplaceCanceller_;
 		rcptr<FactorOperator> canceller_;
+		rcptr<FactorOperator> marginalizer_;
 		rcptr<FactorOperator> observeAndReducer_;
 		rcptr<FactorOperator> inplaceDamper_;
 

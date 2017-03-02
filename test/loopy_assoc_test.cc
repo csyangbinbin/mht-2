@@ -72,17 +72,17 @@ TEST_F (LoopyAssocTest, SmallTest) {
 } // SmallTest()
 
 TEST_F (LoopyAssocTest, LargeTest) {
-	emdw::RVIds vars = {1, 2, 3, 4, 5, 6, 7};
+	emdw::RVIds vars = {1, 2, 3, 4, 5};
 
 	// Association hypotheses
 	std::map<RVIdType, rcptr<DASS>> assocHypotheses;
 	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
-	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
-	assocHypotheses[3] = uniqptr<DASS>(new DASS{0, 3});
-	assocHypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 3});
+	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 3});
+	assocHypotheses[3] = uniqptr<DASS>(new DASS{0, 2});
+	assocHypotheses[4] = uniqptr<DASS>(new DASS{0, 1, 2});
 	assocHypotheses[5] = uniqptr<DASS>(new DASS{0, 1, 2, 3});
-	assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
-	assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
+	//assocHypotheses[6] = uniqptr<DASS>(new DASS{0, 4, 5});
+	//assocHypotheses[7] = uniqptr<DASS>(new DASS{0, 4});
 
 	// Build the graphs
 	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
@@ -92,6 +92,9 @@ TEST_F (LoopyAssocTest, LargeTest) {
 		 std::cout << "Belief held over var " << i << "\n" << *(marginals[i]) << 
 			 "=====================================" << std::endl;
 	}
+
+	std::cout << "Marginals over (4, 5)" << std::endl;
+	std::cout << *(marginals[4]->absorb(marginals[5])) << std::endl;
 
 	EXPECT_EQ(0, 0);
 } // LargeTest()

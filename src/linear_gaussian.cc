@@ -35,17 +35,27 @@ LinearGaussian::LinearGaussian(
 		const rcptr<FactorOperator>& canceller,
 		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
-		const rcptr<FactorOperator>& inplaceDamper) {
+		const rcptr<FactorOperator>& inplaceDamper) 
+			: inplaceNormalizer_(inplaceNormalizer),
+			normalizer_(normalizer),
+			inplaceAbsorber_(inplaceAbsorber),
+			absorber_(absorber),
+			inplaceCanceller_(inplaceCanceller),
+			canceller_(canceller),
+			marginalizer_(marginalizer),
+			observeAndReducer_(observerAndReducer),
+			inplaceDamper_(inplaceDamper)
+	{
 	// Default operator intialisation
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerLG;
-	if (!normalizer) normalizer_ = defaultNormalizerLG;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberLG;
-	if (!absorber) absorber_ = defaultAbsorberLG;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerLG;
-	if (!canceller) canceller_ = defaultCancellerLG;
-	if (!marginalizer) marginalizer_ = defaultMarginalizerLG;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerLG;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperLG;
+	if (!inplaceNormalizer_) inplaceNormalizer_ = defaultInplaceNormalizerLG;
+	if (!normalizer_) normalizer_ = defaultNormalizerLG;
+	if (!inplaceAbsorber_) inplaceAbsorber_ = defaultInplaceAbsorberLG;
+	if (!absorber_) absorber_ = defaultAbsorberLG;
+	if (!inplaceCanceller_) inplaceCanceller_ = defaultInplaceCancellerLG;
+	if (!canceller_) canceller_ = defaultCancellerLG;
+	if (!marginalizer_) marginalizer_ = defaultMarginalizerLG;
+	if (!observeAndReducer_) observeAndReducer_ = defaultObserveReducerLG;
+	if (!inplaceDamper_) inplaceDamper_ = defaultInplaceWeakDamperLG;
 } // Default Constructor
 
 LinearGaussian::LinearGaussian(
@@ -59,17 +69,27 @@ LinearGaussian::LinearGaussian(
 		const rcptr<FactorOperator>& canceller,
 		const rcptr<FactorOperator>& marginalizer,
 		const rcptr<FactorOperator>& observerAndReducer,
-		const rcptr<FactorOperator>& inplaceDamper) {
+		const rcptr<FactorOperator>& inplaceDamper) 
+			: inplaceNormalizer_(inplaceNormalizer),
+			normalizer_(normalizer),
+			inplaceAbsorber_(inplaceAbsorber),
+			absorber_(absorber),
+			inplaceCanceller_(inplaceCanceller),
+			canceller_(canceller),
+			marginalizer_(marginalizer),
+			observeAndReducer_(observerAndReducer),
+			inplaceDamper_(inplaceDamper)
+	{
 	// Default operator intialisation
-	if (!inplaceNormalizer) inplaceNormalizer_ = defaultInplaceNormalizerLG;
-	if (!normalizer) normalizer_ = defaultNormalizerLG;
-	if (!inplaceAbsorber) inplaceAbsorber_ = defaultInplaceAbsorberLG;
-	if (!absorber) absorber_ = defaultAbsorberLG;
-	if (!inplaceCanceller) inplaceCanceller_ = defaultInplaceCancellerLG;
-	if (!canceller) canceller_ = defaultCancellerLG;
-	if (!marginalizer) marginalizer_ = defaultMarginalizerLG;
-	if (!observerAndReducer) observeAndReducer_ = defaultObserveReducerLG;
-	if (!inplaceDamper) inplaceDamper_ = defaultInplaceWeakDamperLG;
+	if (!inplaceNormalizer_) inplaceNormalizer_ = defaultInplaceNormalizerLG;
+	if (!normalizer_) normalizer_ = defaultNormalizerLG;
+	if (!inplaceAbsorber_) inplaceAbsorber_ = defaultInplaceAbsorberLG;
+	if (!absorber_) absorber_ = defaultAbsorberLG;
+	if (!inplaceCanceller_) inplaceCanceller_ = defaultInplaceCancellerLG;
+	if (!canceller_) canceller_ = defaultCancellerLG;
+	if (!marginalizer_) marginalizer_ = defaultMarginalizerLG;
+	if (!observeAndReducer_) observeAndReducer_ = defaultObserveReducerLG;
+	if (!inplaceDamper_) inplaceDamper_ = defaultInplaceWeakDamperLG;
 
 	// Get the variables
 	emdw::RVIds vars;
@@ -101,6 +121,11 @@ LinearGaussian::LinearGaussian(
 } // Class Specific Constructor
 
 LinearGaussian::~LinearGaussian() {} // Default Destructor
+
+unsigned LinearGaussian::configure(unsigned) {
+	std::cout << "NIY" << std::endl;
+	return true;
+} // configure()
 
 unsigned LinearGaussian::classSpecificConfigure(
 		const rcptr<Factor>& discreteRV,
@@ -138,7 +163,6 @@ unsigned LinearGaussian::classSpecificConfigure(
 
 
 //------------------Family 1: Normalization
-
 inline void LinearGaussian::inplaceNormalize(FactorOperator* procPtr) {
 	if (procPtr) dynamicInplaceApply(procPtr, this);
 	else dynamicInplaceApply(inplaceNormalizer_.get(), this);

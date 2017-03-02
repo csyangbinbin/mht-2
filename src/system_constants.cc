@@ -34,6 +34,9 @@ Matrix<double> mht::kQCovMat;
 // Mahanolobis thresholding distance
 const double mht::kValidationThreshold = 5;
 
+// Clutter distribution
+Matrix<double> mht::kClutterCov;
+
 // Gaussian mixture pruning parameters
 const unsigned mht::kMaxComponents = 100;
 const double mht::kThreshold = 0.01;
@@ -54,6 +57,7 @@ emdw::RVIds variables;
 emdw::RVIds vecX;
 emdw::RVIds vecZ;
 std::map<unsigned, emdw::RVIds> currentStates;
+std::map<unsigned, emdw::RVIds> currentMeasurements;
 std::map<unsigned, emdw::RVIds> elementsOfX;
 std::map<unsigned, emdw::RVIds> elementsOfZ;
 std::map<unsigned, emdw::RVIds> presentAt;
@@ -68,7 +72,8 @@ rcptr<GraphBuilder> graphBuilder;
 
 // Graph representation
 std::map<unsigned, std::vector<rcptr<Node>>> stateNodes;
-std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes; 
+std::map<unsigned, std::vector<rcptr<Node>>> measurementNodes;
+std::vector<rcptr<Factor>> predMarginals;
 std::map<unsigned, std::vector<rcptr<Factor>>> predMeasurements;
 std::map<unsigned, std::vector<rcptr<Factor>>> validationRegion;
 
@@ -86,6 +91,9 @@ bool initialiseVariables() {
 	// Measurement models
 	mht::kQCovMat = initialiseQCovMat();
 	mht::kMeasurementModel = initialiseMeasurementModels();
+
+	// Clutter cov
+	mht::kClutterCov = initialiseClutterCovMat();
 	
 	// Launch covs
 	mht::kLaunchStateMean = initialiseLaunchStateMean();
@@ -118,6 +126,15 @@ Matrix<double> initialiseQCovMat () {
 
 	return QCov;
 } // initialiseQCovMat()
+
+Matrix<double> initialiseClutterCovMat () {
+	Matrix<double> clutterCov;
+	
+	clutterCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	clutterCov(0, 0) = 100; clutterCov(1, 1) = 100;
+
+	return clutterCov;
+} // initialiseClutterCovMat()
 
 std::vector<ColVector<double>> initialiseSensorLocations() {
 	std::vector<ColVector<double>> locations(mht::kNumSensors);
@@ -239,6 +256,6 @@ Matrix<double> initialiseGenericCov() {
 } // initialiseGenericMean()
 
 std::vector<double> initialiseGenericWeights() {
-	std::vector<double> weights = {1.0/3, 1.0/3, 1.0/3};
+	std::vector<double> weights = {1.0, 1.0, 1.0};
 	return weights;
 } // initialiseGenericWeights()

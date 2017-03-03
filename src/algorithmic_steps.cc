@@ -13,12 +13,12 @@ void predictStates() {
 	unsigned M = currentStates[N-1].size();
 
 	// Resize for indices access
-	stateNodes[N].resize(M);
+	stateNodes[N].resize(M); stateNodes[N][0] = 0;
 	currentStates[N].resize(M);
 	virtualMeasurementVars.resize(M);
 	predMarginals.resize(M);
 
-	for (unsigned i = 0; i < M; i++) {
+	for (unsigned i = 1; i < M; i++) {
 		// Get the marginal over previous variables
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 		rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
@@ -60,41 +60,44 @@ void measurementUpdate() {
 	unsigned N = stateNodes.size() - 1;
 	unsigned M = currentStates[N].size();
 
-	std::cout << N << std::endl;
-
 	currentMeasurements[N].clear();
 
 	// For each sensor
 	for (unsigned i = 0; i < mht::kNumSensors; i++) {
 		std::cout << "Sensor " << i << std::endl;
 
+		// Retrieve measurements
 		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 6); // Hack time offset.
+		
+		// Local Scope
+		std::vector<emdw::RVIdType> sensorMeasurements; 
+		std::vector<emdw::RVIdType> associations;
 
-		std::vector<emdw::RVIdType> sensorMeasurements; // Local scope
-
+		// Local maps
 		std::map<emdw::RVIdType, rcptr<DASS>> assocHypotheses; assocHypotheses.clear();
 		std::map<emdw::RVIdType, ColVector<double>> colMeasurements; colMeasurements.clear();
-		std::map<emdw::RVIdType, emdw::RVVals> valMeasurements; valMeasurements.clear();
 
 		// For each measurement
 		for (unsigned j = 0; j < measurements.size(); j++) { 
 			if (measurements[j].size()) {
 				// Assign new identity to the measurement
+				emdw::RVIdType a = variables.size(); variables.push_back(a);
 				emdw::RVIdType z = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
+
+				associations.push_back(a);
 				sensorMeasurements.push_back(z);
 				currentMeasurements[N].push_back(z);
 
-				assocHypotheses[z] = uniqptr<DASS>(new DASS{0});
+				assocHypotheses[a] = uniqptr<DASS>(new DASS{0});
 				colMeasurements[z] = measurements[j];
-				valMeasurements[z] = emdw::RVVals{measurements[j][0], measurements[j][1]};
 
 				// Form hypotheses over each measurement
-				for (unsigned k = 0; k < M; k++) {
+				for (unsigned k = 1; k < M; k++) {
 					double distance = 
 						(std::dynamic_pointer_cast<GC>(validationRegion[k][j]))->mahanalobis(measurements[j]);
 						
 					if (distance < mht::kValidationThreshold) {
-						assocHypotheses[z]->push_back(k+1); // Note the addition!
+						assocHypotheses[a]->push_back(k); 
 					} // if
 				} // for
 			} // if
@@ -102,34 +105,47 @@ void measurementUpdate() {
 
 		if (assocHypotheses.size()) {
 			std::map<emdw::RVIdType, rcptr<Factor>> distributions = graphBuilder->getMarginals(assocHypotheses);
-			
-			for (emdw::RVIdType v : sensorMeasurements) {
-				DASS domain = *assocHypotheses[v];
+	
+			for (unsigned j = 0; j < sensorMeasurements.size(); j++) {
+				emdw::RVIdType a = associations[j];
+				emdw::RVIdType z = sensorMeasurements[j];
 
 				// Clutter is a big flat Gaussian for now.
-				std::vector<rcptr<Factor>> conditionalList(domain.size());
-				conditionalList[0] = uniqptr<Factor>(new CGM( elementsOfZ[v], {1.0}, {colMeasurements[v]}, {mht::kClutterCov} ));
+				std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
+				conditionalList[0] = 
+					uniqptr<Factor>(new CGM( elementsOfZ[z], {1.0}, {colMeasurements[z]}, {mht::kClutterCov} ));
 
-				for (unsigned j = 1; j < domain.size(); j++) {
-					unsigned p = (unsigned) (domain[j] - 1); // Note the subtraction
+				DASS domain = *assocHypotheses[a];
+				for (unsigned k = 1; k < domain.size(); k++) {
+					unsigned p = (unsigned) domain[k]; 
 					
 					// Create a new scope
 					emdw::RVIds newScope = predMarginals[p]->getVars();
-					newScope.insert(newScope.end(), elementsOfZ[v].begin(), elementsOfZ[v].end());
+					newScope.insert(newScope.end(), elementsOfZ[z].begin(), elementsOfZ[z].end());
 
 					// Product of predicted marginals
-					conditionalList[j] = uniqptr<Factor>( predMeasurements[p][i]->copy(newScope, false) );
+					conditionalList[p] = uniqptr<Factor>( predMeasurements[p][i]->copy(newScope, false) );
 					conditionalList[0] = conditionalList[0]->absorb( predMarginals[p] );
 
-					for (unsigned k = 0; k < M; k++) {
-						if (k != p ) {
-							conditionalList[j] = conditionalList[j]->absorb(predMarginals[k]);
+					for (unsigned l = 1; l < M; l++) {
+						if (l != p ) {
+							conditionalList[p] = conditionalList[p]->absorb(predMarginals[l]);
 						} // if
 					} // for
 				} // for
 
-				rcptr<Factor> clg = uniqptr<Factor>(new LinearGaussian(distributions[v], conditionalList));
+				rcptr<Factor> clg = uniqptr<Factor>(new LinearGaussian(distributions[a], conditionalList));
+				rcptr<Factor> reduced = clg->observeAndReduce(elementsOfZ[z], 
+						emdw::RVVals{colMeasurements[z][0], colMeasurements[z][1]}, 
+						true);
+				rcptr<Factor> cgm = reduced->marginalize(std::dynamic_pointer_cast<LG>(reduced)->getContinuousVars());
+				cgm->inplaceNormalize();
 
+				std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>(cgm)->getComponents();
+
+				for (rcptr<Factor> c : comps) {
+					std::cout << std::dynamic_pointer_cast<GC>(c)->getMass() << std::endl;
+				}
 			} // for
 		} // if
 	} // for

@@ -238,9 +238,13 @@ emdw::RVIds LinearGaussian::getVars() const { return vars_; } // getVars()
 
 emdw::RVIdType LinearGaussian::getVar(unsigned varNo) const { return vars_[varNo]; } // getVar()
 
-rcptr<Factor> LinearGaussian::getDiscretePrior() const { return discreteRV_; }
+rcptr<Factor> LinearGaussian::getDiscretePrior() const { return discreteRV_; } // getDiscretePrior()
 
-std::map<unsigned, rcptr<Factor>> LinearGaussian::getConditionalList() const { return conditionalList_; }
+std::map<unsigned, rcptr<Factor>> LinearGaussian::getConditionalList() const { return conditionalList_; } // getConditionalList()
+
+emdw::RVIds LinearGaussian::getContinuousVars() const {
+	return (conditionalList_.begin()->second)->getVars();
+} // getContinuousVars()
 
 //TODO: Complete this!!!
 std::istream& LinearGaussian::txtRead(std::istream& file) { return file; } // txtRead()
@@ -466,49 +470,60 @@ const std::string& MarginalizeLG::isA() const {
 Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& variablesToKeep, 
 		bool presorted) {
 	const LinearGaussian& lhs(*lhsPtr);
-	
+
 	// Temporary variables
 	emdw::RVIds continuousVars, discreteVar;
-	double potential;
-
 	std::map<unsigned, rcptr<Factor>> map;
-	std::vector<rcptr<Factor>> mixtureComponents;
-	
-	rcptr<Factor> component, discretePrior;
-	rcptr<DiscreteTable<unsigned short>> dtConvert;
-	rcptr<GaussCanonical> gcConvert;
 
 	// Determine if the variables are discrete or not
 	for (auto& i : variablesToKeep) {
 		if ((lhs.isContinuous_)[i]) continuousVars.push_back(i);
 		else discreteVar.push_back(i);
-	}
+	} // for
 
 	// Getting rid of continuous stuff usually happens
-	discretePrior = uniqptr<Factor>( (lhs.discreteRV_)->copy() );
+	rcptr<Factor> discretePrior = uniqptr<Factor>( (lhs.discreteRV_)->copy() );
 	for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->marginalize(continuousVars, presorted);
 
 	// If you marginalize out all the continuous variables, you only have a discrete potential left.
 	if ( !(map.begin()->second)->noOfVars() && discreteVar.size() ) {
 		return discretePrior->copy();
-	} 
+	} // if
 
 	// If you're not keeping the discrete variable, you get a mixture.
 	if (!discreteVar.size()) { 
-		for(auto& i : lhs.conditionalList_) {			
+		std::vector<rcptr<Factor>> mixtureComponents; mixtureComponents.clear();
+		
+		for(auto& i : lhs.conditionalList_) {
 			// Get the potential of the discrete variable
-			dtConvert = std::dynamic_pointer_cast<DiscreteTable<unsigned short>>(discretePrior);
-			potential = dtConvert->potentialAt(discretePrior->getVars(), emdw::RVVals{ (unsigned short)(i.first) });
+			rcptr<DiscreteTable<unsigned short>> dtConvert = 
+				std::dynamic_pointer_cast<DiscreteTable<unsigned short>>(discretePrior);
+			double potential = dtConvert->potentialAt(discretePrior->getVars(), 
+					emdw::RVVals{ (unsigned short)(i.first) });
 
-			// Adjust the mass
-			component = uniqptr<Factor>((i.second)->copy());
-			gcConvert = std::dynamic_pointer_cast<GaussCanonical>(component);
-			gcConvert->adjustMass(potential);
+			// Get the factor
+			rcptr<Factor> component = uniqptr<Factor>((i.second)->copy());
 
-			mixtureComponents.push_back(component);
-		}
-		return new CanonicalGaussianMixture(component->getVars(), mixtureComponents); // Default GM.
-	} 
+			if (std::dynamic_pointer_cast<GaussCanonical>(component)) {
+				// Adjust the mass
+				rcptr<GaussCanonical> gcConvert = std::dynamic_pointer_cast<GaussCanonical>(component);
+				gcConvert->adjustMass(potential);
+
+				mixtureComponents.push_back(component);
+			} else {
+				rcptr<CanonicalGaussianMixture> cgmConvert = 
+					std::dynamic_pointer_cast<CanonicalGaussianMixture>(component);
+				std::vector<rcptr<Factor>> components = cgmConvert->getComponents();
+
+				for (rcptr<Factor> c : components) {
+					std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(potential);
+					mixtureComponents.push_back(c);
+				} // for
+			}  // if
+		} // for
+
+		return new CanonicalGaussianMixture(mixtureComponents[0]->getVars(), mixtureComponents); // Default GM.
+	} // if 
 
 	return new LinearGaussian(discretePrior, 
 			map,
@@ -538,12 +553,9 @@ Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RV
 	// Temporary variables
 	emdw::RVIds continuousVars, discreteVar;
 	emdw::RVVals continuousVals, discreteVal;
-	double potential;
 
 	std::map<unsigned, rcptr<Factor>> map;
 	rcptr<Factor> discretePrior;
-	rcptr<DiscreteTable<unsigned short>> dtConvert;
-	rcptr<GaussCanonical> gcConvert;
 
 	// Separate out continuous and discrete variables
 	for (unsigned i = 0; i < variables.size(); i++) {
@@ -557,16 +569,20 @@ Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RV
 		}
 	}
 
+
 	// Observing continuous things usually happens
 	discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
-	for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->observeAndReduce(continuousVars, continuousVals);
+	for (auto& i : lhs.conditionalList_) {
+		map[i.first] = (i.second)->observeAndReduce(continuousVars, continuousVals);
+	}
 
-	if ( !(discreteVar.size()) ) {
+	if ( discreteVar.size() ) {
 		discretePrior = (lhs.discreteRV_)->observeAndReduce(discreteVar, discreteVal);
-		dtConvert = std::dynamic_pointer_cast<DiscreteTable<unsigned short>>(discretePrior);
-		potential = dtConvert->potentialAt(discreteVar, discreteVal);
+		rcptr<DiscreteTable<unsigned short>> dtConvert = 
+			std::dynamic_pointer_cast<DiscreteTable<unsigned short>>(discretePrior);
+		double potential = dtConvert->potentialAt(discreteVar, discreteVal);
 
-		gcConvert = std::dynamic_pointer_cast<GaussCanonical>( map[ (unsigned)(discreteVal[0]) ] );
+		rcptr<GaussCanonical> gcConvert = std::dynamic_pointer_cast<GaussCanonical>( map[ (unsigned)(discreteVal[0]) ] );
 		gcConvert->adjustMass(potential);
 
 		return gcConvert->copy();

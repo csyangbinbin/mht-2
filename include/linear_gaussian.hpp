@@ -421,6 +421,11 @@ class LinearGaussian : public Factor {
 		 */
 		std::map<unsigned, rcptr<Factor>> getConditionalList() const;
 
+		/**
+		 * @brief Retuns the continuousVars
+		 */
+		emdw::RVIds getContinuousVars() const;
+
 	public:
 		/**
 		 * @brief Read information from an input stream.

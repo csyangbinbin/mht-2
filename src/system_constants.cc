@@ -32,14 +32,14 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 5;
+const double mht::kValidationThreshold = 10;
 
 // Clutter distribution
 Matrix<double> mht::kClutterCov;
 
 // Gaussian mixture pruning parameters
-const unsigned mht::kMaxComponents = 100;
-const double mht::kThreshold = 0.01;
+const unsigned mht::kMaxComponents = 5;
+const double mht::kThreshold = 1e-12;
 const double mht::kMergeDistance = 5;
 
 // Launch locations
@@ -131,7 +131,7 @@ Matrix<double> initialiseClutterCovMat () {
 	Matrix<double> clutterCov;
 	
 	clutterCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	clutterCov(0, 0) = 100; clutterCov(1, 1) = 100;
+	clutterCov(0, 0) = 200; clutterCov(1, 1) = 200;
 
 	return clutterCov;
 } // initialiseClutterCovMat()

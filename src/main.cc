@@ -37,7 +37,7 @@ int main(int, char *argv[]) {
 				{mht::kGenericWeight[0]},
 				{mht::kLaunchStateMean[0]},
 				{mht::kLaunchStateCov[0]}));
-	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne) );
+	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne, 1) );
 
 	// Tee 2
 	currentStates[0][2] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
@@ -45,7 +45,7 @@ int main(int, char *argv[]) {
 				{mht::kGenericWeight[1]},
 				{mht::kLaunchStateMean[1]},
 				{mht::kLaunchStateCov[1]}));
-	stateNodes[0][2] = uniqptr<Node> (new Node(teeTwo) );
+	stateNodes[0][2] = uniqptr<Node> (new Node(teeTwo, 2) );
 
 	// Tee 3
 	currentStates[0][3] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
@@ -53,20 +53,28 @@ int main(int, char *argv[]) {
 				{mht::kGenericWeight[2]},
 				{mht::kLaunchStateMean[2]},
 				{mht::kLaunchStateCov[2]}));
-	stateNodes[0][3] = uniqptr<Node> (new Node(teeThree) );
+	stateNodes[0][3] = uniqptr<Node> (new Node(teeThree, 3) );
 
 	// Step 4: Loop through every time step
-	for (unsigned i = 5; i < 6; i++) {
+	for (unsigned i = 1; i < kNumberOfTimeSteps; i++) {
+		std::cout << "\nTime step " << i << "\n" << std::endl;
+
 		// Prediction
-		predictStates();
+		std::cout << "Predict States" << std::endl;
+		predictStates(i);
+		
+		// Create measurement distributions
+		std::cout << "Create Measurement Distributions" << std::endl;
+		createMeasurementDistributions(i);
 		
 		// Measurement update
-		measurementUpdate();
+		std::cout << "Measurement Update" << std::endl;
+		measurementUpdate(i);
 		
-		// Backwards pass
-		
-		// Decision making
+		// Backward pass and recalibration
 
+		// Decision making
+		
 		// Forwards pass
 
 		// State extraction

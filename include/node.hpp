@@ -37,7 +37,7 @@ class Node {
 		 * 
 		 * @param factor The cluster the node is to contain.
 		 */
-		Node(const rcptr<Factor>& factor);
+		Node(const rcptr<Factor>& factor, const unsigned N = 0);
 
 		/**
 		 * @brief Default destructor.
@@ -89,6 +89,11 @@ class Node {
 		void cacheFactor(const rcptr<Factor>& factor);
 
 	public:
+		/**
+		 * @brief Return a unique identity.
+		 */
+		unsigned getIdentity() const;
+
 		/**
 		 * @brief Return variables.
 		 */
@@ -252,6 +257,7 @@ class Node {
 	private:
 		// Current information and scope
 		rcptr<Factor> factor_;
+		unsigned N_;
 		emdw::RVIds vars_;
 		
 		// Neighbouring vertices

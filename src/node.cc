@@ -17,8 +17,9 @@
 #include "vecset.hpp"
 #include "node.hpp"
 
-Node::Node(const rcptr<Factor>& factor) {
+Node::Node(const rcptr<Factor>& factor, const unsigned N) {
 	factor_ = uniqptr<Factor>( factor->copy() );
+	N_ = N;
 	vars_ = factor_->getVars();
 	
 	sepsets_.clear();
@@ -49,6 +50,10 @@ void Node::setFactor(const rcptr<Factor>& factor) {
 void Node::cacheFactor(const rcptr<Factor>& factor) {
 	prevFactor_ = uniqptr<Factor>(factor->copy());
 } // cacheFactor()
+
+unsigned Node::getIdentity() const {
+	return N_;
+} // getIdentity()
 
 emdw::RVIds Node::getVars() const {
 	return vars_;

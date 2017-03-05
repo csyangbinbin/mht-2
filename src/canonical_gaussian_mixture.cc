@@ -276,6 +276,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 
 	// Prune and merge if necessary - or something
 	if (N_ > maxComp_) {
+		//std::cout << "Need to Prune and Merge" << std::endl;
 		pruneComponents();
 		mergeComponents();
 	}
@@ -405,6 +406,7 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 
 	// Make the new variables are sorted in CanonicalGaussianMixture
 	vars_ = comps_[0]->getVars();
+	mergeComponents();
 } // Non-linear Gaussian constructor
 
 CanonicalGaussianMixture::~CanonicalGaussianMixture() {} // Default Destructor
@@ -544,7 +546,7 @@ CanonicalGaussianMixture* CanonicalGaussianMixture::copy(const emdw::RVIds& newV
 } // copy()
 
 CanonicalGaussianMixture* CanonicalGaussianMixture::vacuousCopy(const emdw::RVIds& selectedVars, bool presorted) const {
-	return new CanonicalGaussianMixture();
+	return new CanonicalGaussianMixture(selectedVars);
 } // vacuousCopy()
 
 bool CanonicalGaussianMixture::isEqual(const Factor* rhsPtr) const { return true; } // isEqual()
@@ -580,11 +582,11 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	std::vector<double> w(M);
 	std::vector<ColVector<double>> mu(M);
 	std::vector<Matrix<double>> S(M);
-	double totalMass = 0;
+	double totalMass = 0.0;
 
 	// New mean and covariance
 	unsigned dimension = vars_.size();
-	ColVector<double> mean(dimension); mean *= 0;
+	ColVector<double> mean(dimension); mean *= 0.0;
 	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); 
 
 	// Get the non-vacuous Gaussians' weights, means and covariances
@@ -600,7 +602,7 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 			w[i] = gc->getMass();
 			totalMass += w[i];
 		} else {
-			w[i] = 0; mu[i] *= 0;
+			w[i] = 0.0; mu[i] *= 0.0;
 			S[i] = gLinear::zeros<double>(dimension, dimension);
 		}
 	}
@@ -619,20 +621,36 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 //------------------ Pruning and Merging
 
 void CanonicalGaussianMixture::pruneComponents()  {
-	std::vector<double> weights = this->getWeights();
-	std::vector<rcptr<Factor>> newComps;
+	std::vector<rcptr<Factor>> newComps; newComps.size();
 
-	// Throw out all insignificant components
-	for (unsigned i = 0; i < N_; i++) {
-		if (weights[i] > threshold_) newComps.push_back(comps_[i]); 
+	// Determine total mass
+	double totalMass = 0;
+	for (rcptr<Factor> c : comps_) totalMass += std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
+	
+	// Normalize and throw out insignificant components
+	double newMass = 0;
+	for (rcptr<Factor> c : comps_) {
+		rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(c);
+		
+		gc->adjustMass(1.0/totalMass);
+		double mass = gc->getMass();
+		
+		if ( mass > threshold_  ) {
+			newComps.push_back(c);
+			newMass += mass;
+		} 
 	}
 
 	// Re-assign
 	comps_ = newComps;
 	N_ = comps_.size();
+
+	// Normalize
+	for (rcptr<Factor> c : comps_) std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(1.0/newMass);
 } // pruneComponents()
 
 void CanonicalGaussianMixture::mergeComponents() {
+	//std::cout << "mergeComponents()" << std::endl;
 	std::vector<rcptr<Factor>> merged;
 	std::vector<rcptr<GaussCanonical>> oldComps, cTemp;
 	
@@ -710,6 +728,13 @@ void CanonicalGaussianMixture::mergeComponents() {
 		std::copy(merged.begin(), merged.begin() + maxComp_, std::back_inserter(comps_));
 		N_ = maxComp_;
 	}
+
+	// Normalize
+	double totalMass = 0;
+	for (rcptr<Factor> c : comps_) totalMass += std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
+	for (rcptr<Factor> c : comps_) std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(1.0/totalMass);
+
+	//std::cout << "Number of components after merge: " << N_ << std::endl;
 } // mergeComponents()
 
 
@@ -785,10 +810,8 @@ void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
 
 	// Divide through by the total mass
 	// TODO: Sort this out, it is a mess.
-	rcptr<GaussCanonical> gc;
 	for (rcptr<Factor> c : lhsComp) {
-		gc = std::dynamic_pointer_cast<GaussCanonical>(c);
-		gc->adjustMass(1.0/totalMass);
+		std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(1.0/totalMass);
 	}
 
 	// Reconfigure

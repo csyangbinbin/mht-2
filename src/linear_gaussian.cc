@@ -223,7 +223,25 @@ double LinearGaussian::inplaceDampen(const Factor* oldMsg, double df, FactorOper
 //------------------Other required virtual methods
 
 LinearGaussian* LinearGaussian::copy(const emdw::RVIds& newVars, bool presorted) const {
-	return new LinearGaussian(*this);
+	rcptr<Factor> discrete = uniqptr<Factor>(discreteRV_->copy());
+
+	std::map<unsigned, rcptr<Factor>> map; map.clear();
+
+	for (auto& i : conditionalList_) {
+		map[i.first] = uniqptr<Factor>((i.second)->copy());
+	}
+
+	return new LinearGaussian(discrete, 
+				map,
+				inplaceNormalizer_,
+				normalizer_,
+				inplaceAbsorber_,
+				absorber_,
+				inplaceCanceller_,
+				canceller_,
+				marginalizer_,
+				observeAndReducer_,
+				inplaceDamper_);
 } // copy()
 
 LinearGaussian* LinearGaussian::vacuousCopy(const emdw::RVIds& selectedVars, bool presorted) const {
@@ -471,9 +489,11 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 		bool presorted) {
 	const LinearGaussian& lhs(*lhsPtr);
 
+	//std::cout << "MarginalizeLG" << std::endl;
+
 	// Temporary variables
-	emdw::RVIds continuousVars, discreteVar;
-	std::map<unsigned, rcptr<Factor>> map;
+	emdw::RVIds continuousVars; continuousVars.clear();
+	emdw::RVIds discreteVar; discreteVar.clear();
 
 	// Determine if the variables are discrete or not
 	for (auto& i : variablesToKeep) {
@@ -481,11 +501,20 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 		else discreteVar.push_back(i);
 	} // for
 
+	//std::cout << "continuousVars: " << continuousVars << std::endl;
+	//std::cout << "discreteVar: " << discreteVar << std::endl;
+
 	// Getting rid of continuous stuff usually happens
 	rcptr<Factor> discretePrior = uniqptr<Factor>( (lhs.discreteRV_)->copy() );
-	for (auto& i : lhs.conditionalList_) map[i.first] = (i.second)->marginalize(continuousVars, presorted);
+	std::map<unsigned, rcptr<Factor>> map; map.clear();
+	for (auto& i : lhs.conditionalList_) {
+		//std::cout << "Before continuous marginalization: " << (i.second)->getVars() << std::endl;
+		map[i.first] = (i.second)->marginalize(continuousVars, presorted)->normalize();
+		//std::cout << "After continuous marginalization: " << map[i.first]->getVars() << std::endl;
+	}
 
 	// If you marginalize out all the continuous variables, you only have a discrete potential left.
+	// TODO: Account for the mixtures' masses.
 	if ( !(map.begin()->second)->noOfVars() && discreteVar.size() ) {
 		return discretePrior->copy();
 	} // if
@@ -494,7 +523,7 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 	if (!discreteVar.size()) { 
 		std::vector<rcptr<Factor>> mixtureComponents; mixtureComponents.clear();
 		
-		for(auto& i : lhs.conditionalList_) {
+		for(auto& i : map) {
 			// Get the potential of the discrete variable
 			rcptr<DiscreteTable<unsigned short>> dtConvert = 
 				std::dynamic_pointer_cast<DiscreteTable<unsigned short>>(discretePrior);
@@ -502,19 +531,20 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 					emdw::RVVals{ (unsigned short)(i.first) });
 
 			// Get the factor
-			rcptr<Factor> component = uniqptr<Factor>((i.second)->copy());
+			rcptr<Factor> component = i.second;
 
 			if (std::dynamic_pointer_cast<GaussCanonical>(component)) {
 				// Adjust the mass
-				rcptr<GaussCanonical> gcConvert = std::dynamic_pointer_cast<GaussCanonical>(component);
-				gcConvert->adjustMass(potential);
-
+				std::dynamic_pointer_cast<GaussCanonical>(component)->adjustMass(potential);
 				mixtureComponents.push_back(component);
 			} else {
 				rcptr<CanonicalGaussianMixture> cgmConvert = 
 					std::dynamic_pointer_cast<CanonicalGaussianMixture>(component);
 				std::vector<rcptr<Factor>> components = cgmConvert->getComponents();
 
+				//std::cout << "CGM: " << components.size() << std::endl;
+
+				// Adjust the mass
 				for (rcptr<Factor> c : components) {
 					std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(potential);
 					mixtureComponents.push_back(c);
@@ -522,7 +552,8 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 			}  // if
 		} // for
 
-		return new CanonicalGaussianMixture(mixtureComponents[0]->getVars(), mixtureComponents); // Default GM.
+		//std::cout << "mixturecomponents.size() = " << mixtureComponents.size() << std::endl;
+		return new CanonicalGaussianMixture(variablesToKeep, mixtureComponents); // Default GM.
 	} // if 
 
 	return new LinearGaussian(discretePrior, 

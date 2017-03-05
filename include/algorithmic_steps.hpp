@@ -22,12 +22,23 @@
 
 /**
  * @brief Predict the current state of the x variables
+ *
+ * @param N The current time index.
  */
-void predictStates();
+void predictStates(const unsigned N);
 
 /**
- * @brief Performs measurement updates on the existing targets
+ * @brief Forms hypotheses and creates current measurement distributions.
+ *
+ * @param N The current time index.
  */
-void measurementUpdate();
+void createMeasurementDistributions(const unsigned N);
+
+/**
+ * @brief Performs measurement update on exisitng targets.
+ *
+ * @param N The current time step.
+ */
+void measurementUpdate(const unsigned N);
 
 #endif // ALGORITHMICSTEPS_HPP

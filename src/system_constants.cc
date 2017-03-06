@@ -32,14 +32,14 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 10;
+const double mht::kValidationThreshold = 20;
 
 // Clutter distribution
 Matrix<double> mht::kClutterCov;
 
 // Gaussian mixture pruning parameters
-const unsigned mht::kMaxComponents = 5;
-const double mht::kThreshold = 1e-12;
+const unsigned mht::kMaxComponents = 10;
+const double mht::kThreshold = 1e-5;
 const double mht::kMergeDistance = 5;
 
 // Launch locations
@@ -109,11 +109,10 @@ bool initialiseVariables() {
 
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) {
-		if (i % 2 == 0) RCov(i, i) = 1;
-		else RCov(i, i) = 5;
-	}
+
+	RCov(0, 0) = 10; RCov(1, 1) = 10;
+	RCov(2, 2) = 10; RCov(3, 3) = 10;
+	RCov(4, 4) = 10; RCov(5, 5) = 20;
 
 	return RCov;
 } // initialiseRCovMat()
@@ -122,7 +121,7 @@ Matrix<double> initialiseQCovMat () {
 	Matrix<double> QCov;
 	
 	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 9; QCov(1, 1) = 1.5;
+	QCov(0, 0) = 3; QCov(1, 1) = 1.5;
 
 	return QCov;
 } // initialiseQCovMat()
@@ -131,7 +130,7 @@ Matrix<double> initialiseClutterCovMat () {
 	Matrix<double> clutterCov;
 	
 	clutterCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	clutterCov(0, 0) = 200; clutterCov(1, 1) = 200;
+	clutterCov(0, 0) = 100; clutterCov(1, 1) = 100;
 
 	return clutterCov;
 } // initialiseClutterCovMat()
@@ -218,16 +217,10 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 	launchCov[1] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 	launchCov[2] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) {
-		if (i % 2 == 0) {
-			(launchCov[0])(i, i) = 1;
-			(launchCov[1])(i, i) = 1;
-			(launchCov[2])(i, i) = 1;
-		} else {
-			(launchCov[0])(i, i) = 5;
-			(launchCov[1])(i, i) = 5;
-			(launchCov[2])(i, i) = 5;
-		}
+	for (unsigned i = 0; i < 3; i++) {
+		launchCov[i](0, 0) = 1; launchCov[i](1, 1) = 5;
+		launchCov[i](2, 2) = 1; launchCov[i](3, 3) = 5;
+		launchCov[i](4, 4) = 1; launchCov[i](5, 5) = 10;
 	}
 
 	return launchCov;

@@ -275,11 +275,8 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	}
 
 	// Prune and merge if necessary - or something
-	if (N_ > maxComp_) {
-		//std::cout << "Need to Prune and Merge" << std::endl;
-		pruneComponents();
-		mergeComponents();
-	}
+	pruneComponents();
+	mergeComponents();
 } // Component constructor
 
 CanonicalGaussianMixture::CanonicalGaussianMixture(
@@ -652,18 +649,11 @@ void CanonicalGaussianMixture::pruneComponents()  {
 void CanonicalGaussianMixture::mergeComponents() {
 	//std::cout << "mergeComponents()" << std::endl;
 	std::vector<rcptr<Factor>> merged;
-	std::vector<rcptr<GaussCanonical>> oldComps, cTemp;
+	std::vector<rcptr<GaussCanonical>> oldComps;
 	
 	// Weights of old components
-	std::vector<double> w, wTemp;
-	std::set<unsigned> indices;
-	unsigned L, maxIndex;
-
-	// Parameters of new components
 	unsigned dim = vars_.size();
-	ColVector<double> mu(dim), mu_0(dim), mean(dim);
-	Matrix<double> S = gLinear::zeros<double>(dim, dim);
-	double g;
+	std::vector<double> w;
 
 	// Get the weights and cast the Factors down to CG
 	for (rcptr<Factor> c : comps_) {
@@ -674,15 +664,20 @@ void CanonicalGaussianMixture::mergeComponents() {
 	// Calculate the merged components
 	while (!oldComps.empty()) {
 		// Determine maximum remaining weight.
-		maxIndex = std::max_element(w.begin(), w.end()) - w.begin(); // Hack to get max element's index.
-		mu_0 = oldComps[maxIndex]->getMean(); // Dominant component's mean.
-		L = w.size();
+		unsigned maxIndex = std::max_element(w.begin(), w.end()) - w.begin(); // Hack to get max element's index.
+		ColVector<double> mu_0 = oldComps[maxIndex]->getMean(); // Dominant component's mean.
+		unsigned L = w.size();
 		
-		// Determined merged components.
-		g = 0; mu *= 0; mean *= 0; S *= 0;
+		// Declare temporary variables.
+		std::set<unsigned> indices; indices.clear();
+		ColVector<double> mu(dim); mu *= 0;
+		Matrix<double> S = gLinear::zeros<double>(dim, dim);
+		double g = 0;
+
+		// Determine merged components
 		for (unsigned i = 0; i < L; i++) {
-			if (oldComps[i]->mahanalobis(mu_0) <= unionDistance_) {
-				mean = oldComps[i]->getMean();
+			if (oldComps[i]->mahalanobis(mu_0) <= unionDistance_) {
+				ColVector<double> mean = oldComps[i]->getMean();
 				
 				g += w[i];
 				mu += w[i]*(mean);
@@ -693,6 +688,8 @@ void CanonicalGaussianMixture::mergeComponents() {
 		}
 
 		// Absolutely terrible removal technique, but neat iterator solutions hate rcptr<Factor>.
+		std::vector<rcptr<GaussCanonical>> cTemp; cTemp.clear();
+		std::vector<double> wTemp; wTemp.clear();
 		for (unsigned i = 0; i < L; i++) {
 			if (!indices.count(i)) {
 				cTemp.push_back(oldComps[i]);
@@ -700,13 +697,12 @@ void CanonicalGaussianMixture::mergeComponents() {
 			}		
 		}
 		
-		// Re-assign and clear temporary variables
-		oldComps = cTemp; cTemp.clear(); 
-		w = wTemp; wTemp.clear();
-		indices.clear();
-
 		// Create a new Gaussian
 		merged.push_back( uniqptr<GaussCanonical> (new GaussCanonical(vars_, mu/g, S/g, true)) );
+
+		// Re-assign and clear temporary variables
+		oldComps = cTemp; 
+		w = wTemp;
 	}
 
 	// Re-assign
@@ -733,8 +729,6 @@ void CanonicalGaussianMixture::mergeComponents() {
 	double totalMass = 0;
 	for (rcptr<Factor> c : comps_) totalMass += std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
 	for (rcptr<Factor> c : comps_) std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(1.0/totalMass);
-
-	//std::cout << "Number of components after merge: " << N_ << std::endl;
 } // mergeComponents()
 
 
@@ -930,7 +924,6 @@ void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	const CanonicalGaussianMixture& rhs(*rhsCGMPtr); // Not very safe
 	
 	// New components
-	std::vector<rcptr<Factor>> quotient;
 	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
 	rcptr<Factor> single;
 	
@@ -939,6 +932,7 @@ void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	else single = uniqptr<Factor>(rhsFPtr->copy());
 
 	// Divide through by a single GaussCanonical
+	std::vector<rcptr<Factor>> quotient;
 	for (rcptr<Factor> i : lhsComps) quotient.push_back( i->cancel(single)  );
 
 	// Reconfigure the class

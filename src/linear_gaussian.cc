@@ -600,7 +600,6 @@ Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RV
 		}
 	}
 
-
 	// Observing continuous things usually happens
 	discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
 	for (auto& i : lhs.conditionalList_) {

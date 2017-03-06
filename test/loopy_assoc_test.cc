@@ -63,10 +63,12 @@ TEST_F (LoopyAssocTest, SmallTest) {
 	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
 	std::map<emdw::RVIdType, rcptr<Factor>> marginals = gb->getMarginals( assocHypotheses );
 
+	/*
 	for (emdw::RVIdType i : vars) {
 		 std::cout << "Belief held over var " << i << "\n" << *(marginals[i]) << 
 			 "=====================================" << std::endl;
 	}
+	*/
 
 	EXPECT_EQ(0, 0);
 } // SmallTest()
@@ -88,13 +90,12 @@ TEST_F (LoopyAssocTest, LargeTest) {
 	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
 	std::map<emdw::RVIdType, rcptr<Factor>> marginals = gb->getMarginals( assocHypotheses );
 
+	/*
 	for (emdw::RVIdType i : vars) {
 		 std::cout << "Belief held over var " << i << "\n" << *(marginals[i]) << 
 			 "=====================================" << std::endl;
 	}
-
-	std::cout << "Marginals over (4, 5)" << std::endl;
-	std::cout << *(marginals[4]->absorb(marginals[5])) << std::endl;
+	*/
 
 	EXPECT_EQ(0, 0);
 } // LargeTest()
@@ -176,18 +177,20 @@ TEST_F (LoopyAssocTest, FullJointSanityTest) {
 	pairwise[6]->inplaceNormalize();
 
 	rcptr<ClusterGraph> clusterGraph = uniqptr<ClusterGraph>( new ClusterGraph( pairwise ) );
-	clusterGraph->exportToGraphViz("pairwise");
+	//clusterGraph->exportToGraphViz("pairwise");
 
 	std::map<Idx2, rcptr<Factor>> msgs; msgs.clear();
 	MessageQueue msgQ; msgQ.clear();
 
 	unsigned nMsgs = loopyBU_CG(*clusterGraph, msgs, msgQ, 0.0);
-		
+	
+	/*
 	for (emdw::RVIdType i : vars) {
 		 std::cout << "Belief held over var " << i << "\n" <<
 		 *(queryLBU_CG(*clusterGraph, msgs, emdw::RVIds{ i  } )->normalize()) <<
 			 "=====================================" << std::endl;
 	}
+	*/
 
 	EXPECT_EQ(0, 0);
 }

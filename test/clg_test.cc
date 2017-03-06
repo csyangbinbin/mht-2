@@ -195,6 +195,4 @@ TEST_F (CLGTest, MarginalizeDiscrete) {
 
 TEST_F (CLGTest, ObserveAndReduceDiscrete) {
 	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
-	rcptr<Factor> gm = lg->observeAndReduce(emdw::RVIds{a0}, emdw::RVVals{T(0)}); 
-
 }

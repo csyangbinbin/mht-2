@@ -26,9 +26,9 @@ void predictStates(const unsigned N) {
 
 		// Create a new factor over current variables
 		rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
-					initialiseMotionModel(), 
+					mht::kMotionModel, 
 					elementsOfX[currentStates[N][i]],
-					initialiseRCovMat()  ));
+					mht::kRCovMat  ));
 		stateNodes[N][i] = uniqptr<Node> (new Node(stateJoint, stateNodes[N-1][i]->getIdentity() ) );
 
 		// Link Node to preceding node
@@ -41,10 +41,11 @@ void predictStates(const unsigned N) {
 
 		if ( stateNodes[N-1][i]->getIdentity() == 1 ) {
 			std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( predMarginals[i] )->getComponents();
-			for (rcptr<Factor> c : comps) std::cout << std::dynamic_pointer_cast<GC>(c)->getMean() << std::endl;
+			for (rcptr<Factor> c: comps) {
+				ColVector<double> mean =  std::dynamic_pointer_cast<GC>(c)->getMean();
+				std::cout << N << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
+			}
 		}
-
-		//std::cout << "predMarginal[" << i << "]: " << predMarginals[i]->getVars() << std::endl;
 
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -73,9 +74,9 @@ void createMeasurementDistributions(const unsigned N) {
 
 	// For each sensor
 	for (unsigned i = 0; i < mht::kNumSensors; i++) {
-		//std::cout << "Sensor " << i << std::endl;
+		std::cout << "Sensor: " << i << std::endl;
 		// Retrieve measurements
-		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N); // Hack time offset.
+		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 4); // Hack time offset.
 
 		// Local Scope
 		std::vector<emdw::RVIdType> sensorMeasurements; 
@@ -103,7 +104,7 @@ void createMeasurementDistributions(const unsigned N) {
 				// Form hypotheses over each measurement
 				for (unsigned k = 1; k < M; k++) {
 					double distance = 
-						(std::dynamic_pointer_cast<GC>(validationRegion[k][i]))->mahanalobis(measurements[j]);
+						(std::dynamic_pointer_cast<GC>(validationRegion[k][i]))->mahalanobis(measurements[j]);
 						
 					if (distance < mht::kValidationThreshold) {
 						assocHypotheses[a]->push_back(k); 
@@ -121,15 +122,18 @@ void createMeasurementDistributions(const unsigned N) {
 				emdw::RVIdType a = associations[j];
 				emdw::RVIdType z = sensorMeasurements[j];
 
-				// Clutter distribution is a big flat Gaussian for now.
-				std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
-				conditionalList[0] = 
-					uniqptr<Factor>(new CGM( elementsOfZ[z], {1.0}, {colMeasurements[z]}, {mht::kClutterCov} ));
-
 				DASS domain = *assocHypotheses[a];
 				unsigned domSize = domain.size();
-				//std::cout << "domain: " << domain << std::endl;
+				std::cout << "domain: " << domain << std::endl;
 				if (domSize > 1) {
+					// Clutter distribution is a big flat Gaussian for now.
+					std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
+					conditionalList[0] = uniqptr<Factor>(new CGM( 
+								elementsOfZ[z], 
+								{1.0}, 
+								{colMeasurements[z]}, 
+								{mht::kClutterCov} ));
+
 					for (unsigned k = 1; k < domSize; k++) {
 						unsigned p = domain[k]; 
 						
@@ -143,7 +147,8 @@ void createMeasurementDistributions(const unsigned N) {
 
 						for (unsigned l = 1; l < domSize; l++) {
 							unsigned q = domain[l];
-							if ( q != p ) conditionalList[p] = conditionalList[p]->absorb(predMarginals[q] );
+							if ( q != p ) conditionalList[p] = 
+								conditionalList[p]->absorb(predMarginals[q] );
 						} // for
 						conditionalList[p]->inplaceNormalize();
 					} // for
@@ -176,29 +181,26 @@ void createMeasurementDistributions(const unsigned N) {
 
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
+	std::cout << "M: " << M << std::endl;
 
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
 
-		//std::cout << "adjacent.size(): " << adjacent.size() << std::endl;
-		
 		for (unsigned j = 0; j < adjacent.size(); j++) {
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
-			//std::cout << "\n\nstateNode identity: " << stateNode->getIdentity() << std::endl;
+			// std::cout << "stateNode identity: " << stateNode->getIdentity() << std::endl;
 			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
 			rcptr<Factor> outgoingMessage =  measurementNodes[N][i]->marginalize( sepset, true )->cancel(receivedMessage);
 
-			// The state node absorbs the incoming message 
-			stateNode->inplaceAbsorb( outgoingMessage->copy() );
+			// The state node absorbs the incoming message
+			stateNode->inplaceAbsorb( outgoingMessage.get() );
 			stateNode->logMessage( measurementNodes[N][i] ,outgoingMessage );
 
-			//std::cout << "After update: " << std::dynamic_pointer_cast<CGM>( stateNode->getFactor() )->getNumberOfComponents() << std::endl;
 		} // for
-
 	} // for
 
 } // measurementUpdate()

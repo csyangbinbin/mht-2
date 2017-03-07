@@ -28,8 +28,8 @@ int main(int, char *argv[]) {
 	graphBuilder = uniqptr<GraphBuilder>(new GraphBuilder());
 
 	// Step 3 : Set up the prior
-	currentStates[0].clear(); currentStates[0].resize(2); vecX.push_back(0);
-	stateNodes[0].clear(); stateNodes[0].resize(2); stateNodes[0][0] = 0;
+	currentStates[0].clear(); currentStates[0].resize(4); vecX.push_back(0);
+	stateNodes[0].clear(); stateNodes[0].resize(4); stateNodes[0][0] = 0;
 
 	// Tee 1
 	currentStates[0][1] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
@@ -39,7 +39,6 @@ int main(int, char *argv[]) {
 				{mht::kLaunchStateCov[0]}));
 	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne, 1) );
 
-	/*
 	// Tee 2
 	currentStates[0][2] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 	rcptr<Factor> teeTwo = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][2]], 
@@ -55,7 +54,6 @@ int main(int, char *argv[]) {
 				{mht::kLaunchStateMean[2]},
 				{mht::kLaunchStateCov[2]}));
 	stateNodes[0][3] = uniqptr<Node> (new Node(teeThree, 3) );
-	*/
 
 	std::cout << "N;x;y;z" << std::endl;
 
@@ -64,15 +62,15 @@ int main(int, char *argv[]) {
 		//std::cout << "\nTime step " << i << "\n" << std::endl;
 
 		// Prediction
-		// std::cout << "Predict States" << std::endl;
+		//std::cout << "\nPredict States\n" << std::endl;
 		predictStates(i);
 		
 		// Create measurement distributions
-		// std::cout << "Create Measurement Distributions" << std::endl;
+		//std::cout << "\nCreate Measurement Distributions\n" << std::endl;
 		createMeasurementDistributions(i);
 		
 		// Measurement update
-		// std::cout << "Measurement Update" << std::endl;
+		//std::cout << "\nMeasurement Update\n" << std::endl;
 		measurementUpdate(i);
 		
 		// Backward pass and recalibration

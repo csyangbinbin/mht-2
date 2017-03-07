@@ -24,6 +24,10 @@ void predictStates(const unsigned N) {
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 		rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 
+		// Moment matching - Horrible, but nothing else seems to work.
+		rcptr<Factor> momentMatched = std::dynamic_pointer_cast<CGM>(prevMarginal)->momentMatch();
+		prevMarginal = uniqptr<Factor> (new CGM(momentMatched->getVars(), {momentMatched} ));
+
 		// Create a new factor over current variables
 		rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
 					mht::kMotionModel, 
@@ -62,6 +66,9 @@ void predictStates(const unsigned N) {
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
 		} // for
 	} // for
+
+	// Clear
+	stateNodes[N-1].clear();
 } // predictStates()
 
 void createMeasurementDistributions(const unsigned N) {
@@ -74,7 +81,6 @@ void createMeasurementDistributions(const unsigned N) {
 
 	// For each sensor
 	for (unsigned i = 0; i < mht::kNumSensors; i++) {
-		std::cout << "Sensor: " << i << std::endl;
 		// Retrieve measurements
 		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 4); // Hack time offset.
 
@@ -124,7 +130,7 @@ void createMeasurementDistributions(const unsigned N) {
 
 				DASS domain = *assocHypotheses[a];
 				unsigned domSize = domain.size();
-				std::cout << "domain: " << domain << std::endl;
+				//std::cout << "domains: " << domain << std::endl;
 				if (domSize > 1) {
 					// Clutter distribution is a big flat Gaussian for now.
 					std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
@@ -181,7 +187,6 @@ void createMeasurementDistributions(const unsigned N) {
 
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
-	std::cout << "M: " << M << std::endl;
 
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
@@ -189,7 +194,6 @@ void measurementUpdate(const unsigned N) {
 		for (unsigned j = 0; j < adjacent.size(); j++) {
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
-			// std::cout << "stateNode identity: " << stateNode->getIdentity() << std::endl;
 			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 
 			// Determine the outgoing message
@@ -202,5 +206,5 @@ void measurementUpdate(const unsigned N) {
 
 		} // for
 	} // for
-
+	measurementNodes[N].clear();
 } // measurementUpdate()

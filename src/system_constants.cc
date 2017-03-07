@@ -32,7 +32,7 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 20;
+const double mht::kValidationThreshold = 0.75;
 
 // Clutter distribution
 Matrix<double> mht::kClutterCov;
@@ -110,9 +110,9 @@ bool initialiseVariables() {
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	RCov(0, 0) = 10; RCov(1, 1) = 10;
-	RCov(2, 2) = 10; RCov(3, 3) = 10;
-	RCov(4, 4) = 10; RCov(5, 5) = 20;
+	RCov(0, 0) = 1; RCov(1, 1) = 5;
+	RCov(2, 2) = 1; RCov(3, 3) = 5;
+	RCov(4, 4) = 1; RCov(5, 5) = 5;
 
 	return RCov;
 } // initialiseRCovMat()
@@ -121,7 +121,7 @@ Matrix<double> initialiseQCovMat () {
 	Matrix<double> QCov;
 	
 	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 3; QCov(1, 1) = 1.5;
+	QCov(0, 0) = 9; QCov(1, 1) = 1.5;
 
 	return QCov;
 } // initialiseQCovMat()
@@ -130,7 +130,7 @@ Matrix<double> initialiseClutterCovMat () {
 	Matrix<double> clutterCov;
 	
 	clutterCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	clutterCov(0, 0) = 100; clutterCov(1, 1) = 100;
+	clutterCov(0, 0) = 250; clutterCov(1, 1) = 250;
 
 	return clutterCov;
 } // initialiseClutterCovMat()
@@ -220,7 +220,7 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 	for (unsigned i = 0; i < 3; i++) {
 		launchCov[i](0, 0) = 1; launchCov[i](1, 1) = 5;
 		launchCov[i](2, 2) = 1; launchCov[i](3, 3) = 5;
-		launchCov[i](4, 4) = 1; launchCov[i](5, 5) = 10;
+		launchCov[i](4, 4) = 1; launchCov[i](5, 5) = 5;
 	}
 
 	return launchCov;

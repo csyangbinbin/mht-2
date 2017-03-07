@@ -193,16 +193,3 @@ TEST_F (CGMTest, Marginalize) {
 	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
 	rcptr<Factor> reduced = gm->marginalize(emdw::RVIds{1, 2});
 }
-
-TEST_F (CGMTest, PruneComponents) {
-	rcptr<CGM> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
-	gm->pruneComponents();
-}
-
-TEST_F (CGMTest, MergeComponents) {
-	rcptr<CGM> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
-	gm->mergeComponents();
-	
-	std::vector<rcptr<Factor>> comps = gm->getComponents();
-	//std::cout << *comps[0] << std::endl;
-}

@@ -12,7 +12,7 @@ const double mht::kTimeStep = 0.04;
 
 // Sensor location information
 const unsigned short mht::kNumSensors = 6;
-std::vector<ColVector<double>> mht::kSensorLocation; //= initialiseSensorLocations();
+std::vector<ColVector<double>> mht::kSensorLocation; 
 
 // Dimension of state and observation vectors
 const unsigned short mht::kStateSpaceDim = 6;

@@ -19,6 +19,41 @@
 class CanonicalGaussianMixture;
 
 /**
+ * @brief Prune the Gaussian mixture.
+ *
+ * Discard all components constributing insignificant mass.
+ *
+ * @param components A vector of GaussCanonical factors representing
+ * a GM.
+ *
+ * @param threshold The weight threshold.
+ *
+ * @return A reduced vector of GaussCanonical factors represeing a GM.
+ */
+std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& components, const double threshold);
+
+/**
+ * @brief Merge all closely space components.
+ *
+ * Merge all components which are close to one another. This is
+ * an incredibly expensive procedure, but there aren't any cheaper
+ * methods of reducing a mixture.
+ *
+ * @param components A vector of GaussCanonical factors representing
+ * a GM.
+ *
+ * @param maxComps The maximum of components allowed in a mixture.
+ *
+ * @param threshold The weight threshold.
+ *
+ * @param unionDistance The Mahalanobis distance between components
+ *
+ * @return A reduced vector of GaussCanonical factors represeing a GM.
+ */
+std::vector<rcptr<Factor>> mergeComponents( const std::vector<rcptr<Factor>>& components, const unsigned maxComps, 
+		const double threshold, const double unionDistance);
+
+/**
  * @brief Inplace normalization operator.
  */
 class InplaceNormalizeCGM : public Operator1<CanonicalGaussianMixture> {
@@ -689,21 +724,6 @@ class CanonicalGaussianMixture : public Factor {
 		uniqptr<Factor> momentMatch() const;
 
 	public:
-		/**
-		 * @brief Prune the Gaussian mixture.
-		 *
-		 * Discard all components constributing insignificant mass.
-		 */
-		void pruneComponents();
-
-		/**
-		 * @brief Merge all closely space components.
-		 *
-		 * Merge all components which are close to one another. This is
-		 * an incredibly expensive procedure, but there aren't any cheaper
-		 * methods of reducing a mixture.
-		 */
-		void mergeComponents();
 
 	public:
 		/**

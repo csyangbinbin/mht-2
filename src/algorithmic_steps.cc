@@ -25,8 +25,10 @@ void predictStates(const unsigned N) {
 		rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 
 		// Moment matching - Horrible, but nothing else seems to work.
+		/*
 		rcptr<Factor> momentMatched = std::dynamic_pointer_cast<CGM>(prevMarginal)->momentMatch();
 		prevMarginal = uniqptr<Factor> (new CGM(momentMatched->getVars(), {momentMatched} ));
+		*/
 
 		// Create a new factor over current variables
 		rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
@@ -68,7 +70,7 @@ void predictStates(const unsigned N) {
 	} // for
 
 	// Clear
-	stateNodes[N-1].clear();
+	//stateNodes[N-1].clear();
 } // predictStates()
 
 void createMeasurementDistributions(const unsigned N) {
@@ -206,5 +208,5 @@ void measurementUpdate(const unsigned N) {
 
 		} // for
 	} // for
-	measurementNodes[N].clear();
+	//measurementNodes[N].clear();
 } // measurementUpdate()

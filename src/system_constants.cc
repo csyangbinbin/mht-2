@@ -32,7 +32,7 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 0.75;
+const double mht::kValidationThreshold = 2.5;
 
 // Clutter distribution
 Matrix<double> mht::kClutterCov;

@@ -24,12 +24,6 @@ void predictStates(const unsigned N) {
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 		rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 
-		// Moment matching - Horrible, but nothing else seems to work.
-		/*
-		rcptr<Factor> momentMatched = std::dynamic_pointer_cast<CGM>(prevMarginal)->momentMatch();
-		prevMarginal = uniqptr<Factor> (new CGM(momentMatched->getVars(), {momentMatched} ));
-		*/
-
 		// Create a new factor over current variables
 		rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
 					mht::kMotionModel, 
@@ -45,10 +39,10 @@ void predictStates(const unsigned N) {
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
 		predMarginals[i]->inplaceNormalize();
 
-		if ( stateNodes[N-1][i]->getIdentity() == 1 ) {
+		if ( stateNodes[N-1][i]->getIdentity() == 2 ) {
 			std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( predMarginals[i] )->getComponents();
-			for (rcptr<Factor> c: comps) {
-				ColVector<double> mean =  std::dynamic_pointer_cast<GC>(c)->getMean();
+			for (unsigned i = 0; i < 1; i++) {
+				ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();
 				std::cout << N << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
 			}
 		}

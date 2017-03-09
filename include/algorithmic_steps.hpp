@@ -15,7 +15,7 @@
 #include "discretetable.hpp"
 #include "gausscanonical.hpp"
 #include "canonical_gaussian_mixture.hpp"
-#include "linear_gaussian.hpp"
+#include "conditional_gaussian.hpp"
 #include "transforms.hpp"
 #include "utils.hpp"
 #include "system_constants.hpp"

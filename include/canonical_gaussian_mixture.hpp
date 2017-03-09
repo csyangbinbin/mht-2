@@ -4,6 +4,7 @@
  *  Dependencies: None
  *
  * Header file for the Canonical Gaussian Mixture implementation.
+ * See the notes abve the class declaration.
  *************************************************************************/
 #ifndef CANONICALGAUSSIANMIXTURE_HPP
 #define CANONICALGAUSSIANMIXTURE_HPP
@@ -22,13 +23,14 @@ class CanonicalGaussianMixture;
  * @brief Prune the Gaussian mixture.
  *
  * Discard all components constributing insignificant mass.
+ * Called in inplaceAbsorb.
  *
  * @param components A vector of GaussCanonical factors representing
  * a GM.
  *
  * @param threshold The weight threshold.
  *
- * @return A reduced vector of GaussCanonical factors represeing a GM.
+ * @return A reduced vector of GaussCanonical factors representing a GM.
  */
 std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& components, const double threshold);
 
@@ -39,6 +41,9 @@ std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& co
  * an incredibly expensive procedure, but there aren't any cheaper
  * methods of reducing a mixture.
  *
+ * Called in inplaceAbsorb, after pruneComponents. This is a
+ * terrible implementation, but it seems to work. 
+ *
  * @param components A vector of GaussCanonical factors representing
  * a GM.
  *
@@ -48,7 +53,7 @@ std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& co
  *
  * @param unionDistance The Mahalanobis distance between components
  *
- * @return A reduced vector of GaussCanonical factors represeing a GM.
+ * @return A reduced vector of GaussCanonical factors representing a GM.
  */
 std::vector<rcptr<Factor>> mergeComponents( const std::vector<rcptr<Factor>>& components, const unsigned maxComps, 
 		const double threshold, const double unionDistance);
@@ -73,6 +78,9 @@ class NormalizeCGM : public Operator1<CanonicalGaussianMixture> {
 
 /**
  * @brief Inplace absorbtion operator.
+ *
+ * If the product has far too many components, pruneComponents
+ * then mergeComponents is called.
  */
 class InplaceAbsorbCGM : public Operator1<CanonicalGaussianMixture> {
 	public:
@@ -149,18 +157,32 @@ class InplaceWeakDampingCGM : public Operator1<CanonicalGaussianMixture> {
  * @brief Canonical Gaussian Mixture Model
  *
  * A rough Gaussian Mixture implementation. It is a wrapper type 
- * for a vector of GaussCanonical factors, it quietly pretends
- * NormedGaussCanonical doesn't exist. 
+ * for a vector of GaussCanonical factors, the weight of each
+ * GM component is hidden in GaussCanonical's g component.
  *
  * For now, the underlying GaussCanonical factors make use of
- * their default operators.
+ * their default operators. The mixture is limited in size
+ * to some maximum number of components, after which insignificant 
+ * components are pruned and the closely spaced components 
+ * merged. If the mixture is still too large after pruning and merging, only
+ * the N^{th} largest components are selected. See inplaceAbsorb,
+ * pruneComponents and mergeComponents.
+ *
+ * Division of two mixtures will be approximated by first moment matching the
+ * divisor and dividing each of the dividends components by the aprroxiamte Guassian.
+ * Negative covariances can (and will) occur during division. Currently pruneComponents
+ * throws out components with negative covariances (as they have infinite
+ * mass and tend to break things.)
  *
  * Not all required Factor methods are properly implemented, those
- * which aren't are noted in the documentation.
+ * which aren't are noted in the documentation. inplaceWeakDamping is
+ * is not implemented.
  *
  * The implementation is fairly lax; it doesn't bother checking dimensional
- * consistency and the like.
+ * consistency and the like. To play it safe, there is a ridiculous amount of
+ * copying of the GM components which is expensive and probably unnecessary.
  *
+ * Never use in a ClusterGraph.
  *
  * @author SCJ Robertson
  * @since 28/01/17

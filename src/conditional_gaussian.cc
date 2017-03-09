@@ -3,7 +3,7 @@
  *  Execution: ./run_main.sh
  *  Dependencies: None
  *
- * Source file for a Simplified Linear Gaussian implementation.
+ * Source file for a Simplified Conditonal Gaussian (Mixture) implementation.
  *************************************************************************/
 #include <vector>
 #include <iostream>
@@ -13,20 +13,20 @@
 #include "emdw.hpp"
 #include "matops.hpp"
 #include "vecset.hpp"
-#include "linear_gaussian.hpp"
+#include "conditional_gaussian.hpp"
 
 // Default operators
-rcptr<FactorOperator> defaultInplaceNormalizerLG = uniqptr<FactorOperator>(new InplaceNormalizeLG());
-rcptr<FactorOperator> defaultNormalizerLG = uniqptr<FactorOperator>(new NormalizeLG());
-rcptr<FactorOperator> defaultInplaceAbsorberLG = uniqptr<FactorOperator>(new InplaceAbsorbLG());
-rcptr<FactorOperator> defaultAbsorberLG = uniqptr<FactorOperator>(new AbsorbLG());
-rcptr<FactorOperator> defaultInplaceCancellerLG = uniqptr<FactorOperator>(new InplaceCancelLG());
-rcptr<FactorOperator> defaultCancellerLG = uniqptr<FactorOperator>(new CancelLG());
-rcptr<FactorOperator> defaultMarginalizerLG = uniqptr<FactorOperator>(new MarginalizeLG());
-rcptr<FactorOperator> defaultObserveReducerLG = uniqptr<FactorOperator>(new ObserveAndReduceLG());
-rcptr<FactorOperator> defaultInplaceWeakDamperLG = uniqptr<FactorOperator>(new InplaceWeakDampingLG());
+rcptr<FactorOperator> defaultInplaceNormalizerCG = uniqptr<FactorOperator>(new InplaceNormalizeCG());
+rcptr<FactorOperator> defaultNormalizerCG = uniqptr<FactorOperator>(new NormalizeCG());
+rcptr<FactorOperator> defaultInplaceAbsorberCG = uniqptr<FactorOperator>(new InplaceAbsorbCG());
+rcptr<FactorOperator> defaultAbsorberCG = uniqptr<FactorOperator>(new AbsorbCG());
+rcptr<FactorOperator> defaultInplaceCancellerCG = uniqptr<FactorOperator>(new InplaceCancelCG());
+rcptr<FactorOperator> defaultCancellerCG = uniqptr<FactorOperator>(new CancelCG());
+rcptr<FactorOperator> defaultMarginalizerCG = uniqptr<FactorOperator>(new MarginalizeCG());
+rcptr<FactorOperator> defaultObserveReducerCG = uniqptr<FactorOperator>(new ObserveAndReduceCG());
+rcptr<FactorOperator> defaultInplaceWeakDamperCG = uniqptr<FactorOperator>(new InplaceWeakDampingCG());
 
-LinearGaussian::LinearGaussian(
+ConditionalGaussian::ConditionalGaussian(
 		const rcptr<FactorOperator>& inplaceNormalizer,
 		const rcptr<FactorOperator>& normalizer,
 		const rcptr<FactorOperator>& inplaceAbsorber,
@@ -47,18 +47,18 @@ LinearGaussian::LinearGaussian(
 			inplaceDamper_(inplaceDamper)
 	{
 	// Default operator intialisation
-	if (!inplaceNormalizer_) inplaceNormalizer_ = defaultInplaceNormalizerLG;
-	if (!normalizer_) normalizer_ = defaultNormalizerLG;
-	if (!inplaceAbsorber_) inplaceAbsorber_ = defaultInplaceAbsorberLG;
-	if (!absorber_) absorber_ = defaultAbsorberLG;
-	if (!inplaceCanceller_) inplaceCanceller_ = defaultInplaceCancellerLG;
-	if (!canceller_) canceller_ = defaultCancellerLG;
-	if (!marginalizer_) marginalizer_ = defaultMarginalizerLG;
-	if (!observeAndReducer_) observeAndReducer_ = defaultObserveReducerLG;
-	if (!inplaceDamper_) inplaceDamper_ = defaultInplaceWeakDamperLG;
+	if (!inplaceNormalizer_) inplaceNormalizer_ = defaultInplaceNormalizerCG;
+	if (!normalizer_) normalizer_ = defaultNormalizerCG;
+	if (!inplaceAbsorber_) inplaceAbsorber_ = defaultInplaceAbsorberCG;
+	if (!absorber_) absorber_ = defaultAbsorberCG;
+	if (!inplaceCanceller_) inplaceCanceller_ = defaultInplaceCancellerCG;
+	if (!canceller_) canceller_ = defaultCancellerCG;
+	if (!marginalizer_) marginalizer_ = defaultMarginalizerCG;
+	if (!observeAndReducer_) observeAndReducer_ = defaultObserveReducerCG;
+	if (!inplaceDamper_) inplaceDamper_ = defaultInplaceWeakDamperCG;
 } // Default Constructor
 
-LinearGaussian::LinearGaussian(
+ConditionalGaussian::ConditionalGaussian(
 		const rcptr<Factor>& discreteRV,
 		const std::map<unsigned, rcptr<Factor>>& conditionalList,
 		const rcptr<FactorOperator>& inplaceNormalizer,
@@ -81,15 +81,15 @@ LinearGaussian::LinearGaussian(
 			inplaceDamper_(inplaceDamper)
 	{
 	// Default operator intialisation
-	if (!inplaceNormalizer_) inplaceNormalizer_ = defaultInplaceNormalizerLG;
-	if (!normalizer_) normalizer_ = defaultNormalizerLG;
-	if (!inplaceAbsorber_) inplaceAbsorber_ = defaultInplaceAbsorberLG;
-	if (!absorber_) absorber_ = defaultAbsorberLG;
-	if (!inplaceCanceller_) inplaceCanceller_ = defaultInplaceCancellerLG;
-	if (!canceller_) canceller_ = defaultCancellerLG;
-	if (!marginalizer_) marginalizer_ = defaultMarginalizerLG;
-	if (!observeAndReducer_) observeAndReducer_ = defaultObserveReducerLG;
-	if (!inplaceDamper_) inplaceDamper_ = defaultInplaceWeakDamperLG;
+	if (!inplaceNormalizer_) inplaceNormalizer_ = defaultInplaceNormalizerCG;
+	if (!normalizer_) normalizer_ = defaultNormalizerCG;
+	if (!inplaceAbsorber_) inplaceAbsorber_ = defaultInplaceAbsorberCG;
+	if (!absorber_) absorber_ = defaultAbsorberCG;
+	if (!inplaceCanceller_) inplaceCanceller_ = defaultInplaceCancellerCG;
+	if (!canceller_) canceller_ = defaultCancellerCG;
+	if (!marginalizer_) marginalizer_ = defaultMarginalizerCG;
+	if (!observeAndReducer_) observeAndReducer_ = defaultObserveReducerCG;
+	if (!inplaceDamper_) inplaceDamper_ = defaultInplaceWeakDamperCG;
 
 	// Get the variables
 	emdw::RVIds vars;
@@ -120,14 +120,14 @@ LinearGaussian::LinearGaussian(
 	vars_ = extract<unsigned>(vars, sorted);
 } // Class Specific Constructor
 
-LinearGaussian::~LinearGaussian() {} // Default Destructor
+ConditionalGaussian::~ConditionalGaussian() {} // Default Destructor
 
-unsigned LinearGaussian::configure(unsigned) {
+unsigned ConditionalGaussian::configure(unsigned) {
 	std::cout << "NIY" << std::endl;
 	return true;
 } // configure()
 
-unsigned LinearGaussian::classSpecificConfigure(
+unsigned ConditionalGaussian::classSpecificConfigure(
 		const rcptr<Factor>& discreteRV,
 		const std::map<unsigned, rcptr<Factor>>& conditionalList,
 		const rcptr<FactorOperator>& inplaceNormalizer,
@@ -142,10 +142,10 @@ unsigned LinearGaussian::classSpecificConfigure(
 		) {
 	
 	// Destroy existing ...
-	this->~LinearGaussian();
+	this->~ConditionalGaussian();
 
 	// .. and begin anew!
-	new(this) LinearGaussian(
+	new(this) ConditionalGaussian(
 			discreteRV,
 			conditionalList,
 			inplaceNormalizer,
@@ -163,41 +163,41 @@ unsigned LinearGaussian::classSpecificConfigure(
 
 
 //------------------Family 1: Normalization
-inline void LinearGaussian::inplaceNormalize(FactorOperator* procPtr) {
+inline void ConditionalGaussian::inplaceNormalize(FactorOperator* procPtr) {
 	if (procPtr) dynamicInplaceApply(procPtr, this);
 	else dynamicInplaceApply(inplaceNormalizer_.get(), this);
 } // inplaceNormalize()
 
-inline uniqptr<Factor> LinearGaussian::normalize(FactorOperator* procPtr) const {
+inline uniqptr<Factor> ConditionalGaussian::normalize(FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor>(dynamicApply(procPtr, this));
 	else return uniqptr<Factor>(dynamicApply(normalizer_.get(), this));
 } // normalize()
 
 //------------------Family 2: Absorbtion, Cancellation
 
-inline void LinearGaussian::inplaceAbsorb(const Factor* rhsPtr, FactorOperator* procPtr) {
+inline void ConditionalGaussian::inplaceAbsorb(const Factor* rhsPtr, FactorOperator* procPtr) {
 	if (procPtr) dynamicInplaceApply(procPtr, this, rhsPtr);
 	else dynamicInplaceApply(inplaceAbsorber_.get(), this, rhsPtr);
 } // inplaceAbsorb()
 
-inline uniqptr<Factor> LinearGaussian::absorb(const Factor* rhsPtr, FactorOperator* procPtr) const {
+inline uniqptr<Factor> ConditionalGaussian::absorb(const Factor* rhsPtr, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, rhsPtr));
 	else return uniqptr<Factor> (dynamicApply(absorber_.get(), this, rhsPtr));
 } // absorb()
 
-inline void LinearGaussian::inplaceCancel(const Factor* rhsPtr, FactorOperator* procPtr) {
+inline void ConditionalGaussian::inplaceCancel(const Factor* rhsPtr, FactorOperator* procPtr) {
 	if (procPtr) dynamicInplaceApply(procPtr, this, rhsPtr);
 	else dynamicInplaceApply(inplaceCanceller_.get(), this, rhsPtr);
 } // inplaceCancel()
 
-inline uniqptr<Factor> LinearGaussian::cancel(const Factor* rhsPtr, FactorOperator* procPtr) const {
+inline uniqptr<Factor> ConditionalGaussian::cancel(const Factor* rhsPtr, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, rhsPtr));
 	else return uniqptr<Factor> (dynamicApply(canceller_.get(), this, rhsPtr));
 } // cancel()
 
 //------------------Family 4: Marginalization
 
-inline uniqptr<Factor> LinearGaussian::marginalize(const emdw::RVIds& variablesToKeep, 
+inline uniqptr<Factor> ConditionalGaussian::marginalize(const emdw::RVIds& variablesToKeep, 
 		bool presorted, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, variablesToKeep, presorted));
 	else return uniqptr<Factor> (dynamicApply(marginalizer_.get(), this, variablesToKeep, presorted));
@@ -205,7 +205,7 @@ inline uniqptr<Factor> LinearGaussian::marginalize(const emdw::RVIds& variablesT
 
 //------------------Family 4: ObserveAndReduce
 
-inline uniqptr<Factor> LinearGaussian::observeAndReduce( const emdw::RVIds& variables,
+inline uniqptr<Factor> ConditionalGaussian::observeAndReduce( const emdw::RVIds& variables,
 		const emdw::RVVals& assignedVals, bool presorted, FactorOperator* procPtr) const {
 	if (procPtr) return uniqptr<Factor> (dynamicApply(procPtr, this, variables, assignedVals, presorted));
 	else return uniqptr<Factor> (dynamicApply(observeAndReducer_.get(), this, variables, assignedVals, presorted));
@@ -215,14 +215,14 @@ inline uniqptr<Factor> LinearGaussian::observeAndReduce( const emdw::RVIds& vari
 //------------------Family 4: Inplace Weak Damping
 
 // TODO: Complete this!!!
-double LinearGaussian::inplaceDampen(const Factor* oldMsg, double df, FactorOperator* procPtr) {
+double ConditionalGaussian::inplaceDampen(const Factor* oldMsg, double df, FactorOperator* procPtr) {
 	if (procPtr) return dynamicInplaceApply(procPtr, this, oldMsg, df);
 	else return dynamicInplaceApply(inplaceDamper_.get(), this, oldMsg, df); 
 } // inplaceDampen()
 
 //------------------Other required virtual methods
 
-LinearGaussian* LinearGaussian::copy(const emdw::RVIds& newVars, bool presorted) const {
+ConditionalGaussian* ConditionalGaussian::copy(const emdw::RVIds& newVars, bool presorted) const {
 	rcptr<Factor> discrete = uniqptr<Factor>(discreteRV_->copy());
 
 	std::map<unsigned, rcptr<Factor>> map; map.clear();
@@ -231,7 +231,7 @@ LinearGaussian* LinearGaussian::copy(const emdw::RVIds& newVars, bool presorted)
 		map[i.first] = uniqptr<Factor>((i.second)->copy());
 	}
 
-	return new LinearGaussian(discrete, 
+	return new ConditionalGaussian(discrete, 
 				map,
 				inplaceNormalizer_,
 				normalizer_,
@@ -244,43 +244,43 @@ LinearGaussian* LinearGaussian::copy(const emdw::RVIds& newVars, bool presorted)
 				inplaceDamper_);
 } // copy()
 
-LinearGaussian* LinearGaussian::vacuousCopy(const emdw::RVIds& selectedVars, bool presorted) const {
-	return new LinearGaussian();
+ConditionalGaussian* ConditionalGaussian::vacuousCopy(const emdw::RVIds& selectedVars, bool presorted) const {
+	return new ConditionalGaussian();
 } // vacuousCopy()
 
-bool LinearGaussian::isEqual(const Factor* rhsPtr) const { return true; } // isEqual()
+bool ConditionalGaussian::isEqual(const Factor* rhsPtr) const { return true; } // isEqual()
 
-unsigned LinearGaussian::noOfVars() const { return vars_.size(); } // noOfVars()
+unsigned ConditionalGaussian::noOfVars() const { return vars_.size(); } // noOfVars()
 
-emdw::RVIds LinearGaussian::getVars() const { return vars_; } // getVars()
+emdw::RVIds ConditionalGaussian::getVars() const { return vars_; } // getVars()
 
-emdw::RVIdType LinearGaussian::getVar(unsigned varNo) const { return vars_[varNo]; } // getVar()
+emdw::RVIdType ConditionalGaussian::getVar(unsigned varNo) const { return vars_[varNo]; } // getVar()
 
-rcptr<Factor> LinearGaussian::getDiscretePrior() const { return discreteRV_; } // getDiscretePrior()
+rcptr<Factor> ConditionalGaussian::getDiscretePrior() const { return discreteRV_; } // getDiscretePrior()
 
-std::map<unsigned, rcptr<Factor>> LinearGaussian::getConditionalList() const { return conditionalList_; } // getConditionalList()
+std::map<unsigned, rcptr<Factor>> ConditionalGaussian::getConditionalList() const { return conditionalList_; } // getConditionalList()
 
-emdw::RVIds LinearGaussian::getContinuousVars() const {
+emdw::RVIds ConditionalGaussian::getContinuousVars() const {
 	return (conditionalList_.begin()->second)->getVars();
 } // getContinuousVars()
 
 //TODO: Complete this!!!
-std::istream& LinearGaussian::txtRead(std::istream& file) { return file; } // txtRead()
+std::istream& ConditionalGaussian::txtRead(std::istream& file) { return file; } // txtRead()
 
 //TODO: Complete this!!
-std::ostream& LinearGaussian::txtWrite(std::ostream& file) const { return file; } // txtWrite()
+std::ostream& ConditionalGaussian::txtWrite(std::ostream& file) const { return file; } // txtWrite()
 
 //==================================================FactorOperators======================================
 
 //------------------Family 1: Normalization
 //
-const std::string& InplaceNormalizeLG::isA() const {
-	static const std::string CLASSNAME("InplaceNormalizeLG");
+const std::string& InplaceNormalizeCG::isA() const {
+	static const std::string CLASSNAME("InplaceNormalizeCG");
 	return CLASSNAME;
 } // isA()
 
-void InplaceNormalizeLG::inplaceProcess(LinearGaussian* lhsPtr) {
-	LinearGaussian& lhs(*lhsPtr);
+void InplaceNormalizeCG::inplaceProcess(ConditionalGaussian* lhsPtr) {
+	ConditionalGaussian& lhs(*lhsPtr);
 
 	// Normalize the conditional Gaussians
 	std::map<unsigned, rcptr<Factor>> map;
@@ -300,14 +300,14 @@ void InplaceNormalizeLG::inplaceProcess(LinearGaussian* lhsPtr) {
 				lhs.inplaceDamper_);
 } // inplaceProcess()
 
-const std::string& NormalizeLG::isA() const {
-	static const std::string CLASSNAME("NormalizeLG");
+const std::string& NormalizeCG::isA() const {
+	static const std::string CLASSNAME("NormalizeCG");
 	return CLASSNAME;
 } // isA()
 
-Factor* NormalizeLG::process(const LinearGaussian* lhsPtr) {
-	LinearGaussian* fPtr = new LinearGaussian(*lhsPtr);
-	InplaceNormalizeLG ipNorm;
+Factor* NormalizeCG::process(const ConditionalGaussian* lhsPtr) {
+	ConditionalGaussian* fPtr = new ConditionalGaussian(*lhsPtr);
+	InplaceNormalizeCG ipNorm;
 	
 	try { 
 		ipNorm.inplaceProcess(fPtr); 
@@ -322,23 +322,23 @@ Factor* NormalizeLG::process(const LinearGaussian* lhsPtr) {
 
 //------------------Family 2: Absorption, Cancellation
 
-const std::string& InplaceAbsorbLG::isA() const {
-	static const std::string CLASSNAME("InplaceAbsorbLG");
+const std::string& InplaceAbsorbCG::isA() const {
+	static const std::string CLASSNAME("InplaceAbsorbCG");
 	return CLASSNAME;
 } // isA()
 
-void InplaceAbsorbLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
-	LinearGaussian& lhs(*lhsPtr);
+void InplaceAbsorbCG::inplaceProcess(ConditionalGaussian* lhsPtr, const Factor* rhsFPtr) {
+	ConditionalGaussian& lhs(*lhsPtr);
 
 	// Temporary variables
 	rcptr<Factor> discretePrior;
 	std::map<unsigned, rcptr<Factor>> map;
 	rcptr<Factor> rhs = uniqptr<Factor>( rhsFPtr->copy() );
-	const LinearGaussian* downCast;
+	const ConditionalGaussian* downCast;
 
 	// An endless amount of options
-	if (dynamic_cast<const LinearGaussian*>(rhsFPtr)) {
-		downCast = dynamic_cast<const LinearGaussian*>(rhsFPtr);
+	if (dynamic_cast<const ConditionalGaussian*>(rhsFPtr)) {
+		downCast = dynamic_cast<const ConditionalGaussian*>(rhsFPtr);
 		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), 
 				"The discrete components must have the same scope: "
 				<< (lhs.discreteRV_)->getVars() << " != " << (downCast->discreteRV_)->getVars() );
@@ -376,14 +376,14 @@ void InplaceAbsorbLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 				lhs.inplaceDamper_);
 } // inplaceProcess()
 
-const std::string& AbsorbLG::isA() const {
-	static const std::string CLASSNAME("AbsorbLG");
+const std::string& AbsorbCG::isA() const {
+	static const std::string CLASSNAME("AbsorbCG");
 	return CLASSNAME;
 } // isA()
 
-Factor* AbsorbLG::process(const LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
-	LinearGaussian* fPtr = new LinearGaussian(*lhsPtr);
-	InplaceAbsorbLG ipAbsorb;
+Factor* AbsorbCG::process(const ConditionalGaussian* lhsPtr, const Factor* rhsFPtr) {
+	ConditionalGaussian* fPtr = new ConditionalGaussian(*lhsPtr);
+	InplaceAbsorbCG ipAbsorb;
 	
 	try { 
 		ipAbsorb.inplaceProcess(fPtr, rhsFPtr); 
@@ -395,13 +395,13 @@ Factor* AbsorbLG::process(const LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
 	return fPtr;
 } // process()
 
-const std::string& InplaceCancelLG::isA() const {
-	static const std::string CLASSNAME("InplaceCancelLG");
+const std::string& InplaceCancelCG::isA() const {
+	static const std::string CLASSNAME("InplaceCancelCG");
 	return CLASSNAME;
 } // isA()
 
-void InplaceCancelLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
-	LinearGaussian& lhs(*lhsPtr);
+void InplaceCancelCG::inplaceProcess(ConditionalGaussian* lhsPtr, const Factor* rhsFPtr) {
+	ConditionalGaussian& lhs(*lhsPtr);
 
 	// Temporary variables
 	rcptr<Factor> discretePrior;
@@ -409,12 +409,12 @@ void InplaceCancelLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 	std::map<unsigned, rcptr<Factor>> map;
 	rcptr<Factor> rhs = uniqptr<Factor>( rhsFPtr->copy() );
 	
-	const LinearGaussian* downCast;
+	const ConditionalGaussian* downCast;
 	const CanonicalGaussianMixture* gm;
 
 	// An endless amount of options
-	if (dynamic_cast<const LinearGaussian*>(rhsFPtr)) {
-		downCast = dynamic_cast<const LinearGaussian*>(rhsFPtr);
+	if (dynamic_cast<const ConditionalGaussian*>(rhsFPtr)) {
+		downCast = dynamic_cast<const ConditionalGaussian*>(rhsFPtr);
 		ASSERT( (lhs.discreteRV_)->getVars() == (downCast->discreteRV_)->getVars(), 
 				"The discrete components have the same single variable scope: " << (lhs.discreteRV_)->getVars() 
 				<< " != " << (downCast->discreteRV_)->getVars() );
@@ -457,15 +457,15 @@ void InplaceCancelLG::inplaceProcess(LinearGaussian* lhsPtr, const Factor* rhsFP
 
 } // inplaceCancel()
 
-const std::string& CancelLG::isA() const {
-	static const std::string CLASSNAME("CancelLG");
+const std::string& CancelCG::isA() const {
+	static const std::string CLASSNAME("CancelCG");
 	return CLASSNAME;
 } // isA()
 
 
-Factor* CancelLG::process(const LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
-	LinearGaussian* fPtr = new LinearGaussian(*lhsPtr);
-	InplaceAbsorbLG ipCancel;
+Factor* CancelCG::process(const ConditionalGaussian* lhsPtr, const Factor* rhsFPtr) {
+	ConditionalGaussian* fPtr = new ConditionalGaussian(*lhsPtr);
+	InplaceAbsorbCG ipCancel;
 	
 	try { 
 		ipCancel.inplaceProcess(fPtr, rhsFPtr); 
@@ -480,16 +480,16 @@ Factor* CancelLG::process(const LinearGaussian* lhsPtr, const Factor* rhsFPtr) {
 
 //------------------Family 3: Marginalization
 
-const std::string& MarginalizeLG::isA() const {
-	static const std::string CLASSNAME("MarginalizeLG");
+const std::string& MarginalizeCG::isA() const {
+	static const std::string CLASSNAME("MarginalizeCG");
 	return CLASSNAME;
 } // isA()
 
-Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& variablesToKeep, 
+Factor* MarginalizeCG::process(const ConditionalGaussian* lhsPtr, const emdw::RVIds& variablesToKeep, 
 		bool presorted) {
-	const LinearGaussian& lhs(*lhsPtr);
+	const ConditionalGaussian& lhs(*lhsPtr);
 
-	//std::cout << "MarginalizeLG" << std::endl;
+	//std::cout << "MarginalizeCG" << std::endl;
 
 	// Temporary variables
 	emdw::RVIds continuousVars; continuousVars.clear();
@@ -556,7 +556,7 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 		return new CanonicalGaussianMixture(variablesToKeep, mixtureComponents); // Default GM.
 	} // if 
 
-	return new LinearGaussian(discretePrior, 
+	return new ConditionalGaussian(discretePrior, 
 			map,
 			lhs.inplaceNormalizer_,
 			lhs.normalizer_,
@@ -572,14 +572,14 @@ Factor* MarginalizeLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& 
 
 //------------------Family 4: ObserveAndReduce
 
-const std::string& ObserveAndReduceLG::isA() const {
-	static const std::string CLASSNAME("ObserveAndReduceLG");
+const std::string& ObserveAndReduceCG::isA() const {
+	static const std::string CLASSNAME("ObserveAndReduceCG");
 	return CLASSNAME;
 } // isA()
 
-Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RVIds& variables,
+Factor* ObserveAndReduceCG::process(const ConditionalGaussian* lhsPtr, const emdw::RVIds& variables,
 		const emdw::RVVals& assignedVals, bool presorted) {
-	const LinearGaussian& lhs(*lhsPtr);
+	const ConditionalGaussian& lhs(*lhsPtr);
 	
 	// Temporary variables
 	emdw::RVIds continuousVars, discreteVar;
@@ -604,6 +604,7 @@ Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RV
 	discretePrior = uniqptr<Factor> ( (lhs.discreteRV_)->copy() );
 	for (auto& i : lhs.conditionalList_) {
 		map[i.first] = (i.second)->observeAndReduce(continuousVars, continuousVals);
+		map[i.first]->inplaceNormalize();
 	}
 
 	if ( discreteVar.size() ) {
@@ -618,7 +619,7 @@ Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RV
 		return gcConvert->copy();
 	}
 
-	return new LinearGaussian(discretePrior, 
+	return new ConditionalGaussian(discretePrior, 
 			map,
 			lhs.inplaceNormalizer_,
 			lhs.normalizer_,
@@ -634,12 +635,12 @@ Factor* ObserveAndReduceLG::process(const LinearGaussian* lhsPtr, const emdw::RV
 
 //------------------Family 5: Damping
 
-const std::string& InplaceWeakDampingLG::isA() const {
-	static const std::string CLASSNAME("InplaceWeakDampingLG");
+const std::string& InplaceWeakDampingCG::isA() const {
+	static const std::string CLASSNAME("InplaceWeakDampingCG");
 	return CLASSNAME;
 } // isA()
 
 // TODO: Complete this!!!
-double InplaceWeakDampingLG::inplaceProcess(const LinearGaussian* lhsPtr, const Factor* rhsPtr, double df) {
+double InplaceWeakDampingCG::inplaceProcess(const ConditionalGaussian* lhsPtr, const Factor* rhsPtr, double df) {
 	return 0.0;
 } // inplaceProcess()

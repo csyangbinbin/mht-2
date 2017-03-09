@@ -15,7 +15,7 @@
 #include "discretetable.hpp"
 #include "gausscanonical.hpp"
 #include "canonical_gaussian_mixture.hpp"
-#include "linear_gaussian.hpp"
+#include "conditional_gaussian.hpp"
 #include "utils.hpp"
 
 class CLGTest : public testing::Test {
@@ -124,36 +124,36 @@ class CLGTest : public testing::Test {
 };
 
 TEST_F (CLGTest, InitTest) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 }
 
 TEST_F (CLGTest, InplaceNormalize) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	lg->inplaceNormalize();
 }
 
 TEST_F (CLGTest, InplaceAbsorbDiscrete) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	lg->inplaceAbsorb(discreteMsg_);
 
-	rcptr<LinearGaussian> cast = std::dynamic_pointer_cast<LinearGaussian>(lg);
+	rcptr<ConditionalGaussian> cast = std::dynamic_pointer_cast<ConditionalGaussian>(lg);
 	rcptr<Factor> discretePrior = cast->getDiscretePrior();
 }
 
 TEST_F (CLGTest, InplaceAbsorbGaussian) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	rcptr<Factor> gc = uniqptr<Factor>( (mixtureComponents_[0])->copy() );
 	lg->inplaceAbsorb( gc );
 
-	rcptr<LinearGaussian> cast = std::dynamic_pointer_cast<LinearGaussian>(lg);
+	rcptr<ConditionalGaussian> cast = std::dynamic_pointer_cast<ConditionalGaussian>(lg);
 	std::map<unsigned, rcptr<Factor>> map = cast->getConditionalList();
 }
 
 TEST_F (CLGTest, InplaceAbsorbGM) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	lg->inplaceAbsorb(gm_);
 
-	rcptr<LinearGaussian> cast = std::dynamic_pointer_cast<LinearGaussian>(lg);
+	rcptr<ConditionalGaussian> cast = std::dynamic_pointer_cast<ConditionalGaussian>(lg);
 	std::map<unsigned, rcptr<Factor>> map = cast->getConditionalList();
 	rcptr<CanonicalGaussianMixture> cgm;
 
@@ -161,32 +161,32 @@ TEST_F (CLGTest, InplaceAbsorbGM) {
 }
 
 TEST_F (CLGTest, InplaceCancelDiscrete) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	lg->inplaceCancel(discreteMsg_);
 
-	rcptr<LinearGaussian> cast = std::dynamic_pointer_cast<LinearGaussian>(lg);
+	rcptr<ConditionalGaussian> cast = std::dynamic_pointer_cast<ConditionalGaussian>(lg);
 	rcptr<Factor> discretePrior = cast->getDiscretePrior();
 }
 
 TEST_F (CLGTest, InplaceCancelGaussian) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	rcptr<Factor> gc = uniqptr<Factor>( (mixtureComponents_[0])->copy() );
 	lg->inplaceCancel( gc );
 
-	rcptr<LinearGaussian> cast = std::dynamic_pointer_cast<LinearGaussian>(lg);
+	rcptr<ConditionalGaussian> cast = std::dynamic_pointer_cast<ConditionalGaussian>(lg);
 	std::map<unsigned, rcptr<Factor>> map = cast->getConditionalList();
 }
 
 TEST_F (CLGTest, InplaceCancelGM) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	lg->inplaceCancel(gm_);
 
-	rcptr<LinearGaussian> cast = std::dynamic_pointer_cast<LinearGaussian>(lg);
+	rcptr<ConditionalGaussian> cast = std::dynamic_pointer_cast<ConditionalGaussian>(lg);
 	std::map<unsigned, rcptr<Factor>> map = cast->getConditionalList();
 }
 
 TEST_F (CLGTest, MarginalizeDiscrete) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 	rcptr<Factor> gm = lg->marginalize(emdw::RVIds{x0, x1}); 
 
 	rcptr<CanonicalGaussianMixture> cgm = std::dynamic_pointer_cast<CanonicalGaussianMixture>(gm);
@@ -194,5 +194,5 @@ TEST_F (CLGTest, MarginalizeDiscrete) {
 }
 
 TEST_F (CLGTest, ObserveAndReduceDiscrete) {
-	rcptr<Factor> lg = uniqptr<Factor>(new LinearGaussian(discreteRV_, conditionalList_));
+	rcptr<Factor> lg = uniqptr<Factor>(new ConditionalGaussian(discreteRV_, conditionalList_));
 }

@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <math.h>
 #include "sortindices.hpp"
 #include "genvec.hpp"
 #include "genmat.hpp"
@@ -818,8 +819,10 @@ void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	else single = uniqptr<Factor>(rhsFPtr->copy());
 
 	// Divide through by a single GaussCanonical
-	std::vector<rcptr<Factor>> quotient;
-	for (rcptr<Factor> i : lhsComps) quotient.push_back( i->cancel(single)  );
+	std::vector<rcptr<Factor>> quotient; quotient.clear();
+	for (rcptr<Factor> i : lhsComps) { 
+		quotient.push_back( i->cancel(single)  ); 
+	} // for
 
 	// Reconfigure the class
 	lhs.classSpecificConfigure(quotient[0]->getVars(), quotient, true,
@@ -958,10 +961,12 @@ double InplaceWeakDampingCGM::inplaceProcess(const CanonicalGaussianMixture* lhs
 
 std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& components, const double threshold)  {
 	std::vector<rcptr<Factor>> reduced; reduced.clear();
+	std::vector<double> weights; weights.clear();
 
 	for (rcptr<Factor> c : components) {
 		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
-		if (mass > threshold) reduced.push_back( uniqptr<Factor>(c->copy()) );
+		if (mass > threshold && !std::isinf(mass)) reduced.push_back( uniqptr<Factor>(c->copy()) );
+		//if (std::isinf(mass)) std::cout << *c << std::endl;
 	} // for
 
 	return reduced;
@@ -971,29 +976,40 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& components, const unsigned maxComp,
 		const double threshold, const double unionDistance) {
 
+	//std::cout << "mergeComponents()" << std::endl;
+
+	// Local variables
 	emdw::RVIds vars = (components.back())->getVars();
 	std::vector<rcptr<Factor>> merged; merged.clear();
 	std::vector<rcptr<Factor>> newComps; newComps.clear();
 	std::vector<double> w; w.clear();
 
+	// Get the weights and copy the factors
 	for (rcptr<Factor> c : components) {
 		newComps.push_back( uniqptr<Factor>( c->copy() ) );
 		w.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass()  );
 	} // for	
 	
+	//std::cout << "Weights: " << w << std::endl;
+
+	// Sor the components according to weight
 	std::vector<size_t> sortedIndices = sortIndices( w, std::less<double>() );
 	w = extract<double>( w, sortedIndices );
 	newComps = extract<rcptr<Factor>>(newComps, sortedIndices);
 
+	// Merge closely spaced components
 	while ( !newComps.empty() ) {
+		// Dominant components mean
 		ColVector<double> mu_0 = std::dynamic_pointer_cast<GaussCanonical>(newComps[0])->getMean();
 		unsigned L = w.size();
-		
+
+		// Local variables
 		std::map<unsigned, bool> indices; indices.clear();
 		ColVector<double> mu( vars.size() ); mu *= 0;
 		Matrix<double> S = gLinear::zeros<double>( vars.size(), vars.size() );
 		double g = 0;
-		
+
+		// Create a merged super Gaussian
 		for (unsigned i = 0; i < L; i++) {
 			rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>( newComps[i]  );
 			if (gc->mahalanobis(mu_0) <= unionDistance) {
@@ -1006,8 +1022,8 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 				indices[i] = true;
 			} // if
 		} // for
-		
-		// Remove merged indices
+
+		// Remove merged indices from the list -- Terrible method, but safe-ish.
 		std::vector<rcptr<Factor>> cTemp; cTemp.clear();
 		std::vector<double> wTemp; wTemp.clear();
 		for (unsigned i = 0; i < L; i++) {
@@ -1016,21 +1032,22 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 				wTemp.push_back(w[i]);
 			} // if
 		} // for
-		
-		// Reassign
+
+		// Reassign temporary variables to local variables
 		newComps.clear(); w.clear();
 		for (unsigned i = 0 ; i < cTemp.size(); i++) {
 			newComps.push_back(cTemp[i]);
 			w.push_back(wTemp[i]);
 		} // for
-		
+
 		// Create a new Gaussian
 		merged.push_back( uniqptr<Factor> (new GaussCanonical( vars, mu/g, S/g, true ) ) );
-	} // while
 
+	} // while
 
 	// If there are still too many components
 	if (merged.size() > maxComp) {
+		// Local variables
 		std::vector<rcptr<Factor>> sigComps; sigComps.clear();
 		std::vector<double> sigWeights; sigWeights.clear();
 		
@@ -1040,11 +1057,11 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 			sigWeights.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass() );
 		} // for
 		
-		// Sort
+		// Sort according to weight
 		std::vector<size_t> sorted = sortIndices( sigWeights, std::less<double>() );
 		std::vector<rcptr<Factor>> ordered = extract<rcptr<Factor>>(sigComps, sorted);
 		
-		// Get maximum weights		
+		// Select only the N largest components	
 		merged.clear();
 		for (unsigned i = 0; i < maxComp; i++) merged.push_back(ordered[i]);
 	} // if

@@ -39,7 +39,7 @@ void predictStates(const unsigned N) {
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
 		predMarginals[i]->inplaceNormalize();
 
-		if ( stateNodes[N-1][i]->getIdentity() == 2 ) {
+		if ( stateNodes[N-1][i]->getIdentity() == 3 ) {
 			std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( predMarginals[i] )->getComponents();
 			for (unsigned i = 0; i < 1; i++) {
 				ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();
@@ -126,7 +126,7 @@ void createMeasurementDistributions(const unsigned N) {
 
 				DASS domain = *assocHypotheses[a];
 				unsigned domSize = domain.size();
-				//std::cout << "domains: " << domain << std::endl;
+				std::cout << "domains: " << domain << std::endl;
 				if (domSize > 1) {
 					// Clutter distribution is a big flat Gaussian for now.
 					std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
@@ -157,7 +157,7 @@ void createMeasurementDistributions(const unsigned N) {
 					conditionalList[0]->inplaceNormalize();
 
 					// Create and reduce a CLG
-					rcptr<Factor> clg = uniqptr<Factor>(new LinearGaussian(distributions[a], conditionalList));
+					rcptr<Factor> clg = uniqptr<Factor>(new CLG(distributions[a], conditionalList));
 					rcptr<Factor> reduced = clg->observeAndReduce(elementsOfZ[z], 
 						emdw::RVVals{colMeasurements[z][0], colMeasurements[z][1]}, 
 						true);
@@ -183,6 +183,7 @@ void createMeasurementDistributions(const unsigned N) {
 
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
+	std::cout << "Measurement updates M: " << M << std::endl;
 
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
@@ -202,5 +203,6 @@ void measurementUpdate(const unsigned N) {
 
 		} // for
 	} // for
+
 	//measurementNodes[N].clear();
 } // measurementUpdate()

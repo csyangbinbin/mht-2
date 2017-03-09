@@ -3,10 +3,10 @@
  *  Execution: ./run_main.sh
  *  Dependencies: None
  *
- * Header file for a Simplified Linear Gaussian implementation.
+ * Header file for a Simplified Conditional Gaussian (Mixture) implementation.
  *************************************************************************/
-#ifndef LINEARGAUSSIAN_HPP
-#define LINEARGAUSSIAN_HPP
+#ifndef CONDITIONALGAUSSIAN_HPP  
+#define CONDITIONALGAUSSIAN_HPP
 
 #include <map>
 #include "factor.hpp"
@@ -19,126 +19,123 @@
 #include "v2vtransform.hpp"
 
 // Forward declaration.
-class LinearGaussian;
+class ConditionalGaussian;
 
 /**
  * @brief Inplace normalization operator.
  */
-class InplaceNormalizeLG : public Operator1<LinearGaussian> {
+class InplaceNormalizeCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		void inplaceProcess(LinearGaussian* lhsPtr);
-}; // InplaceNormalizeLG
+		void inplaceProcess(ConditionalGaussian* lhsPtr);
+}; // InplaceNormalizeCG
 
 /**
  * @brief Normalization operator.
  */
-class NormalizeLG : public Operator1<LinearGaussian> {
+class NormalizeCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		Factor* process(const LinearGaussian* lhsPtr);
-}; // NormalizeLG
+		Factor* process(const ConditionalGaussian* lhsPtr);
+}; // NormalizeCG
 
 /**
  * @brief Inplace absorbtion operator.
  */
-class InplaceAbsorbLG : public Operator1<LinearGaussian> {
+class InplaceAbsorbCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		void inplaceProcess(LinearGaussian* lhsPtr,
+		void inplaceProcess(ConditionalGaussian* lhsPtr,
 				const Factor* rhsFPtr);
-}; // InplaceAbsorbLG
+}; // InplaceAbsorbCG
 
 /**
  * @brief Absorbtion operator.
  */
-class AbsorbLG : public Operator1<LinearGaussian> {
+class AbsorbCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		Factor* process(const LinearGaussian* lhsPtr,
+		Factor* process(const ConditionalGaussian* lhsPtr,
 				const Factor* rhsFPtr);
-}; // AbsorbLG
+}; // AbsorbCG
 
 /**
  * @brief Inplace cancellation operator.
  */
-class InplaceCancelLG : public Operator1<LinearGaussian> {
+class InplaceCancelCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		void inplaceProcess(LinearGaussian* lhsPtr,
+		void inplaceProcess(ConditionalGaussian* lhsPtr,
 				const Factor* rhsFPtr);
-}; // InplaceCancelLG
+}; // InplaceCancelCG
 
 /**
  * @brief Cancellation operator.
  */
-class CancelLG : public Operator1<LinearGaussian> {
+class CancelCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		Factor* process(const LinearGaussian* lstPtr,
+		Factor* process(const ConditionalGaussian* lstPtr,
 				const Factor* rhsFPtr);
-}; // CancelLG
+}; // CancelCG
 
 /**
  * @brief Marginalization operator.
  */
-class MarginalizeLG : public Operator1<LinearGaussian> {
+class MarginalizeCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		Factor* process(const LinearGaussian* lhsPtr,
+		Factor* process(const ConditionalGaussian* lhsPtr,
 				const emdw::RVIds& variablesToKeep,
 				bool presorted = false);
-}; // MarginalizeLG
+}; // MarginalizeCG
 
 /**
  * @brief Observation and factor reduction operator.
  */
-class ObserveAndReduceLG : public Operator1<LinearGaussian> {
+class ObserveAndReduceCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		Factor* process(const LinearGaussian* lhsPtr,
+		Factor* process(const ConditionalGaussian* lhsPtr,
 				const emdw::RVIds& variables,
 				const emdw::RVVals& assignedVals,
 				bool presorted = false);
-}; // ObserveAndReduceLG
+}; // ObserveAndReduceCG
 
 /**
  * @brief Inplace weak damping operator.
  */
-class InplaceWeakDampingLG : public Operator1<LinearGaussian> {
+class InplaceWeakDampingCG : public Operator1<ConditionalGaussian> {
 	public:
 		const std::string& isA() const;
-		double inplaceProcess(const LinearGaussian* lhsPtr,
+		double inplaceProcess(const ConditionalGaussian* lhsPtr,
 				const Factor* rhsPtr,
 				double df);
-}; // InplaceWeakDampingLG
+}; // InplaceWeakDampingCG
 
 /**
- * @brief Simplified Conditional Linear Gaussian
+ * @brief Simplified Conditional Gaussian (Mixture)
  *
  * This is a simplified version of the CLG class.
  * The Gaussians are only allowed to be conditioned
  * on a single discrete RV. The prior over the
- * discrete varaible is assumed to abosrbed into the
+ * discrete varaible is assumed to absorbed into the
  * factor.
- *
- * The CLG class in the emdw easily deal with 
- * GMM, so I recreated a simple class I understand.
  *
  * @author SCJ Robertson
  * @since 10/02/17
  */
-class LinearGaussian : public Factor {
+class ConditionalGaussian : public Factor {
 
-	friend class InplaceNormalizeLG;
-	friend class NormalizeLG;
-	friend class InplaceAbsorbLG;
-	friend class AbsorbLG;
-	friend class InplaceCancelLG;
-	friend class CancelLG;
-	friend class MarginalizeLG;
-	friend class ObserveAndReduceLG;
-	friend class InplaceWeakDampingLG;
+	friend class InplaceNormalizeCG;
+	friend class NormalizeCG;
+	friend class InplaceAbsorbCG;
+	friend class AbsorbCG;
+	friend class InplaceCancelCG;
+	friend class CancelCG;
+	friend class MarginalizeCG;
+	friend class ObserveAndReduceCG;
+	friend class InplaceWeakDampingCG;
 
 	public:
 		/** 
@@ -149,7 +146,7 @@ class LinearGaussian : public Factor {
 		 * A list of Factor operators, if it equals zero it will be set to a default
 		 * operator.
 		 */
-		LinearGaussian (
+		ConditionalGaussian (
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -180,7 +177,7 @@ class LinearGaussian : public Factor {
 		 * A list of Factor operators, if it equals zero it will be set to a default
 		 * operator.
 		 */
-		LinearGaussian (
+		ConditionalGaussian (
 				const rcptr<Factor>& discreteRV,
 				const std::map<unsigned, rcptr<Factor>>& conditionalList,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
@@ -194,19 +191,19 @@ class LinearGaussian : public Factor {
 				const rcptr<FactorOperator>& inplaceDamper = 0
 				);
 
-		LinearGaussian(const LinearGaussian& st) = default;
+		ConditionalGaussian(const ConditionalGaussian& st) = default;
 		
-		LinearGaussian(LinearGaussian&& st) = default;
+		ConditionalGaussian(ConditionalGaussian&& st) = default;
 
 		/**
 		 * @brief Default destructor.
 		 */
-		virtual ~LinearGaussian();
+		virtual ~ConditionalGaussian();
 
 	public:
-		LinearGaussian& operator=(const LinearGaussian& d) = default;
+		ConditionalGaussian& operator=(const ConditionalGaussian& d) = default;
 
-		LinearGaussian& operator=(LinearGaussian&& d) = default;
+		ConditionalGaussian& operator=(ConditionalGaussian&& d) = default;
 
 
 	public:
@@ -374,14 +371,14 @@ class LinearGaussian : public Factor {
 		 *
 		 * Copy factor, possibly onto new scope.
 		 */
-		virtual LinearGaussian* copy(const emdw::RVIds& newVars = {}, bool presorted = false ) const;
+		virtual ConditionalGaussian* copy(const emdw::RVIds& newVars = {}, bool presorted = false ) const;
 
 		/**
 		 * @brief Vacuous copy
 		 *
 		 * Vacuous copy of the factor, possibly onto new or reduced scope.
 		 */
-		virtual LinearGaussian* vacuousCopy(const emdw::RVIds& selectedVars = {}, bool presorted = false) const;
+		virtual ConditionalGaussian* vacuousCopy(const emdw::RVIds& selectedVars = {}, bool presorted = false) const;
 
 		/**
 		 * @brief Equality.
@@ -429,11 +426,15 @@ class LinearGaussian : public Factor {
 	public:
 		/**
 		 * @brief Read information from an input stream.
+		 *	
+		 * TODO: Implement this!
 		 */
 		virtual std::istream& txtRead(std::istream& file);
 
 		/**
 		 * @brief Write information to an output stream.
+		 *
+		 * TODO: Implement this!
 		 */
 		virtual std::ostream& txtWrite(std::ostream& file) const;
 
@@ -441,7 +442,7 @@ class LinearGaussian : public Factor {
 	private:
 		// Scope and components
 		emdw::RVIds vars_;
-		mutable std::map<unsigned, bool> isContinuous_; // Waste of space, but convinient
+		mutable std::map<unsigned, bool> isContinuous_; // Waste of space, but convenient
 
 		// Factors
 		rcptr<Factor> discreteRV_;
@@ -458,6 +459,6 @@ class LinearGaussian : public Factor {
 		rcptr<FactorOperator> observeAndReducer_;
 		rcptr<FactorOperator> inplaceDamper_;
 
-}; // LinearGaussian
+}; // ConditionalGaussian
 
-#endif // LINEARGAUSSIAN_HPP
+#endif // CONDITIONALGAUSSIAN_HPP

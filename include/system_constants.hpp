@@ -14,7 +14,7 @@
 #include "discretetable.hpp"
 #include "gausscanonical.hpp"
 #include "canonical_gaussian_mixture.hpp"
-#include "linear_gaussian.hpp"
+#include "conditional_gaussian.hpp"
 #include "node.hpp"
 #include "graph_builder.hpp"
 #include "measurement_manager.hpp"
@@ -40,7 +40,7 @@ typedef std::vector<T> DASS;
 typedef DiscreteTable<unsigned> DT;
 typedef GaussCanonical GC;
 typedef CanonicalGaussianMixture CGM;
-typedef LinearGaussian LG;
+typedef ConditionalGaussian CLG;
 
 namespace mht {
 	// Discrete time step

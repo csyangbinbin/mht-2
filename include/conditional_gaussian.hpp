@@ -4,6 +4,7 @@
  *  Dependencies: None
  *
  * Header file for a Simplified Conditional Gaussian (Mixture) implementation.
+ * See notes above class declaration.
  *************************************************************************/
 #ifndef CONDITIONALGAUSSIAN_HPP  
 #define CONDITIONALGAUSSIAN_HPP
@@ -121,6 +122,21 @@ class InplaceWeakDampingCG : public Operator1<ConditionalGaussian> {
  * on a single discrete RV. The prior over the
  * discrete varaible is assumed to absorbed into the
  * factor.
+ *
+ * This can be instantiated with any map of a 
+ * discrete RV's domain to a Factor, but MarginalizeCG
+ * requires either a GaussCanonical or CanonicalGaussian
+ * Mixture.
+ *
+ * Not all required Factor methods are properly implemented, those
+ * which aren't are noted in the documentation. inplaceWeakDamping,
+ * txtRead and txtWrite are not implemented.
+ *
+ * To play it safe, there is a ridiculous amount of
+ * copying of the conditional Factors it is probably
+ * unnecessary.
+ *
+ * Never use in a ClusterGraph.
  *
  * @author SCJ Robertson
  * @since 10/02/17

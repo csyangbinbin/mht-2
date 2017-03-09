@@ -39,7 +39,7 @@ void predictStates(const unsigned N) {
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
 		predMarginals[i]->inplaceNormalize();
 
-		if ( stateNodes[N-1][i]->getIdentity() == 3 ) {
+		if ( stateNodes[N-1][i]->getIdentity() == 1 ) {
 			std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( predMarginals[i] )->getComponents();
 			for (unsigned i = 0; i < 1; i++) {
 				ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();

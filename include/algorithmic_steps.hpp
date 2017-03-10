@@ -2,8 +2,8 @@
  *  Compilation: ./run_main.sh
  *  Execution: ./run_main.sh
  *  Dependencies: None
- *
- * Header file declaring function prototypes for the alogrithmic
+ *I
+ * Header file declaring function prototypes for the algorithmic
  * steps used in main.cc
  *************************************************************************/
 #ifndef ALGORITHMICSTEPS_HPP
@@ -37,8 +37,15 @@ void createMeasurementDistributions(const unsigned N);
 /**
  * @brief Performs measurement update on exisitng targets.
  *
- * @param N The current time step.
+ * @param N The current time index.
  */
 void measurementUpdate(const unsigned N);
+
+/**
+ * @brief Smoothes existing targets trajectories
+ *
+ * @param N The current time index.
+ */
+void smoothTrajectory(const unsigned N);
 
 #endif // ALGORITHMICSTEPS_HPP

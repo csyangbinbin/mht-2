@@ -22,7 +22,10 @@ class CanonicalGaussianMixture;
 /**
  * @brief Prune the Gaussian mixture.
  *
- * Discard all components constributing insignificant mass.
+ * Discard all components constributing insignificant mass. Also
+ * discards anything with infinite mass, which is terrible
+ * practice.
+ *
  * Called in inplaceAbsorb.
  *
  * @param components A vector of GaussCanonical factors representing
@@ -42,7 +45,8 @@ std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& co
  * methods of reducing a mixture.
  *
  * Called in inplaceAbsorb, after pruneComponents. This is a
- * terrible implementation, but it seems to work. 
+ * terrible implementation, but it seems to work. Some one
+ * else check it?
  *
  * @param components A vector of GaussCanonical factors representing
  * a GM.
@@ -178,6 +182,11 @@ class InplaceWeakDampingCGM : public Operator1<CanonicalGaussianMixture> {
  * which aren't are noted in the documentation. inplaceWeakDamping is
  * is not implemented.
  *
+ * The vacuous constructor is alright in CanonicalGaussianMixture,
+ * but GaussCanonical's vacuous constructor currently does 
+ * initialize the variables properly and can lead to strange errors.
+ * This probably because no one has ever used the vacuous constructor before.
+ *
  * The implementation is fairly lax; it doesn't bother checking dimensional
  * consistency and the like. To play it safe, there is a ridiculous amount of
  * copying of the GM components which is expensive and probably unnecessary.
@@ -204,6 +213,11 @@ class CanonicalGaussianMixture : public Factor {
 		 * @brief Default vacuous constructor.
 		 * 
 		 * Creates a single vacuous component Gaussian mixture.
+		 *
+		 * This currently is a bit dodgy from GaussCanonical's
+		 * side, as its vacuous constructor doesn't initialise
+		 * the g, h, K parameters as zero so weird errors may 
+		 * result.
 		 * 
 		 * @param vars Each variable in the PGM will be identified
 		 * with a specific integer that indentifies it.
@@ -746,6 +760,15 @@ class CanonicalGaussianMixture : public Factor {
 		uniqptr<Factor> momentMatch() const;
 
 	public:
+		/**
+		 * @brief Adjust the mass of each component in the GM.
+		 *
+		 * Adjust the mass of each component in the GM. Essentially
+		 * multiply the mixture by a constant.
+		 *
+		 * @param mass A constant shift of weight.
+		 */
+		void adjustMass(const double mass);
 
 	public:
 		/**

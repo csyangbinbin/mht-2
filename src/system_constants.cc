@@ -121,7 +121,7 @@ Matrix<double> initialiseQCovMat () {
 	Matrix<double> QCov;
 	
 	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 9; QCov(1, 1) = 1.5;
+	QCov(0, 0) = 0.5; QCov(1, 1) = 1.5;
 
 	return QCov;
 } // initialiseQCovMat()

@@ -566,7 +566,7 @@ std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const {
 	return file; 
 } // txtWrite()
 
-//------------------ M-Projections
+//------------------ M-Projection
 
 uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	// Old means and covariances
@@ -596,19 +596,27 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 		} else {
 			w[i] = 0.0; mu[i] *= 0.0;
 			S[i] = gLinear::zeros<double>(dimension, dimension);
-		}
-	}
+		} // if
+	} // for
 
 	// Determine the first two moments of the mixture
 	for (unsigned i = 0; i < M; i++) {
 		double weight = w[i]/totalMass;
 		mean += (weight)*(mu[i]);
 		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
-	}
+	} // for
 	cov -= (mean)*(mean.transpose());
 
 	return uniqptr<Factor>(new GaussCanonical(vars_, mean, cov) );
 } // momentMatch()
+
+//---------------- Adjust Mass
+
+void CanonicalGaussianMixture::adjustMass(const double mass) {
+	for (rcptr<Factor> c : comps_) {
+		std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(mass);
+	}
+} // adjustMass()
 
 //---------------- Useful get methods
 
@@ -617,7 +625,7 @@ std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const {
 
 	for (unsigned i = 0; i < comps_.size(); i++) {
 		components[i] = uniqptr<Factor>( comps_[i]->copy() ) ;
-	}
+	} // for
 	
 	return components; 
 } // getComponents()
@@ -628,7 +636,7 @@ std::vector<double> CanonicalGaussianMixture::getWeights() const {
 	std::vector<double> weights(comps_.size());
 	for (unsigned i = 0; i < comps_.size(); i++) {
 		weights[i]  = (std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getMass() ;
-	}
+	} // for
 	return weights;
 } // getWeights()
 
@@ -822,6 +830,9 @@ void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	std::vector<rcptr<Factor>> quotient; quotient.clear();
 	for (rcptr<Factor> i : lhsComps) { 
 		quotient.push_back( i->cancel(single)  ); 
+
+		//double mass = std::dynamic_pointer_cast<GaussCanonical>(quotient.back())->getMass();
+		//if (std::isinf(mass)) std::cout << *quotient.back() << std::endl;
 	} // for
 
 	// Reconfigure the class
@@ -961,12 +972,10 @@ double InplaceWeakDampingCGM::inplaceProcess(const CanonicalGaussianMixture* lhs
 
 std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& components, const double threshold)  {
 	std::vector<rcptr<Factor>> reduced; reduced.clear();
-	std::vector<double> weights; weights.clear();
 
 	for (rcptr<Factor> c : components) {
 		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
 		if (mass > threshold && !std::isinf(mass)) reduced.push_back( uniqptr<Factor>(c->copy()) );
-		//if (std::isinf(mass)) std::cout << *c << std::endl;
 	} // for
 
 	return reduced;
@@ -975,9 +984,7 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 
 std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& components, const unsigned maxComp,
 		const double threshold, const double unionDistance) {
-
-	//std::cout << "mergeComponents()" << std::endl;
-
+	
 	// Local variables
 	emdw::RVIds vars = (components.back())->getVars();
 	std::vector<rcptr<Factor>> merged; merged.clear();
@@ -986,11 +993,11 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 
 	// Get the weights and copy the factors
 	for (rcptr<Factor> c : components) {
+		//std::cout << std::dynamic_pointer_cast<GaussCanonical>(c)->getCov() << std::endl;
 		newComps.push_back( uniqptr<Factor>( c->copy() ) );
 		w.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass()  );
 	} // for	
 	
-	//std::cout << "Weights: " << w << std::endl;
 
 	// Sor the components according to weight
 	std::vector<size_t> sortedIndices = sortIndices( w, std::less<double>() );

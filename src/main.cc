@@ -24,8 +24,6 @@ int main(int, char *argv[]) {
 	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_7", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
-	std::cout << kNumberOfTimeSteps << std::endl;
-
 	// Step 2 : Create a GraphBuilder object
 	graphBuilder = uniqptr<GraphBuilder>(new GraphBuilder());
 
@@ -61,18 +59,18 @@ int main(int, char *argv[]) {
 
 	// Step 4: Loop through every time step
 	for (unsigned i = 1; i <= kNumberOfTimeSteps-5; i++) {
-		std::cout << "\nTime step " << i << "\n" << std::endl;
+		//std::cout << "\nTime step " << i << "\n" << std::endl;
 
 		// Prediction
-		std::cout << "\nPredict States\n" << std::endl;
+		//std::cout << "\nPredict States\n" << std::endl;
 		predictStates(i);
 		
 		// Create measurement distributions
-		std::cout << "\nCreate Measurement Distributions\n" << std::endl;
+		//std::cout << "\nCreate Measurement Distributions\n" << std::endl;
 		createMeasurementDistributions(i);
 		
 		// Measurement update
-		std::cout << "\nMeasurement Update\n" << std::endl;
+		//std::cout << "\nMeasurement Update\n" << std::endl;
 		measurementUpdate(i);
 		
 		// Backward pass and recalibration

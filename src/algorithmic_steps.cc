@@ -62,9 +62,6 @@ void predictStates(const unsigned N) {
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
 		} // for
 	} // for
-
-	// Clear
-	//stateNodes[N-1].clear();
 } // predictStates()
 
 void createMeasurementDistributions(const unsigned N) {
@@ -126,15 +123,11 @@ void createMeasurementDistributions(const unsigned N) {
 
 				DASS domain = *assocHypotheses[a];
 				unsigned domSize = domain.size();
-				std::cout << "domains: " << domain << std::endl;
+
+				//std::cout << "domains: " << domain << std::endl;
 				if (domSize > 1) {
-					// Clutter distribution is a big flat Gaussian for now.
+					// Create a conditional map for the ConditionalGaussian
 					std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
-					conditionalList[0] = uniqptr<Factor>(new CGM( 
-								elementsOfZ[z], 
-								{1.0}, 
-								{colMeasurements[z]}, 
-								{mht::kClutterCov} ));
 
 					for (unsigned k = 1; k < domSize; k++) {
 						unsigned p = domain[k]; 
@@ -145,25 +138,33 @@ void createMeasurementDistributions(const unsigned N) {
 
 						// Product of predicted marginals
 						conditionalList[p] = uniqptr<Factor>( predMeasurements[p][i]->copy(newScope, false) );
-						conditionalList[0] = conditionalList[0]->absorb( predMarginals[p] );
 
+						// Clutter needs to be a joint over all 'included' predicted states
+						if (k == 1) conditionalList[0] = uniqptr<Factor>(predMarginals[p]->copy());
+						else conditionalList[0] = conditionalList[0]->absorb(predMarginals[p]);
+
+						// Multiply the predicted states by the likelihood function
 						for (unsigned l = 1; l < domSize; l++) {
 							unsigned q = domain[l];
 							if ( q != p ) conditionalList[p] = 
 								conditionalList[p]->absorb(predMarginals[q] );
 						} // for
-						conditionalList[p]->inplaceNormalize();
-					} // for
-					conditionalList[0]->inplaceNormalize();
 
-					// Create and reduce a CLG
+						// Introduce evidence into CGM
+						conditionalList[p] = conditionalList[p]->observeAndReduce(
+								elementsOfZ[z],
+								emdw::RVVals{colMeasurements[z][0], colMeasurements[z][1]},
+								true);
+					} // for
+			
+					// Adjust for a uniform clutter rate over sensor volume
+					std::dynamic_pointer_cast<CGM>(conditionalList[0])->adjustMass(1e-3);
+
+					// Create ConditionalGauss - observeAndReduce does work, but for scope reasons this is easier.
 					rcptr<Factor> clg = uniqptr<Factor>(new CLG(distributions[a], conditionalList));
-					rcptr<Factor> reduced = clg->observeAndReduce(elementsOfZ[z], 
-						emdw::RVVals{colMeasurements[z][0], colMeasurements[z][1]}, 
-						true);
 
 					// Create a measurement node and connect it to state nodes
-					rcptr<Node> measNode = uniqptr<Node>(new Node(reduced));
+					rcptr<Node> measNode = uniqptr<Node>(new Node(clg));
 					for (unsigned k = 1; k < domain.size(); k++) {
 						unsigned p = domain[k];
 						measNode->addEdge( stateNodes[N][p], predMarginals[p]->getVars(), predMarginals[p]);
@@ -183,7 +184,7 @@ void createMeasurementDistributions(const unsigned N) {
 
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
-	std::cout << "Measurement updates M: " << M << std::endl;
+	//std::cout << "Measurement updates M: " << M << std::endl;
 
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
@@ -200,9 +201,10 @@ void measurementUpdate(const unsigned N) {
 			// The state node absorbs the incoming message
 			stateNode->inplaceAbsorb( outgoingMessage.get() );
 			stateNode->logMessage( measurementNodes[N][i] ,outgoingMessage );
-
 		} // for
 	} // for
-
-	//measurementNodes[N].clear();
 } // measurementUpdate()
+
+void smoothTrajectory(const unsigned N) {
+	
+} // smoothTrajectory()

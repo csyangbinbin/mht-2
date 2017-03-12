@@ -610,6 +610,32 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	return uniqptr<Factor>(new GaussCanonical(vars_, mean, cov) );
 } // momentMatch()
 
+void CanonicalGaussianMixture::pruneAndMerge() {
+	if (N_ > maxComp_) {
+		std::vector<rcptr<Factor>> reduced = pruneComponents(comps_, threshold_);
+		std::vector<rcptr<Factor>> merged =  mergeComponents(reduced, maxComp_, threshold_, unionDistance_);
+		
+		emdw::RVIds vars = vars_;
+		comps_.clear();
+
+		classSpecificConfigure( vars, 
+					merged, 
+					true,
+					maxComp_,
+					threshold_,
+					unionDistance_,
+					inplaceNormalizer_,
+					normalizer_,
+					inplaceAbsorber_,
+					absorber_,
+					inplaceCanceller_,
+					canceller_,
+					marginalizer_,
+					observeAndReducer_,
+					inplaceDamper_);
+	} // if
+} //pruneAndMerge()
+
 //---------------- Adjust Mass
 
 void CanonicalGaussianMixture::adjustMass(const double mass) {
@@ -764,11 +790,6 @@ void InplaceAbsorbCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	}
 	
 	emdw::RVIds vars = product[0]->getVars();
-	if (product.size() > lhs.maxComp_) {
-		std::vector<rcptr<Factor>> reduced = pruneComponents(product, lhs.threshold_);
-		std::vector<rcptr<Factor>> merged = mergeComponents(reduced, lhs.maxComp_, lhs.threshold_, lhs.unionDistance_);
-		product = merged; 
-	}
 
 	// Reconfigure the class
 	lhs.classSpecificConfigure(vars, 

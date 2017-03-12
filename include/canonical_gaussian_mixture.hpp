@@ -26,8 +26,6 @@ class CanonicalGaussianMixture;
  * discards anything with infinite mass, which is terrible
  * practice.
  *
- * Called in inplaceAbsorb.
- *
  * @param components A vector of GaussCanonical factors representing
  * a GM.
  *
@@ -44,7 +42,7 @@ std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& co
  * an incredibly expensive procedure, but there aren't any cheaper
  * methods of reducing a mixture.
  *
- * Called in inplaceAbsorb, after pruneComponents. This is a
+ * Typically used after pruneComponents. This is a
  * terrible implementation, but it seems to work. Some one
  * else check it?
  *
@@ -239,9 +237,9 @@ class CanonicalGaussianMixture : public Factor {
 		CanonicalGaussianMixture(
 				const emdw::RVIds& vars = {},
 				bool presorted = false,
-				const unsigned maxComponents = 5,
+				const unsigned maxComponents = 2,
 				const double threshold = 1e-6,
-				const double unionDistance = 5,
+				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -294,9 +292,9 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<ColVector<double>>& means,
 				const std::vector<Matrix<double>>& covs,
 				bool presorted = false,
-				const unsigned maxComponents = 5,
+				const unsigned maxComponents = 2,
 				const double threshold = 1e-6,
-				const double unionDistance = 5,
+				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -348,9 +346,9 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<ColVector<double>>& info,
 				const std::vector<double>& g,
 				bool presorted = false,
-				const unsigned maxComponents = 5,
+				const unsigned maxComponents = 2,
 				const double threshold = 1e-6,
-				const double unionDistance = 5,
+				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -392,9 +390,9 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& vars,
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
-				const unsigned maxComponents = 5,
+				const unsigned maxComponents = 2,
 				const double threshold = 1e-6,
-				const double unionDistance = 5,
+				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -441,9 +439,9 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
 				bool presorted = false,
-				const unsigned maxComponents = 5,
+				const unsigned maxComponents = 2,
 				const double threshold = 1e-6,
-				const double unionDistance = 5,
+				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -491,9 +489,9 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
 				bool presorted = false,
-				const unsigned maxComponents = 5,
+				const unsigned maxComponents = 2,
 				const double threshold = 1e-6,
-				const double unionDistance = 5,
+				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -528,7 +526,7 @@ class CanonicalGaussianMixture : public Factor {
 		 * Reconfigures the exsiting clas, replacing old members with new 
 		 * ones. It may seem pointless, but it greatly simplifies the 
 		 * inplaceProcesses.
-		 *
+		 *list
 		 * @param vars Each variable in the PGM will be identified
 		 * with a specific integer that indentifies it.
 		 *
@@ -553,9 +551,9 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& vars,
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
-				const unsigned maxComponents = 5,
+				const unsigned maxComponents = 2,
 				const double threshold = 1e-6,
-				const double unionDistance = 5,
+				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -758,6 +756,16 @@ class CanonicalGaussianMixture : public Factor {
 		 * with matching moments.
 		 */
 		uniqptr<Factor> momentMatch() const;
+
+		/**
+		 * @brief Prunes insignificant components and
+		 * merges closely spaced components.
+		 *
+		 * Prunes insignificant components and merges
+		 * closely spaced components. For practical
+		 * purposes this must be called explicitly.
+		 */
+		void pruneAndMerge();
 
 	public:
 		/**

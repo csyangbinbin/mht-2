@@ -67,6 +67,9 @@ namespace mht {
 	extern std::vector<rcptr<V2VTransform>> kMeasurementModel;
 	extern Matrix<double> kQCovMat;
 
+	// Smoothing parameters
+	extern const unsigned kNumberOfBackSteps;
+
 	// Mahanalobis thresholding distance
 	extern const double kValidationThreshold;
 

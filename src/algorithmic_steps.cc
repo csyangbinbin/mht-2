@@ -23,7 +23,9 @@ void predictStates(const unsigned N) {
 		// Get the marginal over previous variables
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 		rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
-
+		
+		// Prune and merge
+		
 		// Create a new factor over current variables
 		rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
 					mht::kMotionModel, 
@@ -38,14 +40,6 @@ void predictStates(const unsigned N) {
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
 		predMarginals[i]->inplaceNormalize();
-
-		if ( stateNodes[N-1][i]->getIdentity() == 1 ) {
-			std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( predMarginals[i] )->getComponents();
-			for (unsigned i = 0; i < 1; i++) {
-				ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();
-				std::cout << N << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
-			}
-		}
 
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -198,13 +192,80 @@ void measurementUpdate(const unsigned N) {
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
 			rcptr<Factor> outgoingMessage =  measurementNodes[N][i]->marginalize( sepset, true )->cancel(receivedMessage);
 
-			// The state node absorbs the incoming message
-			stateNode->inplaceAbsorb( outgoingMessage.get() );
+			// Get the factor, absorb  the incoming message and then prune
+			rcptr<Factor> factor = stateNode->getFactor();
+			factor->inplaceAbsorb( outgoingMessage );
+			std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+
+			// Update the factor
+			stateNode->setFactor(factor);
 			stateNode->logMessage( measurementNodes[N][i] ,outgoingMessage );
 		} // for
 	} // for
 } // measurementUpdate()
 
 void smoothTrajectory(const unsigned N) {
-	
+	if (N > mht::kNumberOfBackSteps) { 
+		unsigned M = stateNodes[N].size();
+
+		for (unsigned i = 1; i < M; i++) {
+
+			// Backwards pass
+			for (unsigned j = 0; j < mht::kNumberOfBackSteps; j++) {
+				// Get the sepset
+				emdw::RVIds sepset = stateNodes[N - j][i]->getSepset( stateNodes[N - (j+1)][i] );
+			
+				// Determine the outgoing message using BUP
+				rcptr<Factor> receivedMessage = stateNodes[N-j][i]->getReceivedMessage( stateNodes[N-(j+1)][i] );
+				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(sepset, true)->cancel(receivedMessage);
+
+				// Received node absorbs and logs the message
+				stateNodes[N-(j+1)][i]->absorb( outgoingMessage.get()  );
+				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
+			} // for
+
+			// Forward pass
+			for (unsigned j = mht::kNumberOfBackSteps; j > 0; j--) {
+				// Get current sepsets and scope
+				emdw::RVIds pastVars = stateNodes[N-j][i]->getSepset(stateNodes[N - (j+1)][i]);
+				emdw::RVIds presentVars = stateNodes[N-j][i]->getSepset( stateNodes[N - (j-1)][i] );
+
+				// Recalibrate - marginalize onto past variables and reconstruct the joint distribution
+				rcptr<Factor> pastMarginal = stateNodes[N-j][i]->marginalize(pastVars, true);
+				rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( pastMarginal, 
+						mht::kMotionModel, 
+						presentVars,
+						mht::kRCovMat  ));
+				
+				// Prune and merge
+				std::dynamic_pointer_cast<CGM>(stateJoint)->pruneAndMerge();
+				stateNodes[N-j][i]->setFactor(stateJoint);
+
+				// Determine the outgoing message using BUP
+				rcptr<Factor> receivedMessage = stateNodes[N-j][i]->getReceivedMessage( stateNodes[N-(j-1)][i] );
+				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(presentVars, true)->cancel(receivedMessage);
+
+				// Receiving node absorbs and logs the message
+				stateNodes[N-(j-1)][i]->absorb( outgoingMessage.get()  );
+				stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
+			} // for
+
+			// TODO: Remove this and make a logger at some point
+			if ( stateNodes[N][i]->getIdentity() == 1 ) {
+				emdw::RVIds sepset = stateNodes[N][i]->getSepset( stateNodes[N - 1][i] );
+				rcptr<Factor> marginal = stateNodes[N][i]->marginalize(sepset, true);
+
+				std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( marginal )->getComponents();
+				for (unsigned i = 0; i < comps.size(); i++) {
+					ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();
+					std::cout << N-1 << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
+				} // for
+			} // if
+
+
+		} // for
+	} // if
+
+
+
 } // smoothTrajectory()

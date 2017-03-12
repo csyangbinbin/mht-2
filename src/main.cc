@@ -21,15 +21,15 @@ int main(int, char *argv[]) {
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_7", mht::kNumSensors));
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
 	// Step 2 : Create a GraphBuilder object
 	graphBuilder = uniqptr<GraphBuilder>(new GraphBuilder());
 
 	// Step 3 : Set up the prior
-	currentStates[0].clear(); currentStates[0].resize(4); vecX.push_back(0);
-	stateNodes[0].clear(); stateNodes[0].resize(4); stateNodes[0][0] = 0;
+	currentStates[0].clear(); currentStates[0].resize(2); vecX.push_back(0);
+	stateNodes[0].clear(); stateNodes[0].resize(2); stateNodes[0][0] = 0;
 
 	// Tee 1
 	currentStates[0][1] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
@@ -40,6 +40,7 @@ int main(int, char *argv[]) {
 	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne, 1) );
 
 	// Tee 2
+	/*
 	currentStates[0][2] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 	rcptr<Factor> teeTwo = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][2]], 
 				{mht::kGenericWeight[1]},
@@ -54,26 +55,23 @@ int main(int, char *argv[]) {
 				{mht::kLaunchStateMean[2]},
 				{mht::kLaunchStateCov[2]}));
 	stateNodes[0][3] = uniqptr<Node> (new Node(teeThree, 3) );
+	*/
 
 	std::cout << "N;x;y;z" << std::endl;
 
 	// Step 4: Loop through every time step
-	for (unsigned i = 1; i <= kNumberOfTimeSteps-5; i++) {
-		//std::cout << "\nTime step " << i << "\n" << std::endl;
-
+	for (unsigned i = 1; i <= 145; i++) {
 		// Prediction
-		//std::cout << "\nPredict States\n" << std::endl;
 		predictStates(i);
 		
 		// Create measurement distributions
-		//std::cout << "\nCreate Measurement Distributions\n" << std::endl;
 		createMeasurementDistributions(i);
 		
 		// Measurement update
-		//std::cout << "\nMeasurement Update\n" << std::endl;
 		measurementUpdate(i);
 		
 		// Backward pass and recalibration
+		smoothTrajectory(i);
 
 		// Decision making
 		

@@ -209,7 +209,6 @@ void smoothTrajectory(const unsigned N) {
 		unsigned M = stateNodes[N].size();
 
 		for (unsigned i = 1; i < M; i++) {
-
 			// Backwards pass
 			for (unsigned j = 0; j < mht::kNumberOfBackSteps; j++) {
 				// Get the sepset
@@ -243,7 +242,8 @@ void smoothTrajectory(const unsigned N) {
 
 				// Determine the outgoing message using BUP
 				rcptr<Factor> receivedMessage = stateNodes[N-j][i]->getReceivedMessage( stateNodes[N-(j-1)][i] );
-				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(presentVars, true)->cancel(receivedMessage);
+				rcptr<Factor> outgoingMessage = 
+					stateNodes[N-j][i]->marginalize(presentVars, true)->cancel(receivedMessage);
 
 				// Receiving node absorbs and logs the message
 				stateNodes[N-(j-1)][i]->absorb( outgoingMessage.get()  );
@@ -266,6 +266,6 @@ void smoothTrajectory(const unsigned N) {
 		} // for
 	} // if
 
-
-
+	stateNodes[N-mht::kNumberOfBackSteps].clear();
+	measurementNodes[N-mht::kNumberOfBackSteps].clear();
 } // smoothTrajectory()

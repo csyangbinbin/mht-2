@@ -15,6 +15,7 @@
 #include "gausscanonical.hpp"
 #include "canonical_gaussian_mixture.hpp"
 #include "transforms.hpp"
+#include "system_constants.hpp"
 #include "utils.hpp"
 
 class CGMTest : public testing::Test {
@@ -192,4 +193,48 @@ TEST_F (CGMTest, InplaceNormalize) {
 TEST_F (CGMTest, Marginalize) {
 	rcptr<Factor> gm = uniqptr<CGM>(new CGM(vars_, K_, h_, g_));
 	rcptr<Factor> reduced = gm->marginalize(emdw::RVIds{1, 2});
+}
+
+TEST_F (CGMTest, MomentMatch) {
+	emdw::RVIds vars = {0, 1, 2, 3, 4, 5};
+
+	std::vector<double> weights = {1.0/3, 1.0/3, 1.0/3};
+	std::vector<ColVector<double>> means = initialiseLaunchStateMean();
+	std::vector<Matrix<double>> covs = initialiseLaunchStateCov();
+
+	rcptr<CGM> cgm = uniqptr<CGM>( new CGM(vars, weights, means, covs) );
+	rcptr<Factor> matched = cgm->momentMatch();
+}
+
+TEST_F (CGMTest, PruneComponents) {
+	emdw::RVIds vars = {0, 1, 2, 3, 4, 5};
+
+	std::vector<double> weights = {1.0/3, 1.0/3, 1e-8};
+	std::vector<ColVector<double>> means = initialiseLaunchStateMean();
+	std::vector<Matrix<double>> covs = initialiseLaunchStateCov();
+
+	rcptr<CGM> cgm = uniqptr<CGM>( new CGM(vars, weights, means, covs) );
+	std::vector<rcptr<Factor>> components = cgm->getComponents();
+
+	std::vector<rcptr<Factor>> pruned = pruneComponents(components, 1e-6);
+
+	std::cout << pruned.size() << std::endl;
+
+}
+
+
+TEST_F (CGMTest, MergeComponents) {
+	emdw::RVIds vars = {0, 1, 2, 3, 4, 5};
+
+	std::vector<double> weights = {1.0/3, 1.0/3, 1.0/3};
+	std::vector<ColVector<double>> means = initialiseLaunchStateMean();
+	std::vector<Matrix<double>> covs = initialiseLaunchStateCov();
+
+	rcptr<CGM> cgm = uniqptr<CGM>( new CGM(vars, weights, means, covs) );
+	std::vector<rcptr<Factor>> components = cgm->getComponents();
+
+	std::vector<rcptr<Factor>> merged = mergeComponents(components, 2, 1e-6, 50);
+
+	std::cout << *merged[0] << std::endl;
+
 }

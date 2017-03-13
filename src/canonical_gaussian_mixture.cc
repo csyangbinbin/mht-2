@@ -569,45 +569,7 @@ std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const {
 //------------------ M-Projection
 
 uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
-	// Old means and covariances
-	unsigned M = comps_.size();
-	std::vector<double> w(M);
-	std::vector<ColVector<double>> mu(M);
-	std::vector<Matrix<double>> S(M);
-	double totalMass = 0.0;
-
-	// New mean and covariance
-	unsigned dimension = vars_.size();
-	ColVector<double> mean(dimension); mean *= 0.0;
-	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); 
-
-	// Get the non-vacuous Gaussians' weights, means and covariances
-	for (unsigned i = 0; i < M; i++) {
-		if (comps_[i]->noOfVars() != 0) { // Horrible hack to check if vacuous
-			rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(comps_[i]);
-
-			// Get the mean and covariance
-			mu[i] = gc->getMean();
-			S[i] = gc->getCov();
-
-			// Determine the weight
-			w[i] = gc->getMass();
-			totalMass += w[i];
-		} else {
-			w[i] = 0.0; mu[i] *= 0.0;
-			S[i] = gLinear::zeros<double>(dimension, dimension);
-		} // if
-	} // for
-
-	// Determine the first two moments of the mixture
-	for (unsigned i = 0; i < M; i++) {
-		double weight = w[i]/totalMass;
-		mean += (weight)*(mu[i]);
-		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
-	} // for
-	cov -= (mean)*(mean.transpose());
-
-	return uniqptr<Factor>(new GaussCanonical(vars_, mean, cov) );
+	return mProject(comps_);
 } // momentMatch()
 
 void CanonicalGaussianMixture::pruneAndMerge() {
@@ -616,7 +578,7 @@ void CanonicalGaussianMixture::pruneAndMerge() {
 		std::vector<rcptr<Factor>> merged =  mergeComponents(reduced, maxComp_, threshold_, unionDistance_);
 		
 		emdw::RVIds vars = vars_;
-		comps_.clear();
+		comps_.clear(); reduced.clear();
 
 		classSpecificConfigure( vars, 
 					merged, 
@@ -988,6 +950,57 @@ double InplaceWeakDampingCGM::inplaceProcess(const CanonicalGaussianMixture* lhs
 	return 0.0;
 } // inplaceProcess()
 
+//------------------ M-Projections
+
+uniqptr<Factor> mProject(const std::vector<rcptr<Factor>>& components) {
+	// Old means and covariances
+	unsigned M = components.size();
+	ASSERT( M != 0, "There must be at least one mixand" );
+
+	// The GM's components
+	std::vector<double> w(M);
+	std::vector<ColVector<double>> mu(M);
+	std::vector<Matrix<double>> S(M);
+	double totalMass = 0.0;
+
+	// Scope and dimension
+	emdw::RVIds vars = (components.back())->getVars();
+	unsigned dimension = vars.size();
+
+	// First and second central moments
+	ColVector<double> mean(dimension); mean *= 0.0;
+	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); 
+
+	// Get the non-vacuous Gaussians' weights, means and covariances - Not very efficient, but whatever.
+	for (unsigned i = 0; i < M; i++) {
+		if (components[i]->noOfVars() != 0) { // Horrible hack to check if vacuous
+			rcptr<Factor> factor = uniqptr<Factor>( components[i]->copy()  );
+			rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(factor);
+
+			// Get the mean and covariance
+			mu[i] = gc->getMean();
+			S[i] = gc->getCov();
+
+			// Determine the weight
+			w[i] = gc->getMass();
+			totalMass += w[i];
+		} else {
+			w[i] = 0.0; 
+			mu[i] = ColVector<double>(dimension); mu[i] *= 0;
+			S[i] = gLinear::zeros<double>(dimension, dimension);
+		} // if
+	} // for
+
+	// Determine the first two moments of the mixture
+	for (unsigned i = 0; i < M; i++) {
+		double weight = w[i]/totalMass;
+		mean += (weight)*(mu[i]);
+		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
+	} // for
+	cov -= (mean)*(mean.transpose());
+
+	return uniqptr<Factor>(new GaussCanonical(vars, mean, cov) );
+} // mProject()
 
 //------------------ Pruning and Merging
 
@@ -998,32 +1011,30 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
 		if (mass > threshold && !std::isinf(mass)) reduced.push_back( uniqptr<Factor>(c->copy()) );
 	} // for
-
 	return reduced;
 } // pruneComponents()
 
-
 std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& components, const unsigned maxComp,
 		const double threshold, const double unionDistance) {
-	
+	ASSERT( components.size() != 0, "There must be at least one mixand." );
+
 	// Local variables
 	emdw::RVIds vars = (components.back())->getVars();
 	std::vector<rcptr<Factor>> merged; merged.clear();
-	std::vector<rcptr<Factor>> newComps; newComps.clear();
-	std::vector<double> w; w.clear();
+	std::vector<rcptr<Factor>> comps; comps.clear();
+	std::vector<double> weights; weights.clear();
 
 	// Get the weights and copy the factors
 	for (rcptr<Factor> c : components) {
-		//std::cout << std::dynamic_pointer_cast<GaussCanonical>(c)->getCov() << std::endl;
-		newComps.push_back( uniqptr<Factor>( c->copy() ) );
-		w.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass()  );
+		comps.push_back( uniqptr<Factor>( c->copy() ) );
+		weights.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass()  );
 	} // for	
 	
 
-	// Sor the components according to weight
-	std::vector<size_t> sortedIndices = sortIndices( w, std::less<double>() );
-	w = extract<double>( w, sortedIndices );
-	newComps = extract<rcptr<Factor>>(newComps, sortedIndices);
+	// Sort the components according to weight
+	std::vector<size_t> sortedIndices = sortIndices( weights, std::less<double>() );
+	std::vector<double> w = extract<double>( weights, sortedIndices );
+	std::vector<rcptr<Factor>> newComps = extract<rcptr<Factor>>(comps, sortedIndices);
 
 	// Merge closely spaced components
 	while ( !newComps.empty() ) {
@@ -1093,7 +1104,6 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		merged.clear();
 		for (unsigned i = 0; i < maxComp; i++) merged.push_back(ordered[i]);
 	} // if
-
 	return merged;
 } // mergeComponents()
 

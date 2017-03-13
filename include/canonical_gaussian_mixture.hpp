@@ -54,11 +54,25 @@ std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& co
  * @param threshold The weight threshold.
  *
  * @param unionDistance The Mahalanobis distance between components
- *
+ *I
  * @return A reduced vector of GaussCanonical factors representing a GM.
  */
 std::vector<rcptr<Factor>> mergeComponents( const std::vector<rcptr<Factor>>& components, const unsigned maxComps, 
 		const double threshold, const double unionDistance);
+
+/**
+ * @brief Match a Gaussian Mixture's moments with a single Gaussian.
+ *
+ * Match a Gaussian mixture moments with a single GaussCanonical
+ * factor.
+ *
+ * @param components A vector of GaussCanonical factors representing
+ * a GM.
+ *
+ * @return A single GaussCanonical factor with moments matching the
+ * GM
+ */
+uniqptr<Factor> mProject( const std::vector<rcptr<Factor>>& components);
 
 /**
  * @brief Inplace normalization operator.
@@ -237,7 +251,7 @@ class CanonicalGaussianMixture : public Factor {
 		CanonicalGaussianMixture(
 				const emdw::RVIds& vars = {},
 				bool presorted = false,
-				const unsigned maxComponents = 2,
+				const unsigned maxComponents = 3,
 				const double threshold = 1e-6,
 				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
@@ -292,7 +306,7 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<ColVector<double>>& means,
 				const std::vector<Matrix<double>>& covs,
 				bool presorted = false,
-				const unsigned maxComponents = 2,
+				const unsigned maxComponents = 3,
 				const double threshold = 1e-6,
 				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
@@ -346,7 +360,7 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<ColVector<double>>& info,
 				const std::vector<double>& g,
 				bool presorted = false,
-				const unsigned maxComponents = 2,
+				const unsigned maxComponents = 3,
 				const double threshold = 1e-6,
 				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
@@ -390,7 +404,7 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& vars,
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
-				const unsigned maxComponents = 2,
+				const unsigned maxComponents = 3,
 				const double threshold = 1e-6,
 				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
@@ -439,7 +453,7 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
 				bool presorted = false,
-				const unsigned maxComponents = 2,
+				const unsigned maxComponents = 3,
 				const double threshold = 1e-6,
 				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
@@ -489,7 +503,7 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& newVars,
 				const Matrix<double>& Q,
 				bool presorted = false,
-				const unsigned maxComponents = 2,
+				const unsigned maxComponents = 3,
 				const double threshold = 1e-6,
 				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
@@ -551,7 +565,7 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& vars,
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
-				const unsigned maxComponents = 2,
+				const unsigned maxComponents = 3,
 				const double threshold = 1e-6,
 				const double unionDistance = 10,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,

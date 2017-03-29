@@ -74,7 +74,8 @@ int main(int, char *argv[]) {
 		smoothTrajectory(i);
 
 		// Decision making
-		
+		modelSelection(i);
+
 		// Forwards pass
 
 		// State extraction

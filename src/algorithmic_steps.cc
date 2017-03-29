@@ -269,3 +269,7 @@ void smoothTrajectory(const unsigned N) {
 	stateNodes[N-mht::kNumberOfBackSteps].clear();
 	measurementNodes[N-mht::kNumberOfBackSteps].clear();
 } // smoothTrajectory()
+
+void modelSelection(unsigned const N) {
+
+} // modelSelection()

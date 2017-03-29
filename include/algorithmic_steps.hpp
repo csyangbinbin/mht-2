@@ -48,4 +48,11 @@ void measurementUpdate(const unsigned N);
  */
 void smoothTrajectory(const unsigned N);
 
+/**
+ * @brief Decide whether to new targets
+ *
+ * @param N The current time index.
+ */
+void modelSelection(const unsigned N);
+
 #endif // ALGORITHMICSTEPS_HPP

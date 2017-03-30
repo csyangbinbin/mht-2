@@ -23,6 +23,7 @@
 // Function prototypes
 Matrix<double> initialiseRCovMat();
 Matrix<double> initialiseQCovMat();
+ColVector<double> initialiseClutterMean();
 Matrix<double> initialiseClutterCovMat();
 std::vector<ColVector<double>> initialiseSensorLocations();
 rcptr<V2VTransform> initialiseMotionModel();
@@ -74,6 +75,7 @@ namespace mht {
 	extern const double kValidationThreshold;
 
 	// Clutter distribution
+	extern ColVector<double> kClutterMean;
 	extern Matrix<double> kClutterCov;
 
 	// Gaussian mixture pruning parameters

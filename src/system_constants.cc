@@ -38,6 +38,7 @@ const double mht::kValidationThreshold = 2.5;
 const unsigned mht::kNumberOfBackSteps = 2;
 
 // Clutter distribution
+ColVector<double> mht::kClutterMean;
 Matrix<double> mht::kClutterCov;
 
 // Gaussian mixture pruning parameters
@@ -96,6 +97,7 @@ bool initialiseVariables() {
 	mht::kMeasurementModel = initialiseMeasurementModels();
 
 	// Clutter cov
+	mht::kClutterMean = initialiseClutterMean();
 	mht::kClutterCov = initialiseClutterCovMat();
 	
 	// Launch covs
@@ -129,11 +131,21 @@ Matrix<double> initialiseQCovMat () {
 	return QCov;
 } // initialiseQCovMat()
 
+ColVector<double> initialiseClutterMean() {
+	ColVector<double> clutterMean(mht::kStateSpaceDim); clutterMean *= 0;
+
+	clutterMean[0] = -70.00; clutterMean[1] = 0;
+	clutterMean[2] = -25.00; clutterMean[3] = 0;
+	clutterMean[4] = 20.00;  clutterMean[5] = 0;
+
+	return clutterMean;
+} // initialiseClutterMean()
+
 Matrix<double> initialiseClutterCovMat () {
 	Matrix<double> clutterCov;
 	
-	clutterCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	clutterCov(0, 0) = 250; clutterCov(1, 1) = 250;
+	clutterCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov)(i, i) = 250;
 
 	return clutterCov;
 } // initialiseClutterCovMat()

@@ -17,25 +17,33 @@ void predictStates(const unsigned N) {
 	virtualMeasurementVars.resize(M);
 	predMarginals.resize(M);
 
-	for (unsigned i = 1; i < M; i++) {
-		//std::cout << "Target " << stateNodes[N-1][i]->getIdentity() << std::endl;
-
-		// Get the marginal over previous variables
+	for (unsigned i = 0; i < M; i++) {
+		// Assign new variables to the current state
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
-		rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 		
-		// Prune and merge
-		
-		// Create a new factor over current variables
-		rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
-					mht::kMotionModel, 
-					elementsOfX[currentStates[N][i]],
-					mht::kRCovMat  ));
-		stateNodes[N][i] = uniqptr<Node> (new Node(stateJoint, stateNodes[N-1][i]->getIdentity() ) );
+		rcptr<Factor> stateJoint;
+		if (i == 0) {
+			// Create a clutter state - always has identity of zero
+			stateJoint = uniqptr<Factor>(new CGM(elementsOfX[currentStates[N][0]], 
+					{1.0},
+					{mht::kClutterMean},
+					{mht::kClutterCov}));
+			stateNodes[N][0] = uniqptr<Node>( new Node(stateJoint, 0) );
+		} else {
+			// Get the marginal over previous variables
+			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
+			
+			// Create a new factor over current variables
+			stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
+						mht::kMotionModel, 
+						elementsOfX[currentStates[N][i]], 
+						mht::kRCovMat  ));
+			stateNodes[N][i] = uniqptr<Node> (new Node(stateJoint, stateNodes[N-1][i]->getIdentity() ) );
 
-		// Link Node to preceding node
-		stateNodes[N-1][i]->addEdge(stateNodes[N][i], elementsOfX[currentStates[N-1][i]]);
-		stateNodes[N][i]->addEdge(stateNodes[N-1][i], elementsOfX[currentStates[N-1][i]], prevMarginal);
+			// Link Node to preceding node
+			stateNodes[N-1][i]->addEdge(stateNodes[N][i], elementsOfX[currentStates[N-1][i]]);
+			stateNodes[N][i]->addEdge(stateNodes[N-1][i], elementsOfX[currentStates[N-1][i]], prevMarginal);
+		}
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
@@ -119,11 +127,11 @@ void createMeasurementDistributions(const unsigned N) {
 				unsigned domSize = domain.size();
 
 				//std::cout << "domains: " << domain << std::endl;
-				if (domSize > 1) {
+				if (domSize > 0) {
 					// Create a conditional map for the ConditionalGaussian
 					std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
 
-					for (unsigned k = 1; k < domSize; k++) {
+					for (unsigned k = 0; k < domSize; k++) {
 						unsigned p = domain[k]; 
 						
 						// Create a new scope
@@ -134,11 +142,13 @@ void createMeasurementDistributions(const unsigned N) {
 						conditionalList[p] = uniqptr<Factor>( predMeasurements[p][i]->copy(newScope, false) );
 
 						// Clutter needs to be a joint over all 'included' predicted states
+						/*
 						if (k == 1) conditionalList[0] = uniqptr<Factor>(predMarginals[p]->copy());
 						else conditionalList[0] = conditionalList[0]->absorb(predMarginals[p]);
+						*/
 
 						// Multiply the predicted states by the likelihood function
-						for (unsigned l = 1; l < domSize; l++) {
+						for (unsigned l = 0; l < domSize; l++) {
 							unsigned q = domain[l];
 							if ( q != p ) conditionalList[p] = 
 								conditionalList[p]->absorb(predMarginals[q] );
@@ -152,14 +162,14 @@ void createMeasurementDistributions(const unsigned N) {
 					} // for
 			
 					// Adjust for a uniform clutter rate over sensor volume
-					std::dynamic_pointer_cast<CGM>(conditionalList[0])->adjustMass(1e-3);
+					// std::dynamic_pointer_cast<CGM>(conditionalList[0])->adjustMass(1e-3);
 
 					// Create ConditionalGauss - observeAndReduce does work, but for scope reasons this is easier.
 					rcptr<Factor> clg = uniqptr<Factor>(new CLG(distributions[a], conditionalList));
 
 					// Create a measurement node and connect it to state nodes
 					rcptr<Node> measNode = uniqptr<Node>(new Node(clg));
-					for (unsigned k = 1; k < domain.size(); k++) {
+					for (unsigned k = 0; k < domain.size(); k++) {
 						unsigned p = domain[k];
 						measNode->addEdge( stateNodes[N][p], predMarginals[p]->getVars(), predMarginals[p]);
 						stateNodes[N][p]->addEdge(measNode, predMarginals[p]->getVars());
@@ -178,7 +188,6 @@ void createMeasurementDistributions(const unsigned N) {
 
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
-	//std::cout << "Measurement updates M: " << M << std::endl;
 
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
@@ -195,7 +204,7 @@ void measurementUpdate(const unsigned N) {
 			// Get the factor, absorb  the incoming message and then prune
 			rcptr<Factor> factor = stateNode->getFactor();
 			factor->inplaceAbsorb( outgoingMessage );
-			std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+			if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
 
 			// Update the factor
 			stateNode->setFactor(factor);

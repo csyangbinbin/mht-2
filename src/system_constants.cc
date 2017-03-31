@@ -145,7 +145,7 @@ Matrix<double> initialiseClutterCovMat () {
 	Matrix<double> clutterCov;
 	
 	clutterCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov)(i, i) = 250;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov)(i, i) = 100;
 
 	return clutterCov;
 } // initialiseClutterCovMat()

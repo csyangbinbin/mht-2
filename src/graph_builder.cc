@@ -78,7 +78,8 @@ std::map<emdw::RVIdType, rcptr<Factor>> GraphBuilder::constructDistributions(
 		std::map<DASS, FProb> sparseProbs;
 		rcptr<DASS> aDom = assocHypotheses[vars[i]];
 		
-		for (unsigned j = 0; j < aDom->size(); j++) sparseProbs[DASS{(*aDom)[j]}] = 1;
+		sparseProbs[DASS{(*aDom)[0]}] = 0.1;
+		for (unsigned j = 1; j < aDom->size(); j++) sparseProbs[DASS{(*aDom)[j]}] = 1;
 		
 		dist[vars[i]] = uniqptr<Factor> (new DT(emdw::RVIds{vars[i]}, {aDom}, defProb_,
 						sparseProbs, margin_, floor_, false,

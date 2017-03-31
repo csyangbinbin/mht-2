@@ -42,17 +42,25 @@ void createMeasurementDistributions(const unsigned N);
 void measurementUpdate(const unsigned N);
 
 /**
- * @brief Smoothes existing targets trajectories
+ * @brief Smoothes existing targets trajectories.
  *
  * @param N The current time index.
  */
 void smoothTrajectory(const unsigned N);
 
 /**
- * @brief Decide whether to new targets
+ * @brief Decide whether to add new targets.
  *
  * @param N The current time index.
  */
 void modelSelection(const unsigned N);
+
+/**
+ * @brief Propagates new targets forward, possibly
+ * reintroducing new evidence.
+ *
+ * @param N The current time index.
+ */
+void forwardPass(const unsigned N);
 
 #endif // ALGORITHMICSTEPS_HPP

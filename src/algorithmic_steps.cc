@@ -232,7 +232,7 @@ void smoothTrajectory(const unsigned N) {
 				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
 			} // for
 
-			// Forward pass
+			// Forward pass - May possibly be removed after model selection
 			for (unsigned j = mht::kNumberOfBackSteps; j > 0; j--) {
 				// Get current sepsets and scope
 				emdw::RVIds pastVars = stateNodes[N-j][i]->getSepset(stateNodes[N - (j+1)][i]);
@@ -270,15 +270,36 @@ void smoothTrajectory(const unsigned N) {
 					std::cout << N-1 << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
 				} // for
 			} // if
-
-
 		} // for
 	} // if
 
-	stateNodes[N-mht::kNumberOfBackSteps].clear();
-	measurementNodes[N-mht::kNumberOfBackSteps].clear();
+	// Possibly need to very old states
+	//stateNodes[N-mht::kNumberOfBackSteps].clear();
+	//measurementNodes[N-mht::kNumberOfBackSteps].clear();
 } // smoothTrajectory()
 
-void modelSelection(unsigned const N) {
+void modelSelection(const unsigned N) {
+	if ( N > mht::kNumberOfBackSteps ) {
+		// Number of targets a few steps back.
+		unsigned K = N - mht::kNumberOfBackSteps;
+		unsigned M = stateNodes[K].size();
+		
+		// Get the marginals over the updated states for the current model
+		double odds = 0;
+		for (unsigned i = 0; i < M; i++) {
+			std::vector<double> weights = std::dynamic_pointer_cast<CGM>(
+					stateNodes[K][i]->getFactor())->getWeights();
 
+			double mass = 0;
+			for (unsigned j = 0; j < weights.size(); j++) mass += weights[j];
+			odds += log(mass);
+		} // for
+
+		std::cout << "Odds: " << odds << std::endl;
+
+	} // if
 } // modelSelection()
+
+void forwardPass(unsigned const N) {
+
+} // forwardPass()

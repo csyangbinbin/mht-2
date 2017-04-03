@@ -28,7 +28,7 @@ void predictStates(const unsigned N) {
 					{1.0},
 					{mht::kClutterMean},
 					{mht::kClutterCov}));
-			stateNodes[N][0] = uniqptr<Node>( new Node(stateJoint, 0) );
+			stateNodes[N][i] = uniqptr<Node>( new Node(stateJoint, i) );
 		} else {
 			// Get the marginal over previous variables
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
@@ -284,18 +284,38 @@ void modelSelection(const unsigned N) {
 		unsigned K = N - mht::kNumberOfBackSteps;
 		unsigned M = stateNodes[K].size();
 		
-		// Get the marginals over the updated states for the current model
-		double odds = 0;
-		for (unsigned i = 0; i < M; i++) {
-			std::vector<double> weights = std::dynamic_pointer_cast<CGM>(
-					stateNodes[K][i]->getFactor())->getWeights();
+		// Determine the evidence based on the current model
+		double modelOneOdds = calculateEvidence(K);
+		std::cout << "Current Model's evidence: " << modelOneOdds << std::endl;
 
-			double mass = 0;
-			for (unsigned j = 0; j < weights.size(); j++) mass += weights[j];
-			odds += log(mass);
-		} // for
+		// Add in a prior for a new target
+		M = stateNodes[K-1].size();
+		currentStates[K-1][M] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
+		rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[K-1][M]], 
+					{1.0},
+					{mht::kGenericMean},
+					{mht::kGenericCov}));
+		stateNodes[K-1].push_back( uniqptr<Node>( new Node(prior, M) ) );
 
-		std::cout << "Odds: " << odds << std::endl;
+		// Sever links to current state
+		for (unsigned i = 1; i < M; i++) {
+			stateNodes[K-1][i]->removeEdge(stateNodes[K][i]);
+		} //for
+
+		// Re-predict the states
+		predictStates(K);
+		createMeasurementDistributions(K);
+		measurementUpdate(K);
+
+		// Calculate the current 
+		double modelTwoOdds = calculateEvidence(K);
+		std::cout << "Current Model's evidence: " << modelTwoOdds << std::endl;
+
+		// Determine the odds ratio - only choose model if it is strictly more likely.
+		if (modelOneOdds >= modelTwoOdds) {
+			currentStates[K-1][M] = 0;
+			stateNodes[K-1].pop_back();
+		} // if 
 
 	} // if
 } // modelSelection()
@@ -303,3 +323,20 @@ void modelSelection(const unsigned N) {
 void forwardPass(unsigned const N) {
 
 } // forwardPass()
+
+double calculateEvidence(const unsigned N) {
+	unsigned M = stateNodes[N].size();
+	double odds = 0;
+	
+	// Determine the log-odds - excluding vacuous sponge.
+	for (unsigned i = 0; i < M; i++) {
+		std::vector<double> weights = std::dynamic_pointer_cast<CGM>(
+				stateNodes[N][i]->getFactor())->getWeights();
+
+		double mass = 0;
+		for (unsigned j = 0; j < weights.size(); j++) mass += weights[j];
+		odds += log(mass);
+	} // for
+
+	return odds;
+} // calculateEvidence()

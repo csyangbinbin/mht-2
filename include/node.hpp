@@ -61,6 +61,15 @@ class Node {
 		void addEdge(const rcptr<Node>& w, const emdw::RVIds& sepset, const rcptr<Factor>& message = 0);
 
 		/**
+		 * @brief Remove and edge.
+		 *
+		 * Remove an edge between two clusters.
+		 *
+		 * @param w An adjacent cluster node.
+		 */
+		void removeEdge(const rcptr<Node>& w);
+
+		/**
 		 * @brief Add a newly received message to the log.
 		 *
 		 * Add a newly received message to the message 

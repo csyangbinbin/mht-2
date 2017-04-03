@@ -63,4 +63,14 @@ void modelSelection(const unsigned N);
  */
 void forwardPass(const unsigned N);
 
+/**
+ * @brief Determine the evidence, after
+ * smoothing and measurement update.
+ *
+ * @param N The current time index.
+ *
+ * @return The evidence provided in logarithmic form.
+ */
+double calculateEvidence(const unsigned N);
+
 #endif // ALGORITHMICSTEPS_HPP

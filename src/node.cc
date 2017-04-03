@@ -39,6 +39,23 @@ void Node::addEdge(const rcptr<Node>& w, const emdw::RVIds& sepset, const rcptr<
 	else recMsg_[w] = uniqptr<Factor>( message->copy() );
 } // addEdge()
 
+void Node::removeEdge(const rcptr<Node>& w) {
+	if (recMsg_[w] != 0) {
+		// Remove edge list
+		sepsets_[w].clear();
+
+		// Remove from edge list
+		int j = 0;
+		for (unsigned i = 0; i < adjacent_.size(); i++) {
+			if ((adjacent_[i]).lock() == w) j = i;
+		} //for
+		adjacent_.erase(adjacent_.begin() + j);
+
+		// Remove last message
+		recMsg_[w] = 0;
+	} // if
+} // removeEdge()
+
 void Node::logMessage(const rcptr<Node>& w, const rcptr<Factor>& message) {
 	recMsg_[w] = uniqptr<Factor>(message->copy());
 } // logMessage()

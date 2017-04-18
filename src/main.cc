@@ -60,7 +60,7 @@ int main(int, char *argv[]) {
 	std::cout << "N;x;y;z" << std::endl;
 
 	// Step 4: Loop through every time step
-	for (unsigned i = 1; i <= 3; i++) {
+	for (unsigned i = 1; i <= kNumberOfTimeSteps-10; i++) {
 		// Prediction
 		predictStates(i);
 		
@@ -77,10 +77,11 @@ int main(int, char *argv[]) {
 		modelSelection(i);
 
 		// Forwards pass
+		forwardPass(i);
 
 		// State extraction
+		extractStates(i);
 	}
 
-	// Step 4: Error metrics
 	return 0;
 }

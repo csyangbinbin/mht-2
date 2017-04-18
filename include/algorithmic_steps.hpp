@@ -73,4 +73,11 @@ void forwardPass(const unsigned N);
  */
 double calculateEvidence(const unsigned N);
 
+/**
+ * @brief Extract the targets' states at each time step.
+ *
+ * @param N The current time index.
+ */
+void extractStates(const unsigned N);
+
 #endif // ALGORITHMICSTEPS_HPP

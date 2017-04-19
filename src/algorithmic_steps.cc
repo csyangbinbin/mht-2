@@ -47,8 +47,8 @@ void predictStates(const unsigned N) {
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
-		predMarginals[i]->inplaceNormalize();
-
+		//predMarginals[i]->inplaceNormalize();
+		
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
 
@@ -62,13 +62,25 @@ void predictStates(const unsigned N) {
 
 			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]); 
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
+
+			/*
+			if (N == 1 && i == 1 && j == 5) {
+				std::cout << "Time: " << N << std::endl;
+				std::cout << "Target: " << i << std::endl;
+				std::cout << "Sensor: " << j << std::endl;
+				std::cout << *validationRegion[i][j] << std::endl;
+			}
+			*/
 		} // for
 	} // for
 } // predictStates()
 
 void createMeasurementDistributions(const unsigned N) {
+	//std::cout << "createMeasurementDistributions()" << std::endl;
+	
 	// Time step and current number of targets
 	unsigned M = currentStates[N].size();
+	//std::cout << "M = " << M << std::endl;
 
 	// Clear some things
 	measurementNodes[N].clear(); 
@@ -90,6 +102,7 @@ void createMeasurementDistributions(const unsigned N) {
 		// For each measurement
 		for (unsigned j = 0; j < measurements.size(); j++) { 
 			if (measurements[j].size()) {
+
 				// Assign new identity to the measurement
 				emdw::RVIdType a = variables.size(); variables.push_back(a);
 				emdw::RVIdType z = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -114,7 +127,6 @@ void createMeasurementDistributions(const unsigned N) {
 			} // if
 		} // for
 
-		// If 
 		if (assocHypotheses.size()) {
 			// Determine the 'prior' over association hypotheses
 			std::map<emdw::RVIdType, rcptr<Factor>> distributions = graphBuilder->getMarginals(assocHypotheses);
@@ -141,12 +153,6 @@ void createMeasurementDistributions(const unsigned N) {
 						// Product of predicted marginals
 						conditionalList[p] = uniqptr<Factor>( predMeasurements[p][i]->copy(newScope, false) );
 
-						// Clutter needs to be a joint over all 'included' predicted states
-						/*
-						if (k == 1) conditionalList[0] = uniqptr<Factor>(predMarginals[p]->copy());
-						else conditionalList[0] = conditionalList[0]->absorb(predMarginals[p]);
-						*/
-
 						// Multiply the predicted states by the likelihood function
 						for (unsigned l = 0; l < domSize; l++) {
 							unsigned q = domain[l];
@@ -161,9 +167,6 @@ void createMeasurementDistributions(const unsigned N) {
 								true);
 					} // for
 			
-					// Adjust for a uniform clutter rate over sensor volume
-					// std::dynamic_pointer_cast<CGM>(conditionalList[0])->adjustMass(1e-3);
-
 					// Create ConditionalGauss - observeAndReduce does work, but for scope reasons this is easier.
 					rcptr<Factor> clg = uniqptr<Factor>(new CLG(distributions[a], conditionalList));
 
@@ -189,6 +192,9 @@ void createMeasurementDistributions(const unsigned N) {
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
 
+	std::cout << "measurementUpdate()" << std::endl;
+	std::cout << "M = " << M << std::endl;
+
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
 
@@ -204,7 +210,24 @@ void measurementUpdate(const unsigned N) {
 			// Get the factor, absorb  the incoming message and then prune
 			rcptr<Factor> factor = stateNode->getFactor();
 			factor->inplaceAbsorb( outgoingMessage );
+
+			std::vector<double> weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
+			std::cout << "Target " << stateNode->getIdentity() << std::endl;
+			std::cout << "Weights before prune = " << weights << "\n" << std::endl;
+
+			double mass = 0;
+			for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
+			std::cout << "Mass " << mass << std::endl;
+
 			if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+			
+			weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
+			std::cout << "Target " << stateNode->getIdentity() << std::endl;
+			std::cout << "Weights after prune = " << weights << "\n" << std::endl;
+
+			mass = 0;
+			for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
+			std::cout << "Mass " << mass << std::endl;
 
 			// Update the factor
 			stateNode->setFactor(factor);
@@ -214,6 +237,8 @@ void measurementUpdate(const unsigned N) {
 } // measurementUpdate()
 
 void smoothTrajectory(const unsigned N) {
+	//std::cout << "smoothTrajectory()" << std::endl;
+	
 	if (N > mht::kNumberOfBackSteps) { 
 		unsigned M = stateNodes[N].size();
 
@@ -236,6 +261,7 @@ void smoothTrajectory(const unsigned N) {
 } // smoothTrajectory()
 
 void modelSelection(const unsigned N) {
+	
 	if ( N > mht::kNumberOfBackSteps ) {
 		// Number of targets a few steps back.
 		unsigned K = N - mht::kNumberOfBackSteps;
@@ -286,13 +312,12 @@ void modelSelection(const unsigned N) {
 				currentStates[K][i] = currentStatesCache[i];
 			} // for
 		} // if 
-
 	} // if
 } // modelSelection()
 
 void forwardPass(unsigned const N) {
 
-	std::cout << "forwardPass()" << std::endl;
+	//std::cout << "forwardPass()" << std::endl;
 
 	if (N > mht::kNumberOfBackSteps) {
 		unsigned M = stateNodes[N].size();
@@ -309,7 +334,7 @@ void forwardPass(unsigned const N) {
 						mht::kMotionModel, 
 						presentVars,
 						mht::kRCovMat  ));
-				
+
 				// Prune and merge
 				std::dynamic_pointer_cast<CGM>(stateJoint)->pruneAndMerge();
 				stateNodes[N-j][i]->setFactor(stateJoint);
@@ -331,11 +356,14 @@ double calculateEvidence(const unsigned N) {
 	unsigned M = stateNodes[N].size();
 	double odds = 0;
 
-	std::cout << "M = " << M << std::endl;
+	//std::cout << "M = " << M << std::endl;
 
 	// Determine the log-odds - excluding vacuous sponge.
 	for (unsigned i = 1; i < M; i++) {
 		std::vector<double> weights = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getWeights();
+
+		std::cout << "Target " << i << std::endl;
+		std::cout << "Weights: " << weights << std::endl;
 
 		double mass = 0;
 		for (unsigned j = 0; j < weights.size(); j++) mass += weights[j];

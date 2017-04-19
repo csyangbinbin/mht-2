@@ -922,7 +922,9 @@ Factor* ObserveAndReduceCGM::process(const CanonicalGaussianMixture* lhsPtr, con
 	// Let GaussCanonical sort it all out for us.
 	for (rcptr<Factor> c : lhsComps) result.push_back(c->observeAndReduce(variables, assignedVals, presorted));
 
-	return new CanonicalGaussianMixture(result[0]->getVars(), result, true,
+	return new CanonicalGaussianMixture(result[0]->getVars(), 
+			        result, 
+				true,
 				lhs.maxComp_,
 				lhs.threshold_,
 				lhs.unionDistance_,

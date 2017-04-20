@@ -1,0 +1,18 @@
+{
+  <gLinear_condtional_suppression>
+  Memcheck:Cond
+  ...
+  obj:/usr/local/lib/libgLinear.so
+}
+{
+  <patrecII_condtional_suppression>
+  Memcheck:Cond
+  ...
+  obj:/usr/local/lib/libpatrecII.so
+}
+{
+  <emdw_condtional_suppression>
+  Memcheck:Cond
+  ...
+  obj:/usr/local/lib/libemdw.so
+}

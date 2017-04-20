@@ -1,0 +1,5 @@
+--memcheck:leak-check=full
+--show-reachable=yes
+--error-limit=no
+--suppressions=suppress_libs.supp
+--log-file=zed.log

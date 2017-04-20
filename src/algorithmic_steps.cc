@@ -47,7 +47,7 @@ void predictStates(const unsigned N) {
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
-		//predMarginals[i]->inplaceNormalize();
+		predMarginals[i]->inplaceNormalize();
 		
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -62,16 +62,8 @@ void predictStates(const unsigned N) {
 
 			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]); 
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
-
-			/*
-			if (N == 1 && i == 1 && j == 5) {
-				std::cout << "Time: " << N << std::endl;
-				std::cout << "Target: " << i << std::endl;
-				std::cout << "Sensor: " << j << std::endl;
-				std::cout << *validationRegion[i][j] << std::endl;
-			}
-			*/
 		} // for
+
 	} // for
 } // predictStates()
 
@@ -192,9 +184,6 @@ void createMeasurementDistributions(const unsigned N) {
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
 
-	std::cout << "measurementUpdate()" << std::endl;
-	std::cout << "M = " << M << std::endl;
-
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
 
@@ -211,23 +200,27 @@ void measurementUpdate(const unsigned N) {
 			rcptr<Factor> factor = stateNode->getFactor();
 			factor->inplaceAbsorb( outgoingMessage );
 
-			std::vector<double> weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
-			std::cout << "Target " << stateNode->getIdentity() << std::endl;
-			std::cout << "Weights before prune = " << weights << "\n" << std::endl;
+			if (N == 15 && stateNode->getIdentity() != 0) {
+				std::vector<double> weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
+				std::cout << "Target " << stateNode->getIdentity() << std::endl;
+				std::cout << "Weights before prune = " << weights << "\n" << std::endl;
 
-			double mass = 0;
-			for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
-			std::cout << "Mass " << mass << std::endl;
+				double mass = 0;
+				for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
+				std::cout << "Mass " << mass << std::endl;
+			}
 
-			if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+			//if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
 			
-			weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
-			std::cout << "Target " << stateNode->getIdentity() << std::endl;
-			std::cout << "Weights after prune = " << weights << "\n" << std::endl;
+			if (N == 15 && stateNode->getIdentity() != 0) {
+				std::vector<double> weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
+				std::cout << "Target " << stateNode->getIdentity() << std::endl;
+				std::cout << "Weights after prune = " << weights << "\n" << std::endl;
 
-			mass = 0;
-			for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
-			std::cout << "Mass " << mass << std::endl;
+				double mass = 0;
+				for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
+				std::cout << "Mass " << mass << std::endl;
+			}
 
 			// Update the factor
 			stateNode->setFactor(factor);
@@ -237,8 +230,6 @@ void measurementUpdate(const unsigned N) {
 } // measurementUpdate()
 
 void smoothTrajectory(const unsigned N) {
-	//std::cout << "smoothTrajectory()" << std::endl;
-	
 	if (N > mht::kNumberOfBackSteps) { 
 		unsigned M = stateNodes[N].size();
 
@@ -260,8 +251,7 @@ void smoothTrajectory(const unsigned N) {
 	} // if
 } // smoothTrajectory()
 
-void modelSelection(const unsigned N) {
-	
+void modelSelection(const unsigned N) {	
 	if ( N > mht::kNumberOfBackSteps ) {
 		// Number of targets a few steps back.
 		unsigned K = N - mht::kNumberOfBackSteps;
@@ -272,7 +262,7 @@ void modelSelection(const unsigned N) {
 		std::cout << "Current Model's evidence: " << exp(modelOneOdds) << std::endl;
 
 		// Cache the current model
-		std::vector<rcptr<Node>> stateNodesCache(M);
+		std::vector<rcptr<Node>> stateNodesCache(M); 
 		emdw::RVIds currentStatesCache(M);
 
 		for (unsigned i = 0; i < M; i++) {
@@ -289,8 +279,6 @@ void modelSelection(const unsigned N) {
 					{mht::kGenericCov}));
 		stateNodes[K-1].push_back( uniqptr<Node>( new Node(prior, M) ) );
 
-		std::cout << "New target added" << std::endl;
-
 		// Re-predict the states
 		predictStates(K);
 		createMeasurementDistributions(K);
@@ -299,6 +287,10 @@ void modelSelection(const unsigned N) {
 		// Calculate the current odds
 		double modelTwoOdds = calculateEvidence(K);
 		std::cout << "New Model's evidence: " << exp(modelTwoOdds) << std::endl;
+
+		//if (modelTwoOdds > 10) {
+		//	throw std::exception();
+		//}
 
 		// Determine the odds ratio - only choose model if it is strictly more likely.
 		if (true) {
@@ -316,9 +308,6 @@ void modelSelection(const unsigned N) {
 } // modelSelection()
 
 void forwardPass(unsigned const N) {
-
-	//std::cout << "forwardPass()" << std::endl;
-
 	if (N > mht::kNumberOfBackSteps) {
 		unsigned M = stateNodes[N].size();
 
@@ -336,7 +325,7 @@ void forwardPass(unsigned const N) {
 						mht::kRCovMat  ));
 
 				// Prune and merge
-				std::dynamic_pointer_cast<CGM>(stateJoint)->pruneAndMerge();
+				//std::dynamic_pointer_cast<CGM>(stateJoint)->pruneAndMerge();
 				stateNodes[N-j][i]->setFactor(stateJoint);
 
 				// Determine the outgoing message using BUP
@@ -356,14 +345,14 @@ double calculateEvidence(const unsigned N) {
 	unsigned M = stateNodes[N].size();
 	double odds = 0;
 
-	//std::cout << "M = " << M << std::endl;
-
 	// Determine the log-odds - excluding vacuous sponge.
-	for (unsigned i = 1; i < M; i++) {
+	for (unsigned i = 0; i < M; i++) {
 		std::vector<double> weights = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getWeights();
 
+		/*
 		std::cout << "Target " << i << std::endl;
 		std::cout << "Weights: " << weights << std::endl;
+		*/
 
 		double mass = 0;
 		for (unsigned j = 0; j < weights.size(); j++) mass += weights[j];

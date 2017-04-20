@@ -922,6 +922,8 @@ Factor* ObserveAndReduceCGM::process(const CanonicalGaussianMixture* lhsPtr, con
 	// Let GaussCanonical sort it all out for us.
 	for (rcptr<Factor> c : lhsComps) result.push_back(c->observeAndReduce(variables, assignedVals, presorted));
 
+	//for (rcptr<Factor> c : result) std::cout << "CGM.observeAndReduce(): " << std::dynamic_pointer_cast<GaussCanonical>(c)->getMass() << std::endl;
+
 	return new CanonicalGaussianMixture(result[0]->getVars(), 
 			        result, 
 				true,
@@ -1011,7 +1013,7 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 
 	for (rcptr<Factor> c : components) {
 		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
-		if (mass > threshold && !std::isinf(mass)) reduced.push_back( uniqptr<Factor>(c->copy()) );
+		if (mass > threshold && !std::isinf(mass) && !std::isnan(mass)) reduced.push_back( uniqptr<Factor>(c->copy()) );
 	} // for
 	return reduced;
 } // pruneComponents()
@@ -1031,7 +1033,6 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		comps.push_back( uniqptr<Factor>( c->copy() ) );
 		weights.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass()  );
 	} // for	
-	
 
 	// Sort the components according to weight
 	std::vector<size_t> sortedIndices = sortIndices( weights, std::less<double>() );
@@ -1082,9 +1083,10 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		} // for
 
 		// Create a new Gaussian
-		merged.push_back( uniqptr<Factor> (new GaussCanonical( vars, mu/g, S/g, true ) ) );
-
-	} // while
+		rcptr<Factor> scaled = uniqptr<Factor> (new GaussCanonical( vars, mu/g, S/g, true ));
+		std::dynamic_pointer_cast<GaussCanonical>(scaled)->adjustMass(g);
+		merged.push_back(scaled);
+	} // while	
 
 	// If there are still too many components
 	if (merged.size() > maxComp) {
@@ -1106,6 +1108,7 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		merged.clear();
 		for (unsigned i = 0; i < maxComp; i++) merged.push_back(ordered[i]);
 	} // if
+
 	return merged;
 } // mergeComponents()
 

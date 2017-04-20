@@ -2,7 +2,7 @@
  *  Compilation: ./run_main.sh
  *  Execution: ./run_main.sh
  *  Dependencies: None
- *I
+ *
  * Header file declaring function prototypes for the algorithmic
  * steps used in main.cc
  *************************************************************************/

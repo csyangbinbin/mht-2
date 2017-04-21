@@ -60,7 +60,9 @@ int main(int, char *argv[]) {
 	std::cout << "N;x;y;z" << std::endl;
 
 	// Step 4: Loop through every time step
-	for (unsigned i = 1; i <= 5; i++) {
+	for (unsigned i = 1; i <= 10; i++) {
+		std::cout << "N = " << i << std::endl;
+		
 		// Prediction
 		predictStates(i);
 		
@@ -71,16 +73,16 @@ int main(int, char *argv[]) {
 		measurementUpdate(i);
 		
 		// Backward pass and recalibration
-		smoothTrajectory(i);
+		//smoothTrajectory(i);
 
 		// Decision making
-		modelSelection(i);
+		//modelSelection(i);
 
 		// Forwards pass
-		forwardPass(i);
+		//forwardPass(i);
 
 		// State extraction
-		extractStates(i);
+		//extractStates(i);
 	}
 
 	return 0;

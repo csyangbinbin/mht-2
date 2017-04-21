@@ -200,27 +200,7 @@ void measurementUpdate(const unsigned N) {
 			rcptr<Factor> factor = stateNode->getFactor();
 			factor->inplaceAbsorb( outgoingMessage );
 
-			if (N == 15 && stateNode->getIdentity() != 0) {
-				std::vector<double> weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
-				std::cout << "Target " << stateNode->getIdentity() << std::endl;
-				std::cout << "Weights before prune = " << weights << "\n" << std::endl;
-
-				double mass = 0;
-				for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
-				std::cout << "Mass " << mass << std::endl;
-			}
-
 			//if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
-			
-			if (N == 15 && stateNode->getIdentity() != 0) {
-				std::vector<double> weights = std::dynamic_pointer_cast<CGM>(factor)->getWeights();
-				std::cout << "Target " << stateNode->getIdentity() << std::endl;
-				std::cout << "Weights after prune = " << weights << "\n" << std::endl;
-
-				double mass = 0;
-				for (unsigned k = 0; k < weights.size(); k++) mass += weights[k];
-				std::cout << "Mass " << mass << std::endl;
-			}
 
 			// Update the factor
 			stateNode->setFactor(factor);

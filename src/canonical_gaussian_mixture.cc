@@ -673,7 +673,7 @@ void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
 
 	// Get the total mass
 	std::vector<double> weights = lhs.getWeights();
-	double totalMass = 0;
+	double totalMass = 0.0;
 	for (auto& w : weights) totalMass += w;
 
 	// Divide through by the total mass
@@ -815,7 +815,7 @@ void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 		quotient.push_back( i->cancel(single)  ); 
 
 		//double mass = std::dynamic_pointer_cast<GaussCanonical>(quotient.back())->getMass();
-		//if (std::isinf(mass)) std::cout << *quotient.back() << std::endl;
+		//std::cout << "InplaceCancelCGM, mass: " << mass << std::endl;
 	} // for
 
 	// Reconfigure the class
@@ -973,7 +973,7 @@ uniqptr<Factor> mProject(const std::vector<rcptr<Factor>>& components) {
 
 	// First and second central moments
 	ColVector<double> mean(dimension); mean *= 0.0;
-	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); 
+	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); cov *= 0.0;
 
 	// Get the non-vacuous Gaussians' weights, means and covariances - Not very efficient, but whatever.
 	for (unsigned i = 0; i < M; i++) {

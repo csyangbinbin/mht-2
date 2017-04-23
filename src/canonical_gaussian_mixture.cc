@@ -557,7 +557,7 @@ std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const {
 	std::vector<rcptr<Factor>> components = getComponents();
 	
 	for (unsigned i = 0; i < N_; i++) {
-		file << "=========================\n";
+		file << "\n=========================\n";
 		file << "Component " << i << "\n";
 		file << *components[i] << "\n\n";
 		file << "=========================\n";
@@ -879,10 +879,10 @@ Factor* MarginalizeCGM::process(const CanonicalGaussianMixture* lhsPtr, const em
 	// Let GaussCanonical sort it all out for us.
 	for (unsigned i = 0; i < M; i++) {
 		result[i] = (lhsComps[i])->marginalize(variablesToKeep, presorted);
-		result[i]->inplaceNormalize();
+		//result[i]->inplaceNormalize();
 
-		double weight = (std::dynamic_pointer_cast<GaussCanonical>(lhsComps[i]))->getMass();
-		(std::dynamic_pointer_cast<GaussCanonical>(result[i])->adjustMass(weight));
+		//double weight = (std::dynamic_pointer_cast<GaussCanonical>(lhsComps[i]))->getMass();
+		//(std::dynamic_pointer_cast<GaussCanonical>(result[i])->adjustMass(weight));
 	}
 
 	return new CanonicalGaussianMixture(result[0]->getVars(), 
@@ -957,6 +957,8 @@ double InplaceWeakDampingCGM::inplaceProcess(const CanonicalGaussianMixture* lhs
 //------------------ M-Projections
 
 uniqptr<Factor> mProject(const std::vector<rcptr<Factor>>& components) {
+	std::cout << "\n\nMomentMatch" << std::endl;
+
 	// Old means and covariances
 	unsigned M = components.size();
 	ASSERT( M != 0, "There must be at least one mixand" );
@@ -1098,6 +1100,7 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		for ( rcptr<Factor> c : merged ) {
 			sigComps.push_back( uniqptr<Factor> (c->copy() ) );
 			sigWeights.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass() );
+			std::cout << "sigWeights: " << sigWeights.back() << std::endl;
 		} // for
 		
 		// Sort according to weight

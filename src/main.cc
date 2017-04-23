@@ -60,7 +60,7 @@ int main(int, char *argv[]) {
 	std::cout << "N;x;y;z" << std::endl;
 
 	// Step 4: Loop through every time step
-	for (unsigned i = 1; i <= 10; i++) {
+	for (unsigned i = 1; i <= 4; i++) {
 		std::cout << "N = " << i << std::endl;
 		
 		// Prediction
@@ -82,7 +82,7 @@ int main(int, char *argv[]) {
 		//forwardPass(i);
 
 		// State extraction
-		//extractStates(i);
+		extractStates(i);
 	}
 
 	return 0;

@@ -47,7 +47,7 @@ void predictStates(const unsigned N) {
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
-		predMarginals[i]->inplaceNormalize();
+		//predMarginals[i]->inplaceNormalize();
 		
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -190,21 +190,27 @@ void measurementUpdate(const unsigned N) {
 		for (unsigned j = 0; j < adjacent.size(); j++) {
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
-			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
+			if (stateNode->getIdentity() != 0) {
+				rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 
-			// Determine the outgoing message
-			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
-			rcptr<Factor> outgoingMessage =  measurementNodes[N][i]->marginalize( sepset, true )->cancel(receivedMessage);
+				// Determine the outgoing message
+				emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
+				rcptr<Factor> outgoingMessage =  measurementNodes[N][i]->marginalize( sepset, true );
 
-			// Get the factor, absorb  the incoming message and then prune
-			rcptr<Factor> factor = stateNode->getFactor();
-			factor->inplaceAbsorb( outgoingMessage );
+				// Get the factor, absorb  the incoming message and then prune
+				rcptr<Factor> factor = stateNode->getFactor();
+				factor->inplaceAbsorb( outgoingMessage );
+				factor->inplaceCancel( receivedMessage );
 
-			//if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+				//rcptr<Factor> marg = factor->marginalize( sepset, true );
+				//std::cout << *factor << std::endl;
 
-			// Update the factor
-			stateNode->setFactor(factor);
-			stateNode->logMessage( measurementNodes[N][i] ,outgoingMessage );
+				// if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+				
+				// Update the factor
+				stateNode->setFactor(factor);
+				stateNode->logMessage( measurementNodes[N][i] ,outgoingMessage );
+			}
 		} // for
 	} // for
 } // measurementUpdate()
@@ -221,10 +227,11 @@ void smoothTrajectory(const unsigned N) {
 			
 				// Determine the outgoing message using BUP
 				rcptr<Factor> receivedMessage = stateNodes[N-j][i]->getReceivedMessage( stateNodes[N-(j+1)][i] );
-				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(sepset, true)->cancel(receivedMessage);
+				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(sepset, true);
 
-				// Received node absorbs and logs the message
-				stateNodes[N-(j+1)][i]->absorb( outgoingMessage.get()  );
+				// Received node absorbs messgae, divides previous message and logs the new message
+				stateNodes[N-(j+1)][i]->inplaceAbsorb( outgoingMessage.get()  );
+				stateNodes[N-(j+1)][i]->inplaceCancel( receivedMessage.get() );
 				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
 			} // for
 		} // for
@@ -268,10 +275,6 @@ void modelSelection(const unsigned N) {
 		double modelTwoOdds = calculateEvidence(K);
 		std::cout << "New Model's evidence: " << exp(modelTwoOdds) << std::endl;
 
-		//if (modelTwoOdds > 10) {
-		//	throw std::exception();
-		//}
-
 		// Determine the odds ratio - only choose model if it is strictly more likely.
 		if (true) {
 			// Clear the state nodes and current state variables
@@ -314,7 +317,8 @@ void forwardPass(unsigned const N) {
 					stateNodes[N-j][i]->marginalize(presentVars, true)->cancel(receivedMessage);
 
 				// Receiving node absorbs and logs the message
-				stateNodes[N-(j-1)][i]->absorb( outgoingMessage.get()  );
+				stateNodes[N-(j-1)][i]->inplaceAbsorb( outgoingMessage.get()  );
+				stateNodes[N-(j-1)][i]->inplaceCancel( receivedMessage.get() );
 				stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
 			} // for	
 		} // for

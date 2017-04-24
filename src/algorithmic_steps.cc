@@ -31,6 +31,7 @@ void predictStates(const unsigned N) {
 			stateNodes[N][i] = uniqptr<Node>( new Node(stateJoint, i) );
 		} else {
 			// Get the marginal over previous variables
+			//stateNodes[N-1][i]->inplaceNormalize();
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 			
 			// Create a new factor over current variables
@@ -47,7 +48,7 @@ void predictStates(const unsigned N) {
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
-		//predMarginals[i]->inplaceNormalize();
+		predMarginals[i]->inplaceNormalize();
 		
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -60,7 +61,7 @@ void predictStates(const unsigned N) {
 						elementsOfZ[virtualMeasurementVars[i]],
 						mht::kQCovMat ) );
 
-			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]); 
+			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]);
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
 		} // for
 
@@ -202,17 +203,15 @@ void measurementUpdate(const unsigned N) {
 				factor->inplaceAbsorb( outgoingMessage );
 				factor->inplaceCancel( receivedMessage );
 
-				//rcptr<Factor> marg = factor->marginalize( sepset, true );
-				//std::cout << *factor << std::endl;
+				if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
 
-				// if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
-				
 				// Update the factor
 				stateNode->setFactor(factor);
-				stateNode->logMessage( measurementNodes[N][i] ,outgoingMessage );
+				stateNode->logMessage(measurementNodes[N][i], outgoingMessage->cancel( receivedMessage ) );
 			}
 		} // for
 	} // for
+
 } // measurementUpdate()
 
 void smoothTrajectory(const unsigned N) {
@@ -229,7 +228,7 @@ void smoothTrajectory(const unsigned N) {
 				rcptr<Factor> receivedMessage = stateNodes[N-j][i]->getReceivedMessage( stateNodes[N-(j+1)][i] );
 				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(sepset, true);
 
-				// Received node absorbs messgae, divides previous message and logs the new message
+				// Received node absorbs message, divides previous message and logs the new message
 				stateNodes[N-(j+1)][i]->inplaceAbsorb( outgoingMessage.get()  );
 				stateNodes[N-(j+1)][i]->inplaceCancel( receivedMessage.get() );
 				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
@@ -356,7 +355,8 @@ void extractStates(const unsigned N) {
 		std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( marginal )->getComponents();
 		for (unsigned i = 0; i < comps.size(); i++) {
 			ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();
-			std::cout << N-1 << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
+			double mass = std::dynamic_pointer_cast<GC>(comps[i])->getMass();
+			std::cout << N-1 << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << "; Mass: " << mass << std::endl;
 		} // for
 	} // for	
 } // extractStates()

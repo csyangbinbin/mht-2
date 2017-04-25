@@ -223,25 +223,30 @@ double ConditionalGaussian::inplaceDampen(const Factor* oldMsg, double df, Facto
 //------------------Other required virtual methods
 
 ConditionalGaussian* ConditionalGaussian::copy(const emdw::RVIds& newVars, bool presorted) const {
-	rcptr<Factor> discrete = uniqptr<Factor>(discreteRV_->copy());
 
-	std::map<unsigned, rcptr<Factor>> map; map.clear();
+	if (newVars.size()) {
+		rcptr<Factor> discrete = uniqptr<Factor>(discreteRV_->copy());
 
-	for (auto& i : conditionalList_) {
-		map[i.first] = uniqptr<Factor>((i.second)->copy());
-	}
+		std::map<unsigned, rcptr<Factor>> map; map.clear();
 
-	return new ConditionalGaussian(discrete, 
-				map,
-				inplaceNormalizer_,
-				normalizer_,
-				inplaceAbsorber_,
-				absorber_,
-				inplaceCanceller_,
-				canceller_,
-				marginalizer_,
-				observeAndReducer_,
-				inplaceDamper_);
+		for (auto& i : conditionalList_) {
+			map[i.first] = uniqptr<Factor>((i.second)->copy());
+		}
+
+		return new ConditionalGaussian(discrete, 
+					map,
+					inplaceNormalizer_,
+					normalizer_,
+					inplaceAbsorber_,
+					absorber_,
+					inplaceCanceller_,
+					canceller_,
+					marginalizer_,
+					observeAndReducer_,
+					inplaceDamper_);
+	} // if
+	
+	return new ConditionalGaussian(*this);
 } // copy()
 
 ConditionalGaussian* ConditionalGaussian::vacuousCopy(const emdw::RVIds& selectedVars, bool presorted) const {
@@ -489,7 +494,7 @@ Factor* MarginalizeCG::process(const ConditionalGaussian* lhsPtr, const emdw::RV
 		bool presorted) {
 	const ConditionalGaussian& lhs(*lhsPtr);
 
-	//std::cout << "MarginalizeCG" << std::endl;
+	std::cout << "MarginalizeCG()" << std::endl;
 
 	// Temporary variables
 	emdw::RVIds continuousVars; continuousVars.clear();
@@ -508,9 +513,7 @@ Factor* MarginalizeCG::process(const ConditionalGaussian* lhsPtr, const emdw::RV
 	rcptr<Factor> discretePrior = uniqptr<Factor>( (lhs.discreteRV_)->copy() );
 	std::map<unsigned, rcptr<Factor>> map; map.clear();
 	for (auto& i : lhs.conditionalList_) {
-		//std::cout << "Before continuous marginalization: " << (i.second)->getVars() << std::endl;
-		map[i.first] = (i.second)->marginalize(continuousVars, presorted)->normalize();
-		//std::cout << "After continuous marginalization: " << map[i.first]->getVars() << std::endl;
+		map[i.first] = (i.second)->marginalize(continuousVars, presorted);
 	}
 
 	// If you marginalize out all the continuous variables, you only have a discrete potential left.
@@ -541,8 +544,6 @@ Factor* MarginalizeCG::process(const ConditionalGaussian* lhsPtr, const emdw::RV
 				rcptr<CanonicalGaussianMixture> cgmConvert = 
 					std::dynamic_pointer_cast<CanonicalGaussianMixture>(component);
 				std::vector<rcptr<Factor>> components = cgmConvert->getComponents();
-
-				//std::cout << "CGM: " << components.size() << std::endl;
 
 				// Adjust the mass
 				for (rcptr<Factor> c : components) {

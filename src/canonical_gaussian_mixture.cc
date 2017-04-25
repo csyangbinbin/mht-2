@@ -135,20 +135,18 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 
 	// Convert from Covariance to Canonical form, this is done upfront
 	// as using adjustMass after initialisation is more expensive.
-	int fail = 0;
-	double detK, g;
-	ColVector<double> h;
-	Matrix<double> K;
-
 	for (unsigned i = 0; i < N_; i++) {
-		K = inv(covs[i], detK, fail);
+		int fail = 0;
+		Matrix<double> K = inv(covs[i], fail);
 		if (fail) printf("Could not invert cov[%d] at line number %d in file %s\n", i, __LINE__, __FILE__);
 
-		h = K*means[i];
+		ColVector<double> h = K*means[i];
+		/*
 		g = -0.5*( (K*means[i]).transpose() )*means[i] 
 			- log( (pow(2*M_PI, 0.5*vars.size()) / pow(detK, 0.5) ) / weights[i]);
+		*/
 
-		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, g, false) );
+		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, log(weights[i]), false) );
 	}
 
 	// Make the sure high level description is sorted.
@@ -391,10 +389,6 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	// Put each component through the transform.
 	for (unsigned i = 0; i < N_; i++) {
 		comps_[i] = uniqptr<Factor>(new GaussCanonical(oldComps[i].get(), *transform, newVars, Q, false ) );
-
-		// Preserve the mass
-		double mass = (std::dynamic_pointer_cast<GaussCanonical>(oldComps[i]))->getMass();
-		(std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->adjustMass(mass);
 	}
 
 	// Make the new variables are sorted in CanonicalGaussianMixture
@@ -569,7 +563,56 @@ std::ostream& CanonicalGaussianMixture::txtWrite(std::ostream& file) const {
 //------------------ M-Projection
 
 uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
-	return mProject(comps_);
+	unsigned M = comps_.size();
+	ASSERT( M != 0, "There must be at least one mixand" );
+
+	// The GM's components
+	std::vector<double> w(M);
+	std::vector<ColVector<double>> mu(M);
+	std::vector<Matrix<double>> S(M);
+	double totalMass = 0.0;
+
+	// Scope and dimension
+	unsigned dimension = vars_.size();
+
+	// First and second central moments
+	ColVector<double> mean(dimension); mean *= 0.0;
+	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); cov *= 0.0;
+
+	// Get the non-vacuous Gaussians' weights, means and covariances - Not very efficient, but whatever.
+	for (unsigned i = 0; i < M; i++) {
+		if (comps_[i]->noOfVars() != 0) { // Horrible hack to check if vacuous
+			rcptr<Factor> factor = uniqptr<Factor>( comps_[i]->copy()  );
+			rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(factor);
+
+			// Get the mean and covariance
+			mu[i] = gc->getMean();
+			S[i] = gc->getCov();
+
+			// Determine the weight
+			w[i] = gc->getMass();
+			totalMass += w[i];
+		} else {
+			w[i] = 0.0; 
+			mu[i] = ColVector<double>(dimension); mu[i] *= 0;
+			S[i] = gLinear::zeros<double>(dimension, dimension); S[i] *= 0;
+		} // if
+	} // for
+
+	// Determine the first two moments of the mixture
+	for (unsigned i = 0; i < M; i++) {
+		double weight = w[i]/totalMass;
+		mean += (weight)*(mu[i]);
+		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
+	} // for
+	cov -= (mean)*(mean.transpose());
+
+	std::cout << "After mProject()" << std::endl;
+
+	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(vars_, mean, cov));
+	std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
+
+	return uniqptr<Factor>( matched->copy() );
 } // momentMatch()
 
 void CanonicalGaussianMixture::pruneAndMerge() {
@@ -601,20 +644,16 @@ void CanonicalGaussianMixture::pruneAndMerge() {
 //---------------- Adjust Mass
 
 void CanonicalGaussianMixture::adjustMass(const double mass) {
-	for (rcptr<Factor> c : comps_) {
-		std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(mass);
-	}
+	for (rcptr<Factor> c : comps_) std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(mass);
 } // adjustMass()
 
 //---------------- Useful get methods
 
 std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { 
-	std::vector<rcptr<Factor>> components(comps_.size());
+	std::vector<rcptr<Factor>> components; components.clear();
 
-	for (unsigned i = 0; i < comps_.size(); i++) {
-		components[i] = uniqptr<Factor>( comps_[i]->copy() ) ;
-	} // for
-	
+	for (rcptr<Factor> c : comps_) components.push_back(  uniqptr<Factor>( c->copy() ) );
+
 	return components; 
 } // getComponents()
 
@@ -677,10 +716,7 @@ void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
 	for (auto& w : weights) totalMass += w;
 
 	// Divide through by the total mass
-	// TODO: Sort this out, it is a mess.
-	for (rcptr<Factor> c : lhsComp) {
-		std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(1.0/totalMass);
-	}
+	for (rcptr<Factor> c : lhsComp) std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(1.0/totalMass);
 
 	// Reconfigure
 	lhs.classSpecificConfigure(lhs.getVars(), 
@@ -733,7 +769,7 @@ void InplaceAbsorbCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	const CanonicalGaussianMixture* rhsCGMPtr = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
 	
 	// New components
-	std::vector<rcptr<Factor>> product;
+	std::vector<rcptr<Factor>> product; product.clear();
 	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
 
 	// If it isn't a CanonicalGaussianMixture then GaussCanonical should do all the validation.
@@ -804,10 +840,14 @@ void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	// New components
 	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
 	rcptr<Factor> single;
+
+	//std::cout << "Dividend mixture: " << rhs << std::endl;
 	
 	// If it isn't a CanonicalGaussianMixture then GaussCanonical should do all the validation.
 	if (rhsCGMPtr) single = rhs.momentMatch();
 	else single = uniqptr<Factor>(rhsFPtr->copy());
+
+	//std::cout << "Dividend approximation: " << *single << std::endl;
 
 	// Divide through by a single GaussCanonical
 	std::vector<rcptr<Factor>> quotient; quotient.clear();
@@ -870,20 +910,10 @@ Factor* MarginalizeCGM::process(const CanonicalGaussianMixture* lhsPtr, const em
 	std::vector<rcptr<Factor>> result(M);
 
 	// If everything is marginalized out.
-	if (!variablesToKeep.size()) {
-		return new CanonicalGaussianMixture(
-				variablesToKeep,
-				true);
-	}
+	if (!variablesToKeep.size()) return new CanonicalGaussianMixture(variablesToKeep, true);
 
 	// Let GaussCanonical sort it all out for us.
-	for (unsigned i = 0; i < M; i++) {
-		result[i] = (lhsComps[i])->marginalize(variablesToKeep, presorted);
-		result[i]->inplaceNormalize();
-
-		double weight = (std::dynamic_pointer_cast<GaussCanonical>(lhsComps[i]))->getMass();
-		(std::dynamic_pointer_cast<GaussCanonical>(result[i])->adjustMass(weight));
-	}
+	for (unsigned i = 0; i < M; i++) result[i] = (lhsComps[i])->marginalize(variablesToKeep, presorted);
 
 	return new CanonicalGaussianMixture(result[0]->getVars(), 
 				result, 
@@ -914,15 +944,13 @@ Factor* ObserveAndReduceCGM::process(const CanonicalGaussianMixture* lhsPtr, con
 		const emdw::RVVals& assignedVals, bool presorted) {
 	const CanonicalGaussianMixture& lhs(*lhsPtr);
 	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
-	std::vector<rcptr<Factor>> result;
+	std::vector<rcptr<Factor>> result; //result.clear();
 
 	// If nothing was observed.
 	if(!variables.size()) return lhs.copy(); 
 
 	// Let GaussCanonical sort it all out for us.
 	for (rcptr<Factor> c : lhsComps) result.push_back(c->observeAndReduce(variables, assignedVals, presorted));
-
-	//for (rcptr<Factor> c : result) std::cout << "CGM.observeAndReduce(): " << std::dynamic_pointer_cast<GaussCanonical>(c)->getMass() << std::endl;
 
 	return new CanonicalGaussianMixture(result[0]->getVars(), 
 			        result, 
@@ -958,6 +986,7 @@ double InplaceWeakDampingCGM::inplaceProcess(const CanonicalGaussianMixture* lhs
 
 uniqptr<Factor> mProject(const std::vector<rcptr<Factor>>& components) {
 	// Old means and covariances
+	std::cout << "mProject()" << std::endl;
 	unsigned M = components.size();
 	ASSERT( M != 0, "There must be at least one mixand" );
 
@@ -1003,6 +1032,8 @@ uniqptr<Factor> mProject(const std::vector<rcptr<Factor>>& components) {
 	} // for
 	cov -= (mean)*(mean.transpose());
 
+	std::cout << "After mProject()" << std::endl;
+
 	return uniqptr<Factor>(new GaussCanonical(vars, mean, cov) );
 } // mProject()
 
@@ -1013,31 +1044,17 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 
 	for (rcptr<Factor> c : components) {
 		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
+		//std::cout << "pruneComponents, mass: " << mass << std::endl;
 		if (mass > threshold) reduced.push_back( uniqptr<Factor>(c->copy()) );
 	} // for
+
 	return reduced;
 } // pruneComponents()
 
 std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& components, const unsigned maxComp,
 		const double threshold, const double unionDistance) {
+	std::cout << "mergeComponents()" << std::endl;
 	ASSERT( components.size() != 0, "There must be at least one mixand." );
-
-	/*
-	std::cout << "Before merge\n" << std::endl;
-	for (unsigned i = 0; i < components.size(); i++) {
-		rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(components[i]);
-		double mass = gc->getMass();
-		ColVector<double> mean = gc->getMean();
-		Matrix<double> cov = gc->getCov();
-
-		std::cout << "Component " << i << std::endl;
-		std::cout << "Mass: " << mass << std::endl;
-		std::cout << "Mean: " << mean << std::endl;
-		std::cout << "Cov: " << cov << std::endl;
-	}
-	*/
-
-	//std::cout << "Number of components: " << components.size() << std::endl;
 
 	// Local variables
 	emdw::RVIds vars = (components.back())->getVars();
@@ -1106,8 +1123,6 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		merged.push_back(scaled);
 	} // while	
 
-	//std::cout << "Number of components: " << merged.size() << std::endl;
-
 	// If there are still too many components
 	if (merged.size() > maxComp) {
 		// Local variables
@@ -1128,21 +1143,6 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		merged.clear();
 		for (unsigned i = 0; i < maxComp; i++) merged.push_back(ordered[i]);
 	} // if
-
-	/*
-	std::cout << "After merge\n" << std::endl;
-	for (unsigned i = 0; i < merged.size(); i++) {
-		rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(merged[i]);
-		double mass = gc->getMass();
-		ColVector<double> mean = gc->getMean();
-		Matrix<double> cov = gc->getCov();
-
-		std::cout << "Component " << i << std::endl;
-		std::cout << "Mass: " << mass << std::endl;
-		std::cout << "Mean: " << mean << std::endl;
-		std::cout << "Cov: " << cov << std::endl;
-	}
-	*/
 
 	return merged;
 } // mergeComponents()

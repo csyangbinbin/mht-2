@@ -117,7 +117,7 @@ Matrix<double> initialiseRCovMat () {
 
 	RCov(0, 0) = 1; RCov(1, 1) = 9;
 	RCov(2, 2) = 1; RCov(3, 3) = 9;
-	RCov(4, 4) = 9; RCov(5, 5) = 25;
+	RCov(4, 4) = 1; RCov(5, 5) = 9;
 
 	return RCov;
 } // initialiseRCovMat()
@@ -126,7 +126,7 @@ Matrix<double> initialiseQCovMat () {
 	Matrix<double> QCov;
 	
 	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 9; QCov(1, 1) = 2;
+	QCov(0, 0) = 9; QCov(1, 1) = 4;
 
 	return QCov;
 } // initialiseQCovMat()

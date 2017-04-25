@@ -8,6 +8,7 @@
 #include "algorithmic_steps.hpp"
 
 void predictStates(const unsigned N) {
+	std::cout << "predictStates()" << std::endl;
 	// Time step and current number of targets
 	unsigned M = currentStates[N-1].size();
 
@@ -31,9 +32,9 @@ void predictStates(const unsigned N) {
 			stateNodes[N][i] = uniqptr<Node>( new Node(stateJoint, i) );
 		} else {
 			// Get the marginal over previous variables
-			//stateNodes[N-1][i]->inplaceNormalize();
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
-			
+			prevMarginal->inplaceNormalize();
+		
 			// Create a new factor over current variables
 			stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
 						mht::kMotionModel, 
@@ -48,7 +49,6 @@ void predictStates(const unsigned N) {
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
-		predMarginals[i]->inplaceNormalize();
 		
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -185,32 +185,34 @@ void createMeasurementDistributions(const unsigned N) {
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
 
+	std::cout << "measurementUpdate(), M: " << M << std::endl;
+
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
 
 		for (unsigned j = 0; j < adjacent.size(); j++) {
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
-			if (stateNode->getIdentity() != 0) {
-				rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
+			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 
-				// Determine the outgoing message
-				emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
-				rcptr<Factor> outgoingMessage =  measurementNodes[N][i]->marginalize( sepset, true );
+			// Determine the outgoing message
+			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
+			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true ))->cancel(receivedMessage);
 
-				// Get the factor, absorb  the incoming message and then prune
-				rcptr<Factor> factor = stateNode->getFactor();
-				factor->inplaceAbsorb( outgoingMessage );
-				factor->inplaceCancel( receivedMessage );
+			// Get the factor, absorb  the incoming message and then prune
+			rcptr<Factor> factor = stateNode->getFactor();
+			factor->inplaceAbsorb( outgoingMessage );
+			//factor->inplaceCancel( receivedMessage );
 
-				if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+			if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
 
-				// Update the factor
-				stateNode->setFactor(factor);
-				stateNode->logMessage(measurementNodes[N][i], outgoingMessage->cancel( receivedMessage ) );
-			}
+			// Update the factor
+			stateNode->setFactor(factor);
+			stateNode->logMessage(measurementNodes[N][i], outgoingMessage);
 		} // for
 	} // for
+
+	std::cout << "After measurementUpdate()" << std::endl;
 
 } // measurementUpdate()
 

@@ -494,8 +494,6 @@ Factor* MarginalizeCG::process(const ConditionalGaussian* lhsPtr, const emdw::RV
 		bool presorted) {
 	const ConditionalGaussian& lhs(*lhsPtr);
 
-	std::cout << "MarginalizeCG()" << std::endl;
-
 	// Temporary variables
 	emdw::RVIds continuousVars; continuousVars.clear();
 	emdw::RVIds discreteVar; discreteVar.clear();

@@ -804,6 +804,11 @@ class CanonicalGaussianMixture : public Factor {
 		double getNumberOfComponents() const;
 
 		/**
+		 * @brief Return the total probability mass of the mxiture.
+		 */
+		double getMass() const;
+
+		/**
 		 * @brief Return the weights.
 		 */
 		std::vector<double> getWeights() const;

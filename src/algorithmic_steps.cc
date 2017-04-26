@@ -3,7 +3,7 @@
  *  Execution: ./run_main.sh
  *  Dependencies:
  *
- I* Runs the required tracking algorithms.
+ * Runs the required tracking algorithms.
  *************************************************************************/
 #include "algorithmic_steps.hpp"
 
@@ -18,7 +18,7 @@ void predictStates(const unsigned N) {
 	virtualMeasurementVars.resize(M);
 	predMarginals.resize(M);
 
-	for (unsigned i = 0; i < M; i++) {
+	for (unsigned i = 1; i < M; i++) {
 		// Assign new variables to the current state
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 		
@@ -33,7 +33,9 @@ void predictStates(const unsigned N) {
 		} else {
 			// Get the marginal over previous variables
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
-			prevMarginal->inplaceNormalize();
+			//prevMarginal->inplaceNormalize();
+			
+			std::cout << "Here!" << std::endl;
 		
 			// Create a new factor over current variables
 			stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
@@ -47,8 +49,11 @@ void predictStates(const unsigned N) {
 			stateNodes[N][i]->addEdge(stateNodes[N-1][i], elementsOfX[currentStates[N-1][i]], prevMarginal);
 		}
 
+		std::cout << "After prediction" << std::endl;
+
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
+		//predMarginals[i]->inplaceNormalize();
 		
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -137,14 +142,17 @@ void createMeasurementDistributions(const unsigned N) {
 					std::map<emdw::RVIdType, rcptr<Factor>> conditionalList; conditionalList.clear();
 
 					for (unsigned k = 0; k < domSize; k++) {
-						unsigned p = domain[k]; 
-						
+						unsigned p = domain[k];
+
 						// Create a new scope
 						emdw::RVIds newScope = predMarginals[p]->getVars();
 						newScope.insert(newScope.end(), elementsOfZ[z].begin(), elementsOfZ[z].end());
 
 						// Product of predicted marginals
 						conditionalList[p] = uniqptr<Factor>( predMeasurements[p][i]->copy(newScope, false) );
+
+						//std::cout << "Domain: " << p << std::endl;
+						//std::cout << *predMeasurements[p][i] << std::endl;
 
 						// Multiply the predicted states by the likelihood function
 						for (unsigned l = 0; l < domSize; l++) {
@@ -153,11 +161,23 @@ void createMeasurementDistributions(const unsigned N) {
 								conditionalList[p]->absorb(predMarginals[q] );
 						} // for
 
+						/*
+						std::cout << "Before introduction of evidence: " << std::endl;
+						std::cout << std::dynamic_pointer_cast<CGM>(conditionalList[p])->getMass() 
+							<< std::endl;
+						*/
+
 						// Introduce evidence into CGM
 						conditionalList[p] = conditionalList[p]->observeAndReduce(
 								elementsOfZ[z],
 								emdw::RVVals{colMeasurements[z][0], colMeasurements[z][1]},
 								true);
+
+						/*
+						std::cout << "After introduction of evidence: " << std::endl;
+						std::cout << std::dynamic_pointer_cast<CGM>(conditionalList[p])->getMass() 
+							<< std::endl;
+						*/
 					} // for
 			
 					// Create ConditionalGauss - observeAndReduce does work, but for scope reasons this is easier.
@@ -197,12 +217,12 @@ void measurementUpdate(const unsigned N) {
 
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
-			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true ))->cancel(receivedMessage);
+			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true ));
 
 			// Get the factor, absorb  the incoming message and then prune
 			rcptr<Factor> factor = stateNode->getFactor();
-			factor->inplaceAbsorb( outgoingMessage );
-			//factor->inplaceCancel( receivedMessage );
+			factor->inplaceAbsorb( outgoingMessage );			
+			factor->inplaceCancel( receivedMessage );
 
 			if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
 
@@ -211,8 +231,6 @@ void measurementUpdate(const unsigned N) {
 			stateNode->logMessage(measurementNodes[N][i], outgoingMessage);
 		} // for
 	} // for
-
-	std::cout << "After measurementUpdate()" << std::endl;
 
 } // measurementUpdate()
 

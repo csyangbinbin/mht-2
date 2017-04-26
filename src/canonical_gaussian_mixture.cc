@@ -137,16 +137,15 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 	// as using adjustMass after initialisation is more expensive.
 	for (unsigned i = 0; i < N_; i++) {
 		int fail = 0;
-		Matrix<double> K = inv(covs[i], fail);
+		double detK = 0.0;
+		Matrix<double> K = inv(covs[i], detK, fail);
 		if (fail) printf("Could not invert cov[%d] at line number %d in file %s\n", i, __LINE__, __FILE__);
 
 		ColVector<double> h = K*means[i];
-		/*
-		g = -0.5*( (K*means[i]).transpose() )*means[i] 
-			- log( (pow(2*M_PI, 0.5*vars.size()) / pow(detK, 0.5) ) / weights[i]);
-		*/
+		double g = -0.5*( means[i].transpose()*h + vars.size()*log( 2*M_PI ) 
+			- log(detK) ) + log(weights[i]);
 
-		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, log(weights[i]), false) );
+		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, g, false) );
 	}
 
 	// Make the sure high level description is sorted.
@@ -581,22 +580,16 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 
 	// Get the non-vacuous Gaussians' weights, means and covariances - Not very efficient, but whatever.
 	for (unsigned i = 0; i < M; i++) {
-		if (comps_[i]->noOfVars() != 0) { // Horrible hack to check if vacuous
-			rcptr<Factor> factor = uniqptr<Factor>( comps_[i]->copy()  );
-			rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(factor);
+		rcptr<Factor> factor = uniqptr<Factor>( comps_[i]->copy()  );
+		rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(factor);
 
-			// Get the mean and covariance
-			mu[i] = gc->getMean();
-			S[i] = gc->getCov();
+		// Get the mean and covariance
+		mu[i] = gc->getMean();
+		S[i] = gc->getCov();
 
-			// Determine the weight
-			w[i] = gc->getMass();
-			totalMass += w[i];
-		} else {
-			w[i] = 0.0; 
-			mu[i] = ColVector<double>(dimension); mu[i] *= 0;
-			S[i] = gLinear::zeros<double>(dimension, dimension); S[i] *= 0;
-		} // if
+		// Determine the weight
+		w[i] = gc->getMass();
+		totalMass += w[i];
 	} // for
 
 	// Determine the first two moments of the mixture
@@ -606,8 +599,6 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
 	} // for
 	cov -= (mean)*(mean.transpose());
-
-	std::cout << "After mProject()" << std::endl;
 
 	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(vars_, mean, cov));
 	std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
@@ -658,6 +649,14 @@ std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const {
 } // getComponents()
 
 double CanonicalGaussianMixture::getNumberOfComponents() const { return N_; } // getNumberOfComponents()
+
+double CanonicalGaussianMixture::getMass() const {
+	double totalMass = 0.0;
+	for (unsigned i = 0; i < comps_.size(); i++) {
+		totalMass += (std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getMass() ;
+	} // for
+	return totalMass;
+} // getMass();
 
 std::vector<double> CanonicalGaussianMixture::getWeights() const {
 	std::vector<double> weights(comps_.size());

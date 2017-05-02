@@ -26,9 +26,8 @@ cd ../;
 #Run the code
 if [ $RUN_OPTIONS = 0 ]
 then
-	.$RUN_PATH;
-	#dot -Tpdf $DOT_NAME -o $PDF_NAME;
-	#evince $PDF_NAME &
+	rm zed.log;
+	.$RUN_PATH > zed.log;
 fi
 
 #Run the tests

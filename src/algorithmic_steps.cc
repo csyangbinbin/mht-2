@@ -8,7 +8,7 @@
 #include "algorithmic_steps.hpp"
 
 void predictStates(const unsigned N) {
-	std::cout << "predictStates()" << std::endl;
+	std::cout << "\npredictStates()" << std::endl;
 	// Time step and current number of targets
 	unsigned M = currentStates[N-1].size();
 
@@ -18,7 +18,7 @@ void predictStates(const unsigned N) {
 	virtualMeasurementVars.resize(M);
 	predMarginals.resize(M);
 
-	for (unsigned i = 1; i < M; i++) {
+	for (unsigned i = 0; i < M; i++) {
 		// Assign new variables to the current state
 		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 		
@@ -35,8 +35,6 @@ void predictStates(const unsigned N) {
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 			//prevMarginal->inplaceNormalize();
 			
-			std::cout << "Here!" << std::endl;
-		
 			// Create a new factor over current variables
 			stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
 						mht::kMotionModel, 
@@ -48,8 +46,6 @@ void predictStates(const unsigned N) {
 			stateNodes[N-1][i]->addEdge(stateNodes[N][i], elementsOfX[currentStates[N-1][i]]);
 			stateNodes[N][i]->addEdge(stateNodes[N-1][i], elementsOfX[currentStates[N-1][i]], prevMarginal);
 		}
-
-		std::cout << "After prediction" << std::endl;
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
@@ -69,12 +65,16 @@ void predictStates(const unsigned N) {
 			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]);
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
 		} // for
-
 	} // for
+
+	extractStates(N);
+
+	std::cout << "\n\n" << std::endl;
+
 } // predictStates()
 
 void createMeasurementDistributions(const unsigned N) {
-	//std::cout << "createMeasurementDistributions()" << std::endl;
+	std::cout << "\ncreateMeasurementDistributions()" << std::endl;
 	
 	// Time step and current number of targets
 	unsigned M = currentStates[N].size();
@@ -151,33 +151,17 @@ void createMeasurementDistributions(const unsigned N) {
 						// Product of predicted marginals
 						conditionalList[p] = uniqptr<Factor>( predMeasurements[p][i]->copy(newScope, false) );
 
-						//std::cout << "Domain: " << p << std::endl;
-						//std::cout << *predMeasurements[p][i] << std::endl;
-
 						// Multiply the predicted states by the likelihood function
 						for (unsigned l = 0; l < domSize; l++) {
 							unsigned q = domain[l];
-							if ( q != p ) conditionalList[p] = 
-								conditionalList[p]->absorb(predMarginals[q] );
+							if ( q != p ) conditionalList[p]->inplaceAbsorb(predMarginals[q]);
 						} // for
-
-						/*
-						std::cout << "Before introduction of evidence: " << std::endl;
-						std::cout << std::dynamic_pointer_cast<CGM>(conditionalList[p])->getMass() 
-							<< std::endl;
-						*/
 
 						// Introduce evidence into CGM
 						conditionalList[p] = conditionalList[p]->observeAndReduce(
 								elementsOfZ[z],
 								emdw::RVVals{colMeasurements[z][0], colMeasurements[z][1]},
 								true);
-
-						/*
-						std::cout << "After introduction of evidence: " << std::endl;
-						std::cout << std::dynamic_pointer_cast<CGM>(conditionalList[p])->getMass() 
-							<< std::endl;
-						*/
 					} // for
 			
 					// Create ConditionalGauss - observeAndReduce does work, but for scope reasons this is easier.
@@ -196,6 +180,8 @@ void createMeasurementDistributions(const unsigned N) {
 		} // if
 	} // for
 
+	std::cout << "\n\n" << std::endl;
+
 	// Clear temporary values
 	predMarginals.clear();
 	virtualMeasurementVars.clear();
@@ -204,8 +190,9 @@ void createMeasurementDistributions(const unsigned N) {
 
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
+	std::vector<rcptr<Factor>> divisor(stateNodes[N].size());
 
-	std::cout << "measurementUpdate(), M: " << M << std::endl;
+	std::cout << "\nmeasurementUpdate(), M: " << M << std::endl;
 
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
@@ -215,22 +202,45 @@ void measurementUpdate(const unsigned N) {
 			rcptr<Node> stateNode = adjacent[j].lock();
 			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 
+			unsigned id = stateNode->getIdentity();
+
+			if (divisor[id] == 0) divisor[id] = uniqptr<Factor>( receivedMessage->copy() );
+			else divisor[id]->inplaceAbsorb(receivedMessage);
+
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
-			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true ));
+			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));//->cancel( receivedMessage );
+
+			if (id == 1) {
+				rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>(receivedMessage)->momentMatch();
+				std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>(outgoingMessage)->getComponents();
+
+				std::cout << "Matched predicted: " << std::endl;
+				std::cout << std::dynamic_pointer_cast<GC>(matched)->getCov() << std::endl;
+
+				std::cout << "Outgoing covariances: " << std::endl;
+				for (rcptr<Factor> c : comps) {
+					std::cout << std::dynamic_pointer_cast<GC>(c)->getCov() << std::endl;
+					std::cout << "Mass: " << std::dynamic_pointer_cast<GC>(c)->getMass() << std::endl;
+				}
+			}
 
 			// Get the factor, absorb  the incoming message and then prune
 			rcptr<Factor> factor = stateNode->getFactor();
-			factor->inplaceAbsorb( outgoingMessage );			
-			factor->inplaceCancel( receivedMessage );
-
-			if (stateNode->getIdentity() != 0) std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+			factor->inplaceAbsorb( outgoingMessage );
+			//factor->inplaceCancel( receivedMessage );
 
 			// Update the factor
 			stateNode->setFactor(factor);
 			stateNode->logMessage(measurementNodes[N][i], outgoingMessage);
 		} // for
 	} // for
+
+	for (unsigned i = 0; i < stateNodes[N].size(); i++) {
+		if (divisor[i] != 0) stateNodes[N][i]->inplaceCancel(divisor[i].get());
+	}
+
+	std::cout << "\n\n" << std::endl;
 
 } // measurementUpdate()
 
@@ -366,17 +376,18 @@ double calculateEvidence(const unsigned N) {
 } // calculateEvidence()
 
 void extractStates(const unsigned N) {
-	//unsigned M = stateNodes[N].size();
+	std::cout << "\nextractStates()" << std::endl;
 	
 	for (unsigned i = 1; i < 2; i++) {
-		emdw::RVIds sepset = stateNodes[N][i]->getSepset( stateNodes[N - 1][i] );
-		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(sepset, true);
+		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
 
 		std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( marginal )->getComponents();
 		for (unsigned i = 0; i < comps.size(); i++) {
 			ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();
 			double mass = std::dynamic_pointer_cast<GC>(comps[i])->getMass();
-			std::cout << N-1 << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << "; Mass: " << mass << std::endl;
+			std::cout << N << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << "; Mass: " << mass << std::endl;
 		} // for
-	} // for	
+	} // for
+
+	std::cout << "\n\n" << std::endl;
 } // extractStates()

@@ -115,9 +115,9 @@ bool initialiseVariables() {
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	RCov(0, 0) = 4; RCov(1, 1) = 9;
-	RCov(2, 2) = 4; RCov(3, 3) = 9;
-	RCov(4, 4) = 4; RCov(5, 5) = 9;
+	RCov(0, 0) = 25; RCov(1, 1) = 36;
+	RCov(2, 2) = 25; RCov(3, 3) = 36;
+	RCov(4, 4) = 36; RCov(5, 5) = 81;
 
 	return RCov;
 } // initialiseRCovMat()
@@ -126,7 +126,7 @@ Matrix<double> initialiseQCovMat () {
 	Matrix<double> QCov;
 	
 	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 36; QCov(1, 1) = 4;
+	QCov(0, 0) = 3; QCov(1, 1) = 1;
 
 	return QCov;
 } // initialiseQCovMat()

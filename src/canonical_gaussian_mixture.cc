@@ -603,10 +603,13 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(vars_, mean, cov));
 	std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
 
-	//std::cout << "\nMoment Matched: " << *matched << std::endl;
-
 	return uniqptr<Factor>( matched->copy() );
 } // momentMatch()
+
+uniqptr<Factor> CanonicalGaussianMixture::momentMatchCGM() const {
+	rcptr<Factor> matched = momentMatch();
+	return uniqptr<Factor> (new CanonicalGaussianMixture(matched->getVars(), {matched}, true));
+} // momentMatchCGM()
 
 void CanonicalGaussianMixture::pruneAndMerge() {
 	if (N_ > maxComp_) {

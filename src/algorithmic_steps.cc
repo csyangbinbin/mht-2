@@ -209,8 +209,9 @@ void measurementUpdate(const unsigned N) {
 
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
-			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));//->cancel( receivedMessage );
-
+			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));
+			
+			/*
 			if (id == 1) {
 				rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>(receivedMessage)->momentMatch();
 				std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>(outgoingMessage)->getComponents();
@@ -224,6 +225,7 @@ void measurementUpdate(const unsigned N) {
 					std::cout << "Mass: " << std::dynamic_pointer_cast<GC>(c)->getMass() << std::endl;
 				}
 			}
+			*/
 
 			// Get the factor, absorb  the incoming message and then prune
 			rcptr<Factor> factor = stateNode->getFactor();

@@ -772,6 +772,18 @@ class CanonicalGaussianMixture : public Factor {
 		uniqptr<Factor> momentMatch() const;
 
 		/**
+		 * @brief Moment match the mixture with a single Gaussian.
+		 *
+		 * Determine a single Gaussian which matches the mixtures
+		 * first two moments. This returns a CanonicalGaussianMixture 
+		 * containing a single component.
+		 *
+		 * @return A unique pointer to a single CanonicalGaussianMixture
+		 * Factor a single components with matching moments.
+		 */
+		uniqptr<Factor> momentMatchCGM() const;
+
+		/**
 		 * @brief Prunes insignificant components and
 		 * merges closely spaced components.
 		 *

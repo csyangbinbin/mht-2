@@ -506,10 +506,10 @@ double CanonicalGaussianMixture::inplaceDampen(const Factor* oldMsg, double df, 
 
 CanonicalGaussianMixture* CanonicalGaussianMixture::copy(const emdw::RVIds& newVars, bool presorted) const {
 	if (newVars.size()) {
-		// Copy components onto new scope
 		std::vector<rcptr<Factor>> components;
 		for (rcptr<Factor> i : comps_) components.push_back( uniqptr<Factor> (i->copy(newVars, presorted) ) );
 
+		// Copy components onto new scope
 		return new CanonicalGaussianMixture(
 				newVars,
 				components,
@@ -575,8 +575,8 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	unsigned dimension = vars_.size();
 
 	// First and second central moments
-	ColVector<double> mean(dimension); mean *= 0.0;
-	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension); cov *= 0.0;
+	ColVector<double> mean(dimension); mean.assignToAll(0.0);
+	Matrix<double> cov = gLinear::zeros<double>(dimension, dimension);
 
 	// Get the non-vacuous Gaussians' weights, means and covariances - Not very efficient, but whatever.
 	for (unsigned i = 0; i < M; i++) {
@@ -601,8 +601,6 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	cov -= (mean)*(mean.transpose());
 
 	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(vars_, mean, cov));
-	std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
-
 	return uniqptr<Factor>( matched->copy() );
 } // momentMatch()
 
@@ -646,9 +644,9 @@ void CanonicalGaussianMixture::adjustMass(const double mass) {
 //---------------- Useful get methods
 
 std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const { 
-	std::vector<rcptr<Factor>> components; components.clear();
+	std::vector<rcptr<Factor>> components(comps_.size());
 
-	for (rcptr<Factor> c : comps_) components.push_back(  uniqptr<Factor>( c->copy() ) );
+	for (unsigned i = 0; i < comps_.size(); i++) components[i] = uniqptr<Factor>( comps_[i]->copy() );
 
 	return components; 
 } // getComponents()
@@ -773,7 +771,7 @@ void InplaceAbsorbCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	const CanonicalGaussianMixture* rhsCGMPtr = dynamic_cast<const CanonicalGaussianMixture*>(rhsFPtr);
 	
 	// New components
-	std::vector<rcptr<Factor>> product; product.clear();
+	std::vector<rcptr<Factor>> product; 
 	std::vector<rcptr<Factor>> lhsComps = lhs.getComponents();
 
 	// If it isn't a CanonicalGaussianMixture then GaussCanonical should do all the validation.
@@ -787,8 +785,11 @@ void InplaceAbsorbCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 			}
 		}
 	} else { 
-		rcptr<Factor> rhs = uniqptr<Factor>(rhsFPtr->copy());
-		for (rcptr<Factor> c : lhsComps) product.push_back(c->absorb(rhs));
+		const GaussCanonical* rhsGCFPtr = dynamic_cast<const GaussCanonical*>(rhsFPtr);
+		const GaussCanonical& rhs(*rhsGCFPtr);
+		
+		product.resize(lhsComps.size());
+		for (unsigned i = 0; i < lhsComps.size(); i++)  product[i] = lhsComps[i]->absorb(uniqptr<Factor>( rhs.copy()  ));
 	}
 	
 	emdw::RVIds vars = product[0]->getVars();

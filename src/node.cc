@@ -57,14 +57,17 @@ void Node::removeEdge(const rcptr<Node>& w) {
 } // removeEdge()
 
 void Node::logMessage(const rcptr<Node>& w, const rcptr<Factor>& message) {
+	recMsg_[w] = NULL;
 	recMsg_[w] = uniqptr<Factor>(message->copy());
 } // logMessage()
 
 void Node::setFactor(const rcptr<Factor>& factor) {
+	factor_ = NULL;
 	factor_ = uniqptr<Factor>(factor->copy());
 } // setFactor()
 
 void Node::cacheFactor(const rcptr<Factor>& factor) {
+	prevFactor_ = NULL;
 	prevFactor_ = uniqptr<Factor>(factor->copy());
 } // cacheFactor()
 

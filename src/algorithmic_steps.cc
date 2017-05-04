@@ -33,7 +33,7 @@ void predictStates(const unsigned N) {
 		} else {
 			// Get the marginal over previous variables
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
-			//prevMarginal->inplaceNormalize();
+			prevMarginal = std::dynamic_pointer_cast<CGM>(prevMarginal)->momentMatchCGM();
 			
 			// Create a new factor over current variables
 			stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
@@ -49,7 +49,6 @@ void predictStates(const unsigned N) {
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
-		//predMarginals[i]->inplaceNormalize();
 		
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
@@ -67,7 +66,7 @@ void predictStates(const unsigned N) {
 		} // for
 	} // for
 
-	extractStates(N);
+	// extractStates(N);
 
 	std::cout << "\n\n" << std::endl;
 
@@ -190,7 +189,6 @@ void createMeasurementDistributions(const unsigned N) {
 
 void measurementUpdate(const unsigned N) {
 	unsigned M = measurementNodes[N].size();
-	std::vector<rcptr<Factor>> divisor(stateNodes[N].size());
 
 	std::cout << "\nmeasurementUpdate(), M: " << M << std::endl;
 
@@ -202,52 +200,28 @@ void measurementUpdate(const unsigned N) {
 			rcptr<Node> stateNode = adjacent[j].lock();
 			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 
-			unsigned id = stateNode->getIdentity();
-
-			if (divisor[id] == 0) divisor[id] = uniqptr<Factor>( receivedMessage->copy() );
-			else divisor[id]->inplaceAbsorb(receivedMessage);
-
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
 			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));
-			
-			/*
-			if (id == 1) {
-				rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>(receivedMessage)->momentMatch();
-				std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>(outgoingMessage)->getComponents();
-
-				std::cout << "Matched predicted: " << std::endl;
-				std::cout << std::dynamic_pointer_cast<GC>(matched)->getCov() << std::endl;
-
-				std::cout << "Outgoing covariances: " << std::endl;
-				for (rcptr<Factor> c : comps) {
-					std::cout << std::dynamic_pointer_cast<GC>(c)->getCov() << std::endl;
-					std::cout << "Mass: " << std::dynamic_pointer_cast<GC>(c)->getMass() << std::endl;
-				}
-			}
-			*/
 
 			// Get the factor, absorb  the incoming message and then prune
 			rcptr<Factor> factor = stateNode->getFactor();
 			factor->inplaceAbsorb( outgoingMessage );
-			//factor->inplaceCancel( receivedMessage );
+			factor->inplaceCancel( receivedMessage );
 
 			// Update the factor
 			stateNode->setFactor(factor);
 			stateNode->logMessage(measurementNodes[N][i], outgoingMessage);
 		} // for
 	} // for
-
-	for (unsigned i = 0; i < stateNodes[N].size(); i++) {
-		if (divisor[i] != 0) stateNodes[N][i]->inplaceCancel(divisor[i].get());
-	}
-
 	std::cout << "\n\n" << std::endl;
-
 } // measurementUpdate()
 
 void smoothTrajectory(const unsigned N) {
 	if (N > mht::kNumberOfBackSteps) { 
+
+		std::cout << "\nsmoothTrajectory()" << std::endl;
+
 		unsigned M = stateNodes[N].size();
 
 		for (unsigned i = 1; i < M; i++) {
@@ -259,13 +233,20 @@ void smoothTrajectory(const unsigned N) {
 				// Determine the outgoing message using BUP
 				rcptr<Factor> receivedMessage = stateNodes[N-j][i]->getReceivedMessage( stateNodes[N-(j+1)][i] );
 				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(sepset, true);
+				rcptr<Factor> matched = (std::dynamic_pointer_cast<CGM>(outgoingMessage)->momentMatchCGM());
+				
+				//std::cout << "receivedMessage: " << *receivedMessage << std::endl;
+
+				matched->inplaceCancel(receivedMessage);
+
+				//std::cout << "outgoingMessage: " << *outgoingMessage << std::endl;
 
 				// Received node absorbs message, divides previous message and logs the new message
-				stateNodes[N-(j+1)][i]->inplaceAbsorb( outgoingMessage.get()  );
-				stateNodes[N-(j+1)][i]->inplaceCancel( receivedMessage.get() );
-				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
+				stateNodes[N-(j+1)][i]->inplaceAbsorb( matched.get()  );
+				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], uniqptr<Factor>(matched->copy()) );
 			} // for
 		} // for
+		std::cout << "\n\n" << std::endl;
 	} // if
 } // smoothTrajectory()
 
@@ -325,34 +306,37 @@ void forwardPass(unsigned const N) {
 	if (N > mht::kNumberOfBackSteps) {
 		unsigned M = stateNodes[N].size();
 
+		std::cout << "\nforwardPass()" << std::endl;
+		std::cout << "N: " << N << std::endl;
+		std::cout << "M: " << M << std::endl;
+
 		for (unsigned i = 1; i < M; i++) {
 			for (unsigned j = mht::kNumberOfBackSteps; j > 0; j--) {
+				std::cout << "j: " << j << ", N-(j-1): " << N-(j-1) << std::endl;
+
 				// Get current sepsets and scope
-				emdw::RVIds pastVars = stateNodes[N-j][i]->getSepset(stateNodes[N - (j+1)][i]);
 				emdw::RVIds presentVars = stateNodes[N-j][i]->getSepset( stateNodes[N - (j-1)][i] );
-
-				// Recalibrate - marginalize onto past variables and reconstruct the joint distribution
-				rcptr<Factor> pastMarginal = stateNodes[N-j][i]->marginalize(pastVars, true);
-				rcptr<Factor> stateJoint = uniqptr<Factor>(new CGM( pastMarginal, 
-						mht::kMotionModel, 
-						presentVars,
-						mht::kRCovMat  ));
-
-				// Prune and merge
-				//std::dynamic_pointer_cast<CGM>(stateJoint)->pruneAndMerge();
-				stateNodes[N-j][i]->setFactor(stateJoint);
 
 				// Determine the outgoing message using BUP
 				rcptr<Factor> receivedMessage = stateNodes[N-j][i]->getReceivedMessage( stateNodes[N-(j-1)][i] );
-				rcptr<Factor> outgoingMessage = 
-					stateNodes[N-j][i]->marginalize(presentVars, true)->cancel(receivedMessage);
+				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(presentVars, true);
+				
+				rcptr<Factor> matched = (std::dynamic_pointer_cast<CGM>(outgoingMessage)->momentMatchCGM());
+				matched->inplaceCancel(receivedMessage);
 
+				rcptr<Factor> factor = stateNodes[N-(j-1)][i]->getFactor();
+
+				std::cout << *factor << std::endl;
+				rcptr<Factor> f = uniqptr<Factor> (matched->copy());
+
+				factor->inplaceAbsorb(f);
+				
 				// Receiving node absorbs and logs the message
-				stateNodes[N-(j-1)][i]->inplaceAbsorb( outgoingMessage.get()  );
-				stateNodes[N-(j-1)][i]->inplaceCancel( receivedMessage.get() );
-				stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], outgoingMessage  );
+				// stateNodes[N-(j-1)][i]->absorb(matched.get() );
+				//stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], matched );
 			} // for	
 		} // for
+		std::cout << "\n\n" << std::endl;
 	} // if
 } // forwardPass()
 

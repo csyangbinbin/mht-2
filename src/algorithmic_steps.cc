@@ -8,9 +8,9 @@
 #include "algorithmic_steps.hpp"
 
 void predictStates(const unsigned N) {
-	std::cout << "\npredictStates()" << std::endl;
+	std::cout << "\npredictStates(" << N << ")" << std::endl;
 	// Time step and current number of targets
-	unsigned M = currentStates[N-1].size();
+	unsigned M = stateNodes[N-1].size();
 
 	// Resize for indices access
 	stateNodes[N].resize(M); stateNodes[N][0] = 0;
@@ -49,7 +49,7 @@ void predictStates(const unsigned N) {
 
 		// Determine the marginal
 		predMarginals[i] = stateJoint->marginalize(elementsOfX[currentStates[N][i]]);
-		
+
 		// Assign new virtual measurement nodes
 		virtualMeasurementVars[i] = addVariables(variables, vecZ, elementsOfZ, mht::kMeasSpaceDim);
 
@@ -66,7 +66,7 @@ void predictStates(const unsigned N) {
 		} // for
 	} // for
 
-	// extractStates(N);
+	extractStates(N);
 
 	std::cout << "\n\n" << std::endl;
 
@@ -198,8 +198,10 @@ void measurementUpdate(const unsigned N) {
 		for (unsigned j = 0; j < adjacent.size(); j++) {
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
-			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
+			std::cout << "Target: " << stateNode->getIdentity() << std::endl;
 
+			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
+			
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
 			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));
@@ -252,25 +254,35 @@ void smoothTrajectory(const unsigned N) {
 
 void modelSelection(const unsigned N) {	
 	if ( N > mht::kNumberOfBackSteps ) {
+		std::cout << "modelSelection()" << std::endl;
+
 		// Number of targets a few steps back.
 		unsigned K = N - mht::kNumberOfBackSteps;
-		unsigned M = stateNodes[K].size();
+		std::cout << "K: " << K << std::endl;
 		
 		// Determine the evidence based on the current model
 		double modelOneOdds = calculateEvidence(K);
 		std::cout << "Current Model's evidence: " << exp(modelOneOdds) << std::endl;
 
 		// Cache the current model
-		std::vector<rcptr<Node>> stateNodesCache(M); 
-		emdw::RVIds currentStatesCache(M);
+		std::map<unsigned, std::vector<rcptr<Node>>> stateNodesCache; 
+		std::map<unsigned, emdw::RVIds> currentStatesCache;
 
-		for (unsigned i = 0; i < M; i++) {
-			stateNodesCache[i] = stateNodes[K][i];
-			currentStatesCache[i] = currentStates[K][i];
+		for (unsigned i = K; i <= N; i++) {
+			unsigned M = stateNodes[i].size();
+
+			for (unsigned j = 0; j < M; j++) {
+				stateNodesCache[i].clear(); currentStatesCache[i].clear();
+
+				stateNodesCache[i].push_back(stateNodes[i][j]);
+				currentStatesCache[i].push_back(currentStates[i][j]);
+			} // for
+
+			stateNodes[i].clear(); currentStates[i].clear();
 		} // for
 
 		// Add in a prior for a new target
-		M = stateNodes[K-1].size();
+		unsigned M = stateNodes[K-1].size();
 		currentStates[K-1].push_back(addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim));
 		rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[K-1][M]], 
 					{1.0},
@@ -278,27 +290,36 @@ void modelSelection(const unsigned N) {
 					{mht::kGenericCov}));
 		stateNodes[K-1].push_back( uniqptr<Node>( new Node(prior, M) ) );
 
+		std::cout << "M: " << *(stateNodes[K-1][0]->getFactor()) << std::endl;
+
 		// Re-predict the states
-		predictStates(K);
-		createMeasurementDistributions(K);
-		measurementUpdate(K);
+		for (unsigned i = K; i <= N; i++) {
+			predictStates(i);
+			createMeasurementDistributions(i);
+			measurementUpdate(i);
+		} // for
+		smoothTrajectory(N);
 
 		// Calculate the current odds
 		double modelTwoOdds = calculateEvidence(K);
 		std::cout << "New Model's evidence: " << exp(modelTwoOdds) << std::endl;
 
+		extractStates(K);
+
 		// Determine the odds ratio - only choose model if it is strictly more likely.
 		if (true) {
-			// Clear the state nodes and current state variables
-			stateNodes[K].clear(); currentStates[K].clear();
-			stateNodes[K].resize(M); currentStates[K].resize(M);
-			
-			// Reassign the model
-			for (unsigned i = 0; i < M; i++) {
-				stateNodes[K][i] = stateNodesCache[i];
-				currentStates[K][i] = currentStatesCache[i];
+			for (unsigned i = K; i <= N; i++) {
+				unsigned M = stateNodesCache[i].size();
+
+				for (unsigned j = 0; j < M; j++) {
+					stateNodes[i].clear(); currentStates[i].clear();
+
+					stateNodes[i].push_back( stateNodesCache[i][j] );
+					currentStates[i].push_back( currentStatesCache[i][j] );
+				} // for
 			} // for
-		} // if 
+		} // if
+		std::cout << "\n\n" << std::endl;
 	} // if
 } // modelSelection()
 
@@ -324,16 +345,9 @@ void forwardPass(unsigned const N) {
 				rcptr<Factor> matched = (std::dynamic_pointer_cast<CGM>(outgoingMessage)->momentMatchCGM());
 				matched->inplaceCancel(receivedMessage);
 
-				rcptr<Factor> factor = stateNodes[N-(j-1)][i]->getFactor();
-
-				std::cout << *factor << std::endl;
-				rcptr<Factor> f = uniqptr<Factor> (matched->copy());
-
-				factor->inplaceAbsorb(f);
-				
 				// Receiving node absorbs and logs the message
-				// stateNodes[N-(j-1)][i]->absorb(matched.get() );
-				//stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], matched );
+				stateNodes[N-(j-1)][i]->absorb(matched.get() );
+				stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], matched );
 			} // for	
 		} // for
 		std::cout << "\n\n" << std::endl;
@@ -341,6 +355,9 @@ void forwardPass(unsigned const N) {
 } // forwardPass()
 
 double calculateEvidence(const unsigned N) {
+
+	std::cout << "calculateEvidence()" << std::endl;
+
 	unsigned M = stateNodes[N].size();
 	double odds = 0;
 
@@ -348,10 +365,8 @@ double calculateEvidence(const unsigned N) {
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<double> weights = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getWeights();
 
-		/*
 		std::cout << "Target " << i << std::endl;
 		std::cout << "Weights: " << weights << std::endl;
-		*/
 
 		double mass = 0;
 		for (unsigned j = 0; j < weights.size(); j++) mass += weights[j];
@@ -363,15 +378,17 @@ double calculateEvidence(const unsigned N) {
 
 void extractStates(const unsigned N) {
 	std::cout << "\nextractStates()" << std::endl;
+	unsigned M = stateNodes[N].size();
 	
-	for (unsigned i = 1; i < 2; i++) {
+	for (unsigned i = 1; i < M; i++) {
 		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
-
 		std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( marginal )->getComponents();
-		for (unsigned i = 0; i < comps.size(); i++) {
-			ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[i])->getMean();
-			double mass = std::dynamic_pointer_cast<GC>(comps[i])->getMass();
-			std::cout << N << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << "; Mass: " << mass << std::endl;
+		
+		for (unsigned j = 0; j < comps.size(); j++) {
+			ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[j])->getMean();
+			double mass = std::dynamic_pointer_cast<GC>(comps[j])->getMass();
+			std::cout << N << ";" << i << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] 
+				<< "; Mass: " << mass << std::endl;
 		} // for
 	} // for
 

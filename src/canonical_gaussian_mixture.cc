@@ -565,14 +565,13 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	unsigned M = comps_.size();
 	ASSERT( M != 0, "There must be at least one mixand" );
 
-	// The GM's components
-	std::vector<double> w(M);
-	std::vector<ColVector<double>> mu(M);
-	std::vector<Matrix<double>> S(M);
-	double totalMass = 0.0;
-
 	// Scope and dimension
 	unsigned dimension = vars_.size();
+	emdw::RVIds newVars(dimension);
+	for(unsigned i = 0; i < dimension; i++) newVars[i] = vars_[i];
+
+	// Determine the GM's total mass
+	double totalMass = getMass();
 
 	// First and second central moments
 	ColVector<double> mean(dimension); mean.assignToAll(0.0);
@@ -583,24 +582,21 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 		rcptr<Factor> factor = uniqptr<Factor>( comps_[i]->copy()  );
 		rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(factor);
 
+		// Determine relative weight
+		double weight = (gc->getMass())/totalMass;
+
 		// Get the mean and covariance
-		mu[i] = gc->getMean();
-		S[i] = gc->getCov();
+		ColVector<double> mu = 1.0*(gc->getMean());
+		Matrix<double> S = 1.0*(gc->getCov());
 
-		// Determine the weight
-		w[i] = gc->getMass();
-		totalMass += w[i];
-	} // for
-
-	// Determine the first two moments of the mixture
-	for (unsigned i = 0; i < M; i++) {
-		double weight = w[i]/totalMass;
-		mean += (weight)*(mu[i]);
-		cov += (weight)*( S[i] + (mu[i])*(mu[i].transpose())  );
+		mean += (weight)*(mu);
+		cov += (weight)*( S + (mu)*(mu.transpose()) );
 	} // for
 	cov -= (mean)*(mean.transpose());
 
-	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(vars_, mean, cov));
+	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(newVars, mean, cov));
+	std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
+
 	return uniqptr<Factor>( matched->copy() );
 } // momentMatch()
 

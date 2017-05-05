@@ -21,7 +21,7 @@ int main(int, char *argv[]) {
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_7", mht::kNumSensors));
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_8", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
 	// Step 2 : Create a GraphBuilder object
@@ -61,7 +61,7 @@ int main(int, char *argv[]) {
 	extractStates(0);
 
 	// Step 4: Loop through every time step
-	for (unsigned i = 1; i <= 10; i++) {
+	for (unsigned i = 1; i <= 4; i++) {
 		std::cout << "N = " << i << std::endl;
 		
 		// Prediction
@@ -77,10 +77,10 @@ int main(int, char *argv[]) {
 		smoothTrajectory(i);
 
 		// Decision making
-		//modelSelection(i);
+		modelSelection(i);
 
 		// Forwards pass
-		forwardPass(i);
+		//forwardPass(i);
 
 		// State extraction
 		extractStates(i);

@@ -7,7 +7,14 @@
  *************************************************************************/
 #include "algorithmic_steps.hpp"
 
-void predictStates(const unsigned N) {
+void predictStates(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
+		) {
 	std::cout << "\npredictStates(" << N << ")" << std::endl;
 	// Time step and current number of targets
 	unsigned M = stateNodes[N-1].size();
@@ -34,7 +41,7 @@ void predictStates(const unsigned N) {
 			// Get the marginal over previous variables
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 			prevMarginal = std::dynamic_pointer_cast<CGM>(prevMarginal)->momentMatchCGM();
-			
+
 			// Create a new factor over current variables
 			stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
 						mht::kMotionModel, 
@@ -65,19 +72,23 @@ void predictStates(const unsigned N) {
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
 		} // for
 	} // for
-
-	extractStates(N);
-
 	std::cout << "\n\n" << std::endl;
 
 } // predictStates()
 
-void createMeasurementDistributions(const unsigned N) {
+void createMeasurementDistributions(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
+		) {
 	std::cout << "\ncreateMeasurementDistributions()" << std::endl;
 	
 	// Time step and current number of targets
 	unsigned M = currentStates[N].size();
-	//std::cout << "M = " << M << std::endl;
 
 	// Clear some things
 	measurementNodes[N].clear(); 
@@ -187,7 +198,10 @@ void createMeasurementDistributions(const unsigned N) {
 	validationRegion.clear();
 } // createMeasurementDistributions()
 
-void measurementUpdate(const unsigned N) {
+void measurementUpdate(const unsigned N,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes
+		) {
 	unsigned M = measurementNodes[N].size();
 
 	std::cout << "\nmeasurementUpdate(), M: " << M << std::endl;
@@ -219,7 +233,7 @@ void measurementUpdate(const unsigned N) {
 	std::cout << "\n\n" << std::endl;
 } // measurementUpdate()
 
-void smoothTrajectory(const unsigned N) {
+void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
 	if (N > mht::kNumberOfBackSteps) { 
 
 		std::cout << "\nsmoothTrajectory()" << std::endl;
@@ -237,11 +251,7 @@ void smoothTrajectory(const unsigned N) {
 				rcptr<Factor> outgoingMessage = stateNodes[N-j][i]->marginalize(sepset, true);
 				rcptr<Factor> matched = (std::dynamic_pointer_cast<CGM>(outgoingMessage)->momentMatchCGM());
 				
-				//std::cout << "receivedMessage: " << *receivedMessage << std::endl;
-
 				matched->inplaceCancel(receivedMessage);
-
-				//std::cout << "outgoingMessage: " << *outgoingMessage << std::endl;
 
 				// Received node absorbs message, divides previous message and logs the new message
 				stateNodes[N-(j+1)][i]->inplaceAbsorb( matched.get()  );
@@ -252,84 +262,31 @@ void smoothTrajectory(const unsigned N) {
 	} // if
 } // smoothTrajectory()
 
-void modelSelection(const unsigned N) {	
+void modelSelection(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
+		) {	
 	if ( N > mht::kNumberOfBackSteps ) {
+
 		std::cout << "modelSelection()" << std::endl;
+		double modelOneOdds = calculateEvidence(N, stateNodes);
 
-		// Number of targets a few steps back.
-		unsigned K = N - mht::kNumberOfBackSteps;
-		std::cout << "K: " << K << std::endl;
-		
-		// Determine the evidence based on the current model
-		double modelOneOdds = calculateEvidence(K);
-		std::cout << "Current Model's evidence: " << exp(modelOneOdds) << std::endl;
+		std::cout << "modelOneOdds: " << exp(modelOneOdds) << std::endl;
 
-		// Cache the current model
-		std::map<unsigned, std::vector<rcptr<Node>>> stateNodesCache; 
-		std::map<unsigned, emdw::RVIds> currentStatesCache;
-
-		for (unsigned i = K; i <= N; i++) {
-			unsigned M = stateNodes[i].size();
-
-			for (unsigned j = 0; j < M; j++) {
-				stateNodesCache[i].clear(); currentStatesCache[i].clear();
-
-				stateNodesCache[i].push_back(stateNodes[i][j]);
-				currentStatesCache[i].push_back(currentStates[i][j]);
-			} // for
-
-			stateNodes[i].clear(); currentStates[i].clear();
-		} // for
-
-		// Add in a prior for a new target
-		unsigned M = stateNodes[K-1].size();
-		currentStates[K-1].push_back(addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim));
-		rcptr<Factor> prior = uniqptr<Factor>(new CGM(elementsOfX[currentStates[K-1][M]], 
-					{1.0},
-					{mht::kGenericMean},
-					{mht::kGenericCov}));
-		stateNodes[K-1].push_back( uniqptr<Node>( new Node(prior, M) ) );
-
-		std::cout << "M: " << *(stateNodes[K-1][0]->getFactor()) << std::endl;
-
-		// Re-predict the states
-		for (unsigned i = K; i <= N; i++) {
-			predictStates(i);
-			createMeasurementDistributions(i);
-			measurementUpdate(i);
-		} // for
-		smoothTrajectory(N);
-
-		// Calculate the current odds
-		double modelTwoOdds = calculateEvidence(K);
-		std::cout << "New Model's evidence: " << exp(modelTwoOdds) << std::endl;
-
-		extractStates(K);
-
-		// Determine the odds ratio - only choose model if it is strictly more likely.
-		if (true) {
-			for (unsigned i = K; i <= N; i++) {
-				unsigned M = stateNodesCache[i].size();
-
-				for (unsigned j = 0; j < M; j++) {
-					stateNodes[i].clear(); currentStates[i].clear();
-
-					stateNodes[i].push_back( stateNodesCache[i][j] );
-					currentStates[i].push_back( currentStatesCache[i][j] );
-				} // for
-			} // for
-		} // if
 		std::cout << "\n\n" << std::endl;
 	} // if
 } // modelSelection()
 
-void forwardPass(unsigned const N) {
+void forwardPass(unsigned const N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
 	if (N > mht::kNumberOfBackSteps) {
 		unsigned M = stateNodes[N].size();
 
 		std::cout << "\nforwardPass()" << std::endl;
-		std::cout << "N: " << N << std::endl;
-		std::cout << "M: " << M << std::endl;
 
 		for (unsigned i = 1; i < M; i++) {
 			for (unsigned j = mht::kNumberOfBackSteps; j > 0; j--) {
@@ -354,7 +311,7 @@ void forwardPass(unsigned const N) {
 	} // if
 } // forwardPass()
 
-double calculateEvidence(const unsigned N) {
+double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
 
 	std::cout << "calculateEvidence()" << std::endl;
 
@@ -363,20 +320,14 @@ double calculateEvidence(const unsigned N) {
 
 	// Determine the log-odds - excluding vacuous sponge.
 	for (unsigned i = 0; i < M; i++) {
-		std::vector<double> weights = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getWeights();
-
-		std::cout << "Target " << i << std::endl;
-		std::cout << "Weights: " << weights << std::endl;
-
-		double mass = 0;
-		for (unsigned j = 0; j < weights.size(); j++) mass += weights[j];
+		double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getMass();
 		odds += log(mass);
 	} // for
 
 	return odds;
 } // calculateEvidence()
 
-void extractStates(const unsigned N) {
+void extractStates(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
 	std::cout << "\nextractStates()" << std::endl;
 	unsigned M = stateNodes[N].size();
 	

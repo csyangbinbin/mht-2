@@ -21,7 +21,7 @@ int main(int, char *argv[]) {
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_8", mht::kNumSensors));
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_7", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
 	// Step 2 : Create a GraphBuilder object
@@ -39,51 +39,56 @@ int main(int, char *argv[]) {
 				{mht::kLaunchStateCov[0]}));
 	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne, 1) );
 
-	// Tee 2
-	/*
-	currentStates[0][2] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
-	rcptr<Factor> teeTwo = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][2]], 
-				{mht::kGenericWeight[1]},
-				{mht::kLaunchStateMean[1]},
-				{mht::kLaunchStateCov[1]}));
-	stateNodes[0][2] = uniqptr<Node> (new Node(teeTwo, 2) );
-
-	// Tee 3
-	currentStates[0][3] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
-	rcptr<Factor> teeThree = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][3]], 
-				{mht::kGenericWeight[2]},
-				{mht::kLaunchStateMean[2]},
-				{mht::kLaunchStateCov[2]}));
-	stateNodes[0][3] = uniqptr<Node> (new Node(teeThree, 3) );
-	*/
-
 	std::cout << "N;x;y;z" << std::endl;
-	extractStates(0);
+	extractStates(0, stateNodes);
 
 	// Step 4: Loop through every time step
-	for (unsigned i = 1; i <= 4; i++) {
+	for (unsigned i = 1; i <= 15; i++) {
 		std::cout << "N = " << i << std::endl;
 		
 		// Prediction
-		predictStates(i);
+		predictStates(i, 
+				currentStates, 
+				virtualMeasurementVars, 
+				stateNodes, 
+				predMarginals, 
+				predMeasurements, 
+				validationRegion);
 		
 		// Create measurement distributions
-		createMeasurementDistributions(i);
+		createMeasurementDistributions(i, 
+				currentStates, 
+				virtualMeasurementVars, 
+				stateNodes, 
+				measurementNodes, 
+				predMarginals, 
+				predMeasurements, 
+				validationRegion);
 		
 		// Measurement update
-		measurementUpdate(i);
-		
+		measurementUpdate(i, 
+				stateNodes,
+				measurementNodes
+				);
+
 		// Backward pass and recalibration
-		smoothTrajectory(i);
+		smoothTrajectory(i, stateNodes);
 
 		// Decision making
-		modelSelection(i);
+		modelSelection(i,
+				currentStates, 
+				virtualMeasurementVars, 
+				stateNodes, 
+				measurementNodes, 
+				predMarginals, 
+				predMeasurements, 
+				validationRegion);
 
 		// Forwards pass
-		//forwardPass(i);
+		forwardPass(i, stateNodes);
 
 		// State extraction
-		extractStates(i);
+		extractStates(i, stateNodes);
 	}
 
 	return 0;

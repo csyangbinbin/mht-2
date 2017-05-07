@@ -565,6 +565,8 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	unsigned M = comps_.size();
 	ASSERT( M != 0, "There must be at least one mixand" );
 
+	if (M == 1) return uniqptr<Factor>( comps_[0]->copy() );
+
 	// Scope and dimension
 	unsigned dimension = vars_.size();
 	emdw::RVIds newVars(dimension);
@@ -595,7 +597,7 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	cov -= (mean)*(mean.transpose());
 
 	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(newVars, mean, cov));
-	std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
+	//std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
 
 	return uniqptr<Factor>( matched->copy() );
 } // momentMatch()
@@ -854,9 +856,6 @@ void InplaceCancelCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr, const Fa
 	std::vector<rcptr<Factor>> quotient; quotient.clear();
 	for (rcptr<Factor> i : lhsComps) { 
 		quotient.push_back( i->cancel(single)  ); 
-
-		//double mass = std::dynamic_pointer_cast<GaussCanonical>(quotient.back())->getMass();
-		//std::cout << "InplaceCancelCGM, mass: " << mass << std::endl;
 	} // for
 
 	// Reconfigure the class
@@ -1082,7 +1081,7 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 
 		// Local variables
 		std::map<unsigned, bool> indices; indices.clear();
-		ColVector<double> mu( vars.size() ); mu *= 0;
+		ColVector<double> mu( vars.size() ); mu.assignToAll(0.0);
 		Matrix<double> S = gLinear::zeros<double>( vars.size(), vars.size() );
 		double g = 0;
 

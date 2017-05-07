@@ -25,35 +25,58 @@
  *
  * @param N The current time index.
  */
-void predictStates(const unsigned N);
+void predictStates(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion);
 
 /**
  * @brief Forms hypotheses and creates current measurement distributions.
  *
  * @param N The current time index.
  */
-void createMeasurementDistributions(const unsigned N);
+void createMeasurementDistributions(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion);
 
 /**
  * @brief Performs measurement update on exisitng targets.
  *
  * @param N The current time index.
  */
-void measurementUpdate(const unsigned N);
+void measurementUpdate(const unsigned N,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes);
 
 /**
  * @brief Smoothes existing targets trajectories.
  *
  * @param N The current time index.
  */
-void smoothTrajectory(const unsigned N);
+void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
 /**
  * @brief Decide whether to add new targets.
  *
  * @param N The current time index.
  */
-void modelSelection(const unsigned N);
+void modelSelection(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
+		);
 
 /**
  * @brief Propagates new targets forward, possibly
@@ -61,7 +84,7 @@ void modelSelection(const unsigned N);
  *
  * @param N The current time index.
  */
-void forwardPass(const unsigned N);
+void forwardPass(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
 /**
  * @brief Determine the evidence, after
@@ -71,13 +94,13 @@ void forwardPass(const unsigned N);
  *
  * @return The evidence provided in logarithmic form.
  */
-double calculateEvidence(const unsigned N);
+double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
 /**
  * @brief Extract the targets' states at each time step.
  *
  * @param N The current time index.
  */
-void extractStates(const unsigned N);
+void extractStates(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
 #endif // ALGORITHMICSTEPS_HPP

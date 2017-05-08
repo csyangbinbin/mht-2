@@ -80,6 +80,7 @@ emdw::RVIds Node::getVars() const {
 } // getVars()
 
 rcptr<Factor> Node::getFactor() const {
+	std::cout << "Node::getFactor()" << std::endl;
 	return uniqptr<Factor>( (factor_)->copy() );
 } // getFactor()
 
@@ -139,3 +140,9 @@ uniqptr<Factor> Node::observeAndReduce (const emdw::RVIds& variables, const emdw
 		bool presorted, FactorOperator* procPtr) const {
 	return (factor_)->observeAndReduce(variables, assignedVals, presorted, procPtr);
 } // observeAndReduce()
+
+
+std::ostream& operator<<(std::ostream& file, const Node& node) { 
+	file << *(node.factor_);
+	return file; 
+} // operator<<

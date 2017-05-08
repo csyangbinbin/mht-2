@@ -220,14 +220,9 @@ void measurementUpdate(const unsigned N,
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
 			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));
 
-			// Get the factor, absorb  the incoming message and then prune
-			rcptr<Factor> factor = stateNode->getFactor();
-			factor->inplaceAbsorb( outgoingMessage );
-			factor->inplaceCancel( receivedMessage );
-
 			// Update the factor
-			stateNode->setFactor(factor);
-			stateNode->logMessage(measurementNodes[N][i], outgoingMessage);
+			stateNode->inplaceAbsorb(outgoingMessage.get());
+			stateNode->inplaceCancel(receivedMessage.get());
 		} // for
 	} // for
 	std::cout << "\n\n" << std::endl;
@@ -243,6 +238,9 @@ void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Nod
 		for (unsigned i = 1; i < M; i++) {
 			// Backwards pass
 			for (unsigned j = 0; j < mht::kNumberOfBackSteps; j++) {
+				
+				std::cout << "N-(j+1): " << N-(j+1) << std::endl;
+
 				// Get the sepset
 				emdw::RVIds sepset = stateNodes[N - j][i]->getSepset( stateNodes[N - (j+1)][i] );
 			
@@ -271,13 +269,63 @@ void modelSelection(const unsigned N,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
 		) {	
-	if ( N > mht::kNumberOfBackSteps ) {
-
+	if ( N > mht::kNumberOfBackSteps + 1 ) {
 		std::cout << "modelSelection()" << std::endl;
-		double modelOneOdds = calculateEvidence(N, stateNodes);
 
+		unsigned K = N - mht::kNumberOfBackSteps;
+		unsigned M = currentStates[K-1].size();
+
+		std::cout << "N: " << N << std::endl;
+		std::cout << "K-1: " << K-1 << std::endl;
+		
+		// Determine odds for current model
+		double modelOneOdds = calculateEvidence(K, stateNodes);
 		std::cout << "modelOneOdds: " << exp(modelOneOdds) << std::endl;
 
+		// Create new model - just copies of stateNodes and newMeasurementNodes
+		std::map<unsigned, emdw::RVIds> newCurrentStates; newCurrentStates[K-1].resize(M);
+		std::map<unsigned, std::vector<rcptr<Node>>> newStateNodes; newStateNodes[K-1].resize(M);
+		std::map<unsigned, std::vector<rcptr<Node>>> newMeasurementNodes;
+
+		std::cout << "New prior creation: " << std::endl;
+		
+		// Copy the stateNodes for time K-1
+		for (unsigned i = 0; i < M; i++) {
+			newCurrentStates[K-1][i] = currentStates[K-1][i];
+			newStateNodes[K-1][i] = stateNodes[K-1][i];
+		} // for
+			
+		// Create a prior for the new target and add it to the preceding time step
+		newCurrentStates[K-1].push_back(addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim));
+		rcptr<Factor> newTargetPrior = uniqptr<Factor>(new CGM(elementsOfX[newCurrentStates[K-1][M]], 
+					{mht::kGenericWeight[0]},
+					{mht::kLaunchStateMean[0]},
+					{mht::kLaunchStateCov[0]}));
+		newStateNodes[K-1].push_back(uniqptr<Node> (new Node(newTargetPrior, M) ));
+
+		std::cout << "Forward propagation: " << std::endl;
+
+		// Propagate the new model forward
+		for (unsigned i = K; i <= N; i++) {
+			// Predict states
+			predictStates(i, newCurrentStates, virtualMeasurementVars, newStateNodes, predMarginals, predMeasurements, 
+				validationRegion);
+
+			// Recreate measurement distributions
+			createMeasurementDistributions(i, newCurrentStates, virtualMeasurementVars, newStateNodes,
+					newMeasurementNodes, predMarginals, predMeasurements, validationRegion);
+
+			// Measurement update
+			measurementUpdate(i, newStateNodes, newMeasurementNodes);
+		} // for
+		smoothTrajectory(N, newStateNodes);
+
+		// Calculate new model odds
+		double modelTwoOdds = calculateEvidence(K, newStateNodes);
+		std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
+		
+		newStateNodes.clear();
+		
 		std::cout << "\n\n" << std::endl;
 	} // if
 } // modelSelection()
@@ -327,7 +375,10 @@ double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<
 	return odds;
 } // calculateEvidence()
 
-void extractStates(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
+void extractStates(const unsigned N, 
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes
+		) {
 	std::cout << "\nextractStates()" << std::endl;
 	unsigned M = stateNodes[N].size();
 	

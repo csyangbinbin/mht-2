@@ -8,6 +8,7 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
+#include <iostream>
 #include "factor.hpp"
 #include "factoroperator.hpp"
 #include "emdw.hpp"
@@ -263,6 +264,13 @@ class Node {
 		uniqptr<Factor> observeAndReduce( const emdw::RVIds& variables,
 				const emdw::RVVals& assignedVals, bool presorted = false,
 				FactorOperator* procPtr = 0) const;
+
+	public:
+		/**
+		 * @brief Write information to an output stream.
+		 */
+		friend std::ostream& operator<<(std::ostream& file, const Node& node);
+
 	private:
 		// Current information and scope
 		rcptr<Factor> factor_;

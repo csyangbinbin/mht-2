@@ -101,6 +101,8 @@ double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<
  *
  * @param N The current time index.
  */
-void extractStates(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
+void extractStates(const unsigned N, 
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
 #endif // ALGORITHMICSTEPS_HPP

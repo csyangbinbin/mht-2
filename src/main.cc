@@ -21,7 +21,7 @@ int main(int, char *argv[]) {
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_8", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
 	// Step 2 : Create a GraphBuilder object
@@ -39,13 +39,8 @@ int main(int, char *argv[]) {
 				{mht::kLaunchStateCov[0]}));
 	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne, 1) );
 
-	std::cout << "N;x;y;z" << std::endl;
-	extractStates(0, currentStates, stateNodes);
-
 	// Step 4: Loop through every time step
-	for (unsigned i = 1; i <= 145; i++) {
-		std::cout << "N = " << i << std::endl;
-		
+	for (unsigned i = 1; i < kNumberOfTimeSteps; i++) {
 		// Prediction
 		predictStates(i, 
 				currentStates, 
@@ -54,7 +49,7 @@ int main(int, char *argv[]) {
 				predMarginals, 
 				predMeasurements, 
 				validationRegion);
-		
+
 		// Create measurement distributions
 		createMeasurementDistributions(i, 
 				currentStates, 
@@ -85,13 +80,14 @@ int main(int, char *argv[]) {
 				validationRegion);
 
 		// Forwards pass
-		forwardPass(i, stateNodes);
-
-		// State extraction
-		extractStates(i, 
-			currentStates,
-			stateNodes);
+		forwardPass(i, stateNodes);	
 	}
+
+	// State Extraction
+	std::cout << "N;x;y;z" << std::endl;
+	for (unsigned i = 0; i < kNumberOfTimeSteps; i++) {
+		extractStates(i, currentStates, stateNodes);
+	} // for
 
 	return 0;
 }

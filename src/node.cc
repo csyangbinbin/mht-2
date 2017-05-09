@@ -80,7 +80,6 @@ emdw::RVIds Node::getVars() const {
 } // getVars()
 
 rcptr<Factor> Node::getFactor() const {
-	std::cout << "Node::getFactor()" << std::endl;
 	return uniqptr<Factor>( (factor_)->copy() );
 } // getFactor()
 

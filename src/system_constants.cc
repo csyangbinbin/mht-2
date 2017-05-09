@@ -32,7 +32,7 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 9;
+const double mht::kValidationThreshold = 4;
 
 // Smoothing paramaters
 const unsigned mht::kNumberOfBackSteps = 2;
@@ -115,9 +115,9 @@ bool initialiseVariables() {
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	RCov(0, 0) = 9; RCov(1, 1) = 16;
-	RCov(2, 2) = 9; RCov(3, 3) = 16;
-	RCov(4, 4) = 16; RCov(5, 5) = 36;
+	RCov(0, 0) = 1; RCov(1, 1) = 5;
+	RCov(2, 2) = 1; RCov(3, 3) = 5;
+	RCov(4, 4) = 1; RCov(5, 5) = 5;
 
 	return RCov;
 } // initialiseRCovMat()
@@ -126,7 +126,7 @@ Matrix<double> initialiseQCovMat () {
 	Matrix<double> QCov;
 	
 	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 9; QCov(1, 1) = 4;
+	QCov(0, 0) = 2.25; QCov(1, 1) = 1;
 
 	return QCov;
 } // initialiseQCovMat()

@@ -26,8 +26,8 @@ cd ../;
 #Run the code
 if [ $RUN_OPTIONS = 0 ]
 then
-	rm zed.log;
-	.$RUN_PATH > zed.log;
+	rm zed.csv;
+	.$RUN_PATH > zed.csv;
 fi
 
 #Run the tests

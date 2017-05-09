@@ -15,7 +15,6 @@ void predictStates(const unsigned N,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
 		) {
-	std::cout << "\npredictStates(" << N << ")" << std::endl;
 	// Time step and current number of targets
 	unsigned M = stateNodes[N-1].size();
 
@@ -72,8 +71,6 @@ void predictStates(const unsigned N,
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
 		} // for
 	} // for
-	std::cout << "\n\n" << std::endl;
-
 } // predictStates()
 
 void createMeasurementDistributions(const unsigned N,
@@ -85,8 +82,6 @@ void createMeasurementDistributions(const unsigned N,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
 		) {
-	std::cout << "\ncreateMeasurementDistributions()" << std::endl;
-	
 	// Time step and current number of targets
 	unsigned M = currentStates[N].size();
 
@@ -97,7 +92,7 @@ void createMeasurementDistributions(const unsigned N,
 	// For each sensor
 	for (unsigned i = 0; i < mht::kNumSensors; i++) {
 		// Retrieve measurements
-		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 4); // Hack time offset.
+		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N); // Hack time offset.
 
 		// Local Scope
 		std::vector<emdw::RVIdType> sensorMeasurements; 
@@ -190,8 +185,6 @@ void createMeasurementDistributions(const unsigned N,
 		} // if
 	} // for
 
-	std::cout << "\n\n" << std::endl;
-
 	// Clear temporary values
 	predMarginals.clear();
 	virtualMeasurementVars.clear();
@@ -204,15 +197,12 @@ void measurementUpdate(const unsigned N,
 		) {
 	unsigned M = measurementNodes[N].size();
 
-	std::cout << "\nmeasurementUpdate(), M: " << M << std::endl;
-
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
 
 		for (unsigned j = 0; j < adjacent.size(); j++) {
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
-			std::cout << "Target: " << stateNode->getIdentity() << std::endl;
 
 			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 			
@@ -225,22 +215,16 @@ void measurementUpdate(const unsigned N,
 			stateNode->inplaceCancel(receivedMessage.get());
 		} // for
 	} // for
-	std::cout << "\n\n" << std::endl;
 } // measurementUpdate()
 
 void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
 	if (N > mht::kNumberOfBackSteps) { 
-
-		std::cout << "\nsmoothTrajectory()" << std::endl;
-
 		unsigned M = stateNodes[N].size();
 
 		for (unsigned i = 1; i < M; i++) {
 			// Backwards pass
 			for (unsigned j = 0; j < mht::kNumberOfBackSteps; j++) {
 				
-				std::cout << "N-(j+1): " << N-(j+1) << std::endl;
-
 				// Get the sepset
 				emdw::RVIds sepset = stateNodes[N - j][i]->getSepset( stateNodes[N - (j+1)][i] );
 			
@@ -256,7 +240,6 @@ void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Nod
 				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], uniqptr<Factor>(matched->copy()) );
 			} // for
 		} // for
-		std::cout << "\n\n" << std::endl;
 	} // if
 } // smoothTrajectory()
 
@@ -270,24 +253,24 @@ void modelSelection(const unsigned N,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
 		) {	
 	if ( N > mht::kNumberOfBackSteps + 1 ) {
-		std::cout << "modelSelection()" << std::endl;
+		//std::cout << "modelSelection()" << std::endl;
 
 		unsigned K = N - mht::kNumberOfBackSteps;
 		unsigned M = currentStates[K-1].size();
 
-		std::cout << "N: " << N << std::endl;
-		std::cout << "K-1: " << K-1 << std::endl;
+		//std::cout << "N: " << N << std::endl;
+		//std::cout << "K-1: " << K-1 << std::endl;
 		
 		// Determine odds for current model
 		double modelOneOdds = calculateEvidence(K, stateNodes);
-		std::cout << "modelOneOdds: " << exp(modelOneOdds) << std::endl;
+		//std::cout << "modelOneOdds: " << exp(modelOneOdds) << std::endl;
 
 		// Create new model - just copies of stateNodes and newMeasurementNodes
 		std::map<unsigned, emdw::RVIds> newCurrentStates; newCurrentStates[K-1].resize(M);
 		std::map<unsigned, std::vector<rcptr<Node>>> newStateNodes; newStateNodes[K-1].resize(M);
 		std::map<unsigned, std::vector<rcptr<Node>>> newMeasurementNodes;
 
-		std::cout << "New prior creation: " << std::endl;
+		//std::cout << "New prior creation: " << std::endl;
 		
 		// Copy the stateNodes for time K-1
 		for (unsigned i = 0; i < M; i++) {
@@ -298,12 +281,12 @@ void modelSelection(const unsigned N,
 		// Create a prior for the new target and add it to the preceding time step
 		newCurrentStates[K-1].push_back(addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim));
 		rcptr<Factor> newTargetPrior = uniqptr<Factor>(new CGM(elementsOfX[newCurrentStates[K-1][M]], 
-					{mht::kGenericWeight[0]},
+					{mht::kGenericWeight[0]/10.0},
 					{mht::kLaunchStateMean[0]},
 					{mht::kLaunchStateCov[0]}));
 		newStateNodes[K-1].push_back(uniqptr<Node> (new Node(newTargetPrior, M) ));
 
-		std::cout << "Forward propagation: " << std::endl;
+		//std::cout << "Forward propagation: " << std::endl;
 
 		// Propagate the new model forward
 		for (unsigned i = K; i <= N; i++) {
@@ -322,11 +305,17 @@ void modelSelection(const unsigned N,
 
 		// Calculate new model odds
 		double modelTwoOdds = calculateEvidence(K, newStateNodes);
-		std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
+		//std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
 		
+		if (exp(modelTwoOdds) > exp(modelOneOdds)) {
+			std::cout << "N: " << N << "- Use model two now!" << std::endl;	
+			std::cout << "modelOneOdds: " << exp(modelOneOdds) << std::endl;
+			std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
+		} // if
+
 		newStateNodes.clear();
 		
-		std::cout << "\n\n" << std::endl;
+		//std::cout << "\n\n" << std::endl;
 	} // if
 } // modelSelection()
 
@@ -334,12 +323,8 @@ void forwardPass(unsigned const N, std::map<unsigned, std::vector<rcptr<Node>>>&
 	if (N > mht::kNumberOfBackSteps) {
 		unsigned M = stateNodes[N].size();
 
-		std::cout << "\nforwardPass()" << std::endl;
-
 		for (unsigned i = 1; i < M; i++) {
 			for (unsigned j = mht::kNumberOfBackSteps; j > 0; j--) {
-				std::cout << "j: " << j << ", N-(j-1): " << N-(j-1) << std::endl;
-
 				// Get current sepsets and scope
 				emdw::RVIds presentVars = stateNodes[N-j][i]->getSepset( stateNodes[N - (j-1)][i] );
 
@@ -355,14 +340,10 @@ void forwardPass(unsigned const N, std::map<unsigned, std::vector<rcptr<Node>>>&
 				stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], matched );
 			} // for	
 		} // for
-		std::cout << "\n\n" << std::endl;
 	} // if
 } // forwardPass()
 
 double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
-
-	std::cout << "calculateEvidence()" << std::endl;
-
 	unsigned M = stateNodes[N].size();
 	double odds = 0;
 
@@ -379,20 +360,13 @@ void extractStates(const unsigned N,
 		std::map<unsigned, emdw::RVIds>& currentStates,
 		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes
 		) {
-	std::cout << "\nextractStates()" << std::endl;
 	unsigned M = stateNodes[N].size();
 	
 	for (unsigned i = 1; i < M; i++) {
 		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
-		std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( marginal )->getComponents();
+		rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>( marginal )->momentMatch();
 		
-		for (unsigned j = 0; j < comps.size(); j++) {
-			ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[j])->getMean();
-			double mass = std::dynamic_pointer_cast<GC>(comps[j])->getMass();
-			std::cout << N << ";" << i << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] 
-				<< "; Mass: " << mass << std::endl;
-		} // for
+		ColVector<double> mean =  std::dynamic_pointer_cast<GC>(matched)->getMean();
+		std::cout << N << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
 	} // for
-
-	std::cout << "\n\n" << std::endl;
 } // extractStates()

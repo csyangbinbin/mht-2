@@ -21,7 +21,7 @@ int main(int, char *argv[]) {
 	initialiseVariables();
 
 	// Step 1 : Get the measurements
-	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_8", mht::kNumSensors));
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_7", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
 	// Step 2 : Create a GraphBuilder object
@@ -80,7 +80,10 @@ int main(int, char *argv[]) {
 				validationRegion);
 
 		// Forwards pass
-		forwardPass(i, stateNodes);	
+		forwardPass(i, stateNodes);
+
+		// Remove states
+		removeStates(i, currentStates, stateNodes);
 	}
 
 	// State Extraction

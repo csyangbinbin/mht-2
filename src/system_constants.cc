@@ -32,7 +32,7 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 4;
+const double mht::kValidationThreshold = 9;
 
 // Smoothing paramaters
 const unsigned mht::kNumberOfBackSteps = 2;

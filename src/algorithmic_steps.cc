@@ -25,11 +25,12 @@ void predictStates(const unsigned N,
 	predMarginals.resize(M);
 
 	for (unsigned i = 0; i < M; i++) {
-		// Assign new variables to the current state
-		currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
-		
 		rcptr<Factor> stateJoint;
+
 		if (i == 0) {
+			// Assign new variables to the current state
+			currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
+
 			// Create a clutter state - always has identity of zero
 			stateJoint = uniqptr<Factor>(new CGM(elementsOfX[currentStates[N][0]], 
 					{1.0},
@@ -37,6 +38,11 @@ void predictStates(const unsigned N,
 					{mht::kClutterCov}));
 			stateNodes[N][i] = uniqptr<Node>( new Node(stateJoint, i) );
 		} else {
+			if (stateNodes[N-1][i] == 0) continue;
+
+			// Assign new variables to the current state
+			currentStates[N][i] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
+
 			// Get the marginal over previous variables
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 			prevMarginal = std::dynamic_pointer_cast<CGM>(prevMarginal)->momentMatchCGM();
@@ -120,6 +126,7 @@ void createMeasurementDistributions(const unsigned N,
 
 				// Form hypotheses over each measurement
 				for (unsigned k = 1; k < M; k++) {
+					if (validationRegion[k].size() == 0) continue;
 					double distance = 
 						(std::dynamic_pointer_cast<GC>(validationRegion[k][i]))->mahalanobis(measurements[j]);
 						
@@ -222,6 +229,8 @@ void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Nod
 		unsigned M = stateNodes[N].size();
 
 		for (unsigned i = 1; i < M; i++) {
+			if (stateNodes[N][i] == 0) continue;
+			
 			// Backwards pass
 			for (unsigned j = 0; j < mht::kNumberOfBackSteps; j++) {
 				
@@ -262,7 +271,7 @@ void modelSelection(const unsigned N,
 		//std::cout << "K-1: " << K-1 << std::endl;
 		
 		// Determine odds for current model
-		double modelOneOdds = calculateEvidence(K, stateNodes);
+		double modelOneOdds = exp(calculateEvidence(K, stateNodes));
 		//std::cout << "modelOneOdds: " << exp(modelOneOdds) << std::endl;
 
 		// Create new model - just copies of stateNodes and newMeasurementNodes
@@ -281,7 +290,7 @@ void modelSelection(const unsigned N,
 		// Create a prior for the new target and add it to the preceding time step
 		newCurrentStates[K-1].push_back(addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim));
 		rcptr<Factor> newTargetPrior = uniqptr<Factor>(new CGM(elementsOfX[newCurrentStates[K-1][M]], 
-					{mht::kGenericWeight[0]/10.0},
+					{mht::kGenericWeight[0]},
 					{mht::kLaunchStateMean[0]},
 					{mht::kLaunchStateCov[0]}));
 		newStateNodes[K-1].push_back(uniqptr<Node> (new Node(newTargetPrior, M) ));
@@ -304,16 +313,31 @@ void modelSelection(const unsigned N,
 		smoothTrajectory(N, newStateNodes);
 
 		// Calculate new model odds
-		double modelTwoOdds = calculateEvidence(K, newStateNodes);
+		double modelTwoOdds = exp(calculateEvidence(K, newStateNodes))/3.0;
 		//std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
 		
-		if (exp(modelTwoOdds) > exp(modelOneOdds)) {
+		if (modelTwoOdds > modelOneOdds) {
 			std::cout << "N: " << N << "- Use model two now!" << std::endl;	
-			std::cout << "modelOneOdds: " << exp(modelOneOdds) << std::endl;
-			std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
+			std::cout << "modelOneOdds: " << modelOneOdds << std::endl;
+			std::cout << "modelTwoOdds: " << modelTwoOdds << std::endl;
+
+			// Replace model one
+			for (unsigned i = K-1; i <= N; i++) {
+				unsigned M = newStateNodes[i].size();
+
+				stateNodes[i].clear(); stateNodes[i].resize(M);
+				currentStates[i].clear(); currentStates[i].resize(M);
+
+				for (unsigned j = 0; j < M; j++) {
+					stateNodes[i][j] = newStateNodes[i][j];
+					currentStates[i][j] = newCurrentStates[i][j];
+				} // for
+			} // for
 		} // if
 
+		// Clear model two
 		newStateNodes.clear();
+		newCurrentStates.clear();
 		
 		//std::cout << "\n\n" << std::endl;
 	} // if
@@ -325,6 +349,8 @@ void forwardPass(unsigned const N, std::map<unsigned, std::vector<rcptr<Node>>>&
 
 		for (unsigned i = 1; i < M; i++) {
 			for (unsigned j = mht::kNumberOfBackSteps; j > 0; j--) {
+				if (stateNodes[N][i] == 0) continue;
+
 				// Get current sepsets and scope
 				emdw::RVIds presentVars = stateNodes[N-j][i]->getSepset( stateNodes[N - (j-1)][i] );
 
@@ -340,8 +366,27 @@ void forwardPass(unsigned const N, std::map<unsigned, std::vector<rcptr<Node>>>&
 				stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], matched );
 			} // for	
 		} // for
-	} // if
+	} // ihttps://en.wikipedia.org/wiki/Practice_padf
 } // forwardPass()
+
+
+void removeStates(const unsigned N, 
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes
+		) {
+	unsigned M = stateNodes[N].size();
+
+	for (unsigned i = 0; i < M; i++) {
+		if (stateNodes[N][i] == 0) continue;
+		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
+		rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>( marginal )->momentMatch();
+	
+		ColVector<double> mean =  std::dynamic_pointer_cast<GC>(matched)->getMean();
+		if (mean[4] < -7.0) stateNodes[N][i] = 0;
+	} // for
+
+} // removeStates()
+
 
 double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
 	unsigned M = stateNodes[N].size();
@@ -349,6 +394,7 @@ double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<
 
 	// Determine the log-odds - excluding vacuous sponge.
 	for (unsigned i = 0; i < M; i++) {
+		if (stateNodes[N][i] == 0) continue;
 		double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getMass();
 		odds += log(mass);
 	} // for
@@ -363,10 +409,11 @@ void extractStates(const unsigned N,
 	unsigned M = stateNodes[N].size();
 	
 	for (unsigned i = 1; i < M; i++) {
+		if (stateNodes[N][i] == 0) continue;
 		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
 		rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>( marginal )->momentMatch();
-		
+	
 		ColVector<double> mean =  std::dynamic_pointer_cast<GC>(matched)->getMean();
-		std::cout << N << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
+		std::cout << N << ";" << i << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
 	} // for
 } // extractStates()

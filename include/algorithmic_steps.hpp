@@ -87,6 +87,15 @@ void modelSelection(const unsigned N,
 void forwardPass(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
 /**
+ * @brief Remove all targets which have grounded.
+ *
+ * @param N The current time index
+ */
+void removeStates(const unsigned N, 
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
+
+/**
  * @brief Determine the evidence, after
  * smoothing and measurement update.
  *

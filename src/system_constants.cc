@@ -233,9 +233,9 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 	launchCov[2] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
 	for (unsigned i = 0; i < 3; i++) {
-		launchCov[i](0, 0) = 1; launchCov[i](1, 1) = 5;
-		launchCov[i](2, 2) = 1; launchCov[i](3, 3) = 5;
-		launchCov[i](4, 4) = 1; launchCov[i](5, 5) = 5;
+		launchCov[i](0, 0) = 1; launchCov[i](1, 1) = 9;
+		launchCov[i](2, 2) = 1; launchCov[i](3, 3) = 9;
+		launchCov[i](4, 4) = 1; launchCov[i](5, 5) = 9;
 	}
 
 	return launchCov;
@@ -254,11 +254,10 @@ ColVector<double> initialiseGenericMean() {
 
 Matrix<double> initialiseGenericCov() {
 	Matrix<double> genericCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) {
-		if (i % 2 == 0) (genericCov)(i, i) = 0.5;
-		else (genericCov)(i, i) = 5;
-	}
+	
+	genericCov(0, 0) = 9; genericCov(1, 1) = 25;
+	genericCov(2, 2) = 9; genericCov(3, 3) = 25;
+	genericCov(4, 4) = 16; genericCov(5, 5) = 49;
 
 	return genericCov;
 } // initialiseGenericMean()

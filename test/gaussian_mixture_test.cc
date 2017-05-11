@@ -216,7 +216,7 @@ TEST_F (CGMTest, PruneComponents) {
 	rcptr<CGM> cgm = uniqptr<CGM>( new CGM(vars, weights, means, covs) );
 	std::vector<rcptr<Factor>> components = cgm->getComponents();
 
-	std::vector<rcptr<Factor>> pruned = pruneComponents(components, 1e-6);
+	std::vector<rcptr<Factor>> pruned = pruneComponents(components, 2, 1e-6, false);
 
 	std::cout << pruned.size() << std::endl;
 

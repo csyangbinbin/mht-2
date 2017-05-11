@@ -609,14 +609,15 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatchCGM() const {
 
 void CanonicalGaussianMixture::pruneAndMerge() {
 	if (N_ > maxComp_) {
-		std::vector<rcptr<Factor>> reduced = pruneComponents(comps_, threshold_);
-		std::vector<rcptr<Factor>> merged =  mergeComponents(reduced, maxComp_, threshold_, unionDistance_);
+		std::vector<rcptr<Factor>> reduced = pruneComponents(comps_, maxComp_, threshold_, false);
+		//std::vector<rcptr<Factor>> merged =  mergeComponents(reduced, maxComp_, threshold_, unionDistance_);
 		
-		emdw::RVIds vars = vars_;
-		comps_.clear(); reduced.clear();
+		emdw::RVIds vars(vars_.size());
+		for (unsigned i = 0; i < vars_.size(); i++) vars[i] = vars_[i];
+		// reduced.clear();
 
 		classSpecificConfigure( vars, 
-					merged, 
+					reduced, 
 					true,
 					maxComp_,
 					threshold_,
@@ -1039,14 +1040,47 @@ uniqptr<Factor> mProject(const std::vector<rcptr<Factor>>& components) {
 
 //------------------ Pruning and Merging
 
-std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& components, const double threshold)  {
+std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& components, const unsigned maxComp, const double threshold, bool clip)  {
+	// Reduced components
 	std::vector<rcptr<Factor>> reduced; reduced.clear();
+	
+	// Mass
+	std::vector<double> originalMass; originalMass.clear();
+	std::vector<double> reducedMass; reducedMass.clear();
 
 	for (rcptr<Factor> c : components) {
 		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
-		//std::cout << "pruneComponents, mass: " << mass << std::endl;
-		if (mass > threshold) reduced.push_back( uniqptr<Factor>(c->copy()) );
+		originalMass.push_back(mass);
+		
+		if (mass > threshold) {
+			reduced.push_back( uniqptr<Factor>(c->copy()) );
+			reducedMass.push_back(mass);
+		} // if
 	} // for
+
+	// If everything should is below threshold - just take the largest components
+	if (reduced.size() == 0) {
+		// Sort the original weights
+		std::vector<size_t> sortedIndices = sortIndices( originalMass, std::less<double>() );
+		std::vector<double> w = extract<double>( originalMass, sortedIndices );
+		std::vector<rcptr<Factor>> newComps = extract<rcptr<Factor>>(components, sortedIndices);
+
+		// Only take the maxComp largest components
+		reduced.clear();
+		for (unsigned i = 0; i < maxComp; i++) reduced.push_back( uniqptr<Factor> ( newComps[i]->copy() ) );
+	} // if
+
+	// If this is you only reduction technique and you still have too many components
+	if (clip && reduced.size() > maxComp) {
+		// Sort the original weights
+		std::vector<size_t> sortedIndices = sortIndices( reducedMass, std::less<double>() );
+		std::vector<double> w = extract<double>( reducedMass, sortedIndices );
+		std::vector<rcptr<Factor>> newComps = extract<rcptr<Factor>>(reduced, sortedIndices);
+
+		// Only take the maxComp largest components
+		reduced.clear();
+		for (unsigned i = 0; i < maxComp; i++) reduced.push_back( uniqptr<Factor> ( newComps[i]->copy() ) );
+	} // if
 
 	return reduced;
 } // pruneComponents()

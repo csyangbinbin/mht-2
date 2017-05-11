@@ -95,23 +95,4 @@ void removeStates(const unsigned N,
 		std::map<unsigned, emdw::RVIds>& currentStates,
 		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
-/**
- * @brief Determine the evidence, after
- * smoothing and measurement update.
- *
- * @param N The current time index.
- *
- * @return The evidence provided in logarithmic form.
- */
-double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
-
-/**
- * @brief Extract the targets' states at each time step.
- *
- * @param N The current time index.
- */
-void extractStates(const unsigned N, 
-		std::map<unsigned, emdw::RVIds>& currentStates,
-		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
-
 #endif // ALGORITHMICSTEPS_HPP

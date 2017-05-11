@@ -33,3 +33,49 @@ unsigned addVariables (emdw::RVIds& globalVariables,
 
 	return localVariables[M];
 } // addVariables()
+
+double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
+	unsigned M = stateNodes[N].size();
+	double odds = 0;
+
+	// Determine the log-odds - excluding vacuous sponge.
+	for (unsigned i = 0; i < M; i++) {
+		if (stateNodes[N][i] == 0) continue;
+		double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getMass();
+		odds += log(mass);
+	} // for
+
+	/*
+	if (exp(odds) > 1) {
+		for (unsigned i = 0; i < M; i++) {
+			if (stateNodes[N][i] == 0) continue;
+			double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getMass();
+			std::cout << "calculateEvidence(), mass: " << mass << std::endl;
+		} // for
+	}
+	*/
+
+	return odds;
+} // calculateEvidence()
+
+void extractStates(const unsigned N, 
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes
+		) {
+	unsigned M = stateNodes[N].size();
+	
+	for (unsigned i = 1; i < M; i++) {
+		if (stateNodes[N][i] == 0) continue;
+		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
+		//std::vector<double> weights = std::dynamic_pointer_cast<CGM>( marginal )->getWeights();
+		rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>( marginal )->momentMatch();
+	
+		ColVector<double> mean =  std::dynamic_pointer_cast<GC>(matched)->getMean();
+		std::cout << N << ";" << i << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
+		//std::cout << N << ";" << "Weights: " << weights << std::endl;
+	} // for
+} // extractStates()
+
+unsigned factorial (const unsigned N) {
+	return (N == 1 || N == 0) ? 1 : factorial(N-1)*N;
+} // factorial()

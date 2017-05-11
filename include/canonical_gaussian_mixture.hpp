@@ -29,11 +29,16 @@ class CanonicalGaussianMixture;
  * @param components A vector of GaussCanonical factors representing
  * a GM.
  *
+ * @param maxComps The maximum of components allowed in a mixture.
+ *
  * @param threshold The weight threshold.
+ *
+ * @param clip Ensure that components with the greatest mass remain. Use this if
+ * prune if the only reduction techninue you intend to use.
  *
  * @return A reduced vector of GaussCanonical factors representing a GM.
  */
-std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& components, const double threshold);
+std::vector<rcptr<Factor>> pruneComponents( const std::vector<rcptr<Factor>>& components, const unsigned maxComp, const double threshold, bool clip);
 
 /**
  * @brief Merge all closely space components.
@@ -252,7 +257,7 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& vars = {},
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-18,
+				const double threshold = 1e-21,
 				const double unionDistance = 1,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
@@ -307,7 +312,7 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<Matrix<double>>& covs,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-18,
+				const double threshold = 1e-21,
 				const double unionDistance = 1,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
@@ -361,7 +366,7 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<double>& g,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-18,
+				const double threshold = 1e-21,
 				const double unionDistance = 1,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
@@ -405,7 +410,7 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-18,
+				const double threshold = 1e-21,
 				const double unionDistance = 1,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
@@ -454,7 +459,7 @@ class CanonicalGaussianMixture : public Factor {
 				const Matrix<double>& Q,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-18,
+				const double threshold = 1e-21,
 				const double unionDistance = 1,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
@@ -504,7 +509,7 @@ class CanonicalGaussianMixture : public Factor {
 				const Matrix<double>& Q,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-18,
+				const double threshold = 1e-21,
 				const double unionDistance = 1,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
@@ -566,7 +571,7 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-18,
+				const double threshold = 1e-21,
 				const double unionDistance = 1,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,

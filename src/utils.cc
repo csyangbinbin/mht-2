@@ -41,19 +41,13 @@ double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<
 	// Determine the log-odds - excluding vacuous sponge.
 	for (unsigned i = 0; i < M; i++) {
 		if (stateNodes[N][i] == 0) continue;
-		double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getMass();
-		odds += log(mass);
+		double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getLogMass();
+		if (N == 13) {
+			std::cout << "Target " << stateNodes[N][i]->getIdentity() 
+				<< ", Mass: " << mass << " : " << exp(mass) << std::endl;
+		}
+		odds += mass;
 	} // for
-
-	/*
-	if (exp(odds) > 1) {
-		for (unsigned i = 0; i < M; i++) {
-			if (stateNodes[N][i] == 0) continue;
-			double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getMass();
-			std::cout << "calculateEvidence(), mass: " << mass << std::endl;
-		} // for
-	}
-	*/
 
 	return odds;
 } // calculateEvidence()
@@ -67,12 +61,15 @@ void extractStates(const unsigned N,
 	for (unsigned i = 1; i < M; i++) {
 		if (stateNodes[N][i] == 0) continue;
 		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
-		//std::vector<double> weights = std::dynamic_pointer_cast<CGM>( marginal )->getWeights();
 		rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>( marginal )->momentMatch();
 	
 		ColVector<double> mean =  std::dynamic_pointer_cast<GC>(matched)->getMean();
 		std::cout << N << ";" << i << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
-		//std::cout << N << ";" << "Weights: " << weights << std::endl;
+
+		if (std::isnan(mean[0])) {
+			std::cout << *stateNodes[N][i] << std::endl;
+		}
+
 	} // for
 } // extractStates()
 

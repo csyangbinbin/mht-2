@@ -176,6 +176,11 @@ void createMeasurementDistributions(const unsigned N,
 								true);
 					} // for
 			
+
+					if (N == 13) {
+						std::cout << *distributions[a] << std::endl;
+					}
+
 					// Create ConditionalGauss - observeAndReduce does work, but for scope reasons this is easier.
 					rcptr<Factor> clg = uniqptr<Factor>(new CLG(distributions[a], conditionalList));
 
@@ -202,7 +207,7 @@ void measurementUpdate(const unsigned N,
 		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
 		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes
 		) {
-	std::cout << "measurementUpdate(" << N << ")" << std::endl;
+	//std::cout << "measurementUpdate(" << N << ")" << std::endl;
 	unsigned M = measurementNodes[N].size();
 
 	for (unsigned i = 0; i < M; i++) {
@@ -211,14 +216,22 @@ void measurementUpdate(const unsigned N,
 		for (unsigned j = 0; j < adjacent.size(); j++) {
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
-
 			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
 			
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
 			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));
 
-			std::cout << "Target: " << stateNode->getIdentity() << std::endl;
+			/*
+			if (N == 13) std::cout << stateNode->getIdentity() << std::endl;
+
+			if (stateNode->getIdentity() == 0 && N == 13) {
+				double mass = std::dynamic_pointer_cast<CGM>(outgoingMessage)->getMass();
+				if (mass > 10) {
+					std::cout << *outgoingMessage << std::endl;
+				}
+			}
+			*/
 
 			// Update the factor
 			rcptr<Factor> factor = stateNode->getFactor();
@@ -226,7 +239,7 @@ void measurementUpdate(const unsigned N,
 			factor->inplaceCancel(receivedMessage);
 
 			// Prune and/or merge factor
-		        std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
+			std::dynamic_pointer_cast<CGM>(factor)->pruneAndMerge();
 
 			// Update the factor
 			stateNode->setFactor(factor);
@@ -284,7 +297,8 @@ void modelSelection(const unsigned N,
 		} // for
 
 		// Determine odds for current model
-		double modelOneOdds = exp(calculateEvidence(K, stateNodes));		
+		if (N == 15)std::cout << "ModelOneOdds" << std::endl;
+		double modelOneOdds = calculateEvidence(K, stateNodes);		
 
 		// Create new model - just copies of stateNodes and newMeasurementNodes
 		std::map<unsigned, emdw::RVIds> newCurrentStates; newCurrentStates[K-1].resize(M);
@@ -319,23 +333,33 @@ void modelSelection(const unsigned N,
 
 			// Measurement update
 			measurementUpdate(i, newStateNodes, newMeasurementNodes);
+	
+			/*
+			if (i == 13 && N == 15) {
+				std::cout << "i: " << i << std::endl;
+				std::cout << *newStateNodes[i][0] << std::endl;
+			}
+			*/
+
 		} // for
-		smoothTrajectory(N, newStateNodes);
+		//smoothTrajectory(N, newStateNodes);
 
 		// Calculate new model odds
-		double modelTwoOdds = exp(calculateEvidence(K, newStateNodes) + log(mht::kTimeStep*3) - log(numberOfTargets+1) );
+		if (N==15) std::cout << "ModelTwoOdds" << std::endl;
+		double modelTwoOdds = calculateEvidence(K, newStateNodes) + log(mht::kTimeStep*3) - log(numberOfTargets+1);
 		//std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
 		
 		if (modelTwoOdds > modelOneOdds) {
-			std::cout << "N: " << N << "- Use model two now!" << std::endl;	
+			std::cout << "K: " << K << "- Use model two now!" << std::endl;	
 			std::cout << "modelOneOdds: " << modelOneOdds << std::endl;
 			std::cout << "modelTwoOdds: " << modelTwoOdds << std::endl;
 
+			/*
 			// Replace model one
 			for (unsigned i = K-1; i <= N; i++) {
+
 				unsigned M = newStateNodes[i].size();
 
-				/*
 				stateNodes[i].clear(); stateNodes[i].resize(M);
 				currentStates[i].clear(); currentStates[i].resize(M);
 
@@ -343,8 +367,8 @@ void modelSelection(const unsigned N,
 					stateNodes[i][j] = newStateNodes[i][j];
 					currentStates[i][j] = newCurrentStates[i][j];
 				} // for
-				*/
 			} // for
+			*/
 		} // if
 
 		// Clear model two
@@ -377,7 +401,7 @@ void forwardPass(unsigned const N, std::map<unsigned, std::vector<rcptr<Node>>>&
 				stateNodes[N-(j-1)][i]->logMessage( stateNodes[N-j][i], matched );
 			} // for	
 		} // for
-	} // ihttps://en.wikipedia.org/wiki/Practice_padf
+	} // if
 } // forwardPass()
 
 
@@ -387,7 +411,7 @@ void removeStates(const unsigned N,
 		) {
 	unsigned M = stateNodes[N].size();
 
-	for (unsigned i = 0; i < M; i++) {
+	for (unsigned i = 1; i < M; i++) {
 		if (stateNodes[N][i] == 0) continue;
 		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
 		rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>( marginal )->momentMatch();

@@ -609,7 +609,7 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatchCGM() const {
 
 void CanonicalGaussianMixture::pruneAndMerge() {
 	if (N_ > maxComp_) {
-		std::vector<rcptr<Factor>> reduced = pruneComponents(comps_, maxComp_, threshold_, false);
+		std::vector<rcptr<Factor>> reduced = pruneComponents(comps_, maxComp_, threshold_, true);
 		//std::vector<rcptr<Factor>> merged =  mergeComponents(reduced, maxComp_, threshold_, unionDistance_);
 		
 		emdw::RVIds vars(vars_.size());
@@ -653,12 +653,24 @@ std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const {
 double CanonicalGaussianMixture::getNumberOfComponents() const { return N_; } // getNumberOfComponents()
 
 double CanonicalGaussianMixture::getMass() const {
-	double totalMass = 0.0;
+	return exp(getLogMass());
+} // getMass()
+
+double CanonicalGaussianMixture::getLogMass() const {
+	std::vector<double> masses;
+	
 	for (unsigned i = 0; i < comps_.size(); i++) {
-		totalMass += (std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getMass() ;
+		masses.push_back((std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getLogMass()) ;
 	} // for
-	return totalMass;
-} // getMass();
+
+	double maxMass= *std::max_element(masses.begin(), masses.end());
+	double linearSum = 0.0;
+
+	for (unsigned i = 0; i < comps_.size(); i++) linearSum += exp(masses[i] - maxMass);
+
+	return (maxMass + log(linearSum));
+} // getMass()
+
 
 std::vector<double> CanonicalGaussianMixture::getWeights() const {
 	std::vector<double> weights(comps_.size());

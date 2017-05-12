@@ -821,9 +821,17 @@ class CanonicalGaussianMixture : public Factor {
 		double getNumberOfComponents() const;
 
 		/**
-		 * @brief Return the total probability mass of the mxiture.
+		 * @brief Return the total probability mass of the mixture in linear form.
+		 * Require GaussCanonical to have function getLogMass().
 		 */
 		double getMass() const;
+
+
+		/**
+		 * @brief Return the total probability mass of the mixture in logarithmic form.
+		 * Require GaussCanonical to have function getLogMass().
+		 */
+		double getLogMass() const;
 
 		/**
 		 * @brief Return the weights.

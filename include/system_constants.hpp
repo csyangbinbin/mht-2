@@ -87,9 +87,13 @@ namespace mht {
 	extern std::vector<ColVector<double>> kLaunchStateMean;
 	extern std::vector<Matrix<double>> kLaunchStateCov;
 
+	// Generic means
 	extern ColVector<double> kGenericMean;
 	extern Matrix<double> kGenericCov;
 	extern std::vector<double> kGenericWeight;
+
+	// Maximum number of targets
+	extern const unsigned maxNumberOfTargets;
 
 	// Force initialisation
 	extern bool init;

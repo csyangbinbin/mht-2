@@ -38,14 +38,10 @@ double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<
 	unsigned M = stateNodes[N].size();
 	double odds = 0;
 
-	// Determine the log-odds - excluding vacuous sponge.
+	// Determine the log-odds - including vacuous sponge.
 	for (unsigned i = 0; i < M; i++) {
 		if (stateNodes[N][i] == 0) continue;
 		double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getLogMass();
-		if (N == 13) {
-			std::cout << "Target " << stateNodes[N][i]->getIdentity() 
-				<< ", Mass: " << mass << " : " << exp(mass) << std::endl;
-		}
 		odds += mass;
 	} // for
 
@@ -60,16 +56,19 @@ void extractStates(const unsigned N,
 	
 	for (unsigned i = 1; i < M; i++) {
 		if (stateNodes[N][i] == 0) continue;
+
+		// Moment match the current marginal
 		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);
-		rcptr<Factor> matched = std::dynamic_pointer_cast<CGM>( marginal )->momentMatch();
-	
-		ColVector<double> mean =  std::dynamic_pointer_cast<GC>(matched)->getMean();
-		std::cout << N << ";" << i << ";" << mean[0] << ";" << mean[2] << ";" << mean[4] << std::endl;
+		std::vector<rcptr<Factor>> comps = std::dynamic_pointer_cast<CGM>( marginal )->getComponents();
+		
+		// Get the mean and mass
+		for (unsigned j = 0; j < comps.size(); j++) {
+			double mass = std::dynamic_pointer_cast<GC>(comps[j])->getLogMass();
+			ColVector<double> mean =  std::dynamic_pointer_cast<GC>(comps[j])->getMean();
 
-		if (std::isnan(mean[0])) {
-			std::cout << *stateNodes[N][i] << std::endl;
+			std::cout << N+1 << "," << i << "," << j << "," << mean[0] << "," << mean[2] << "," << mean[4] 
+				<< "," << mass << std::endl;
 		}
-
 	} // for
 } // extractStates()
 

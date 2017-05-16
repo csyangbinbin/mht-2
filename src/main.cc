@@ -34,9 +34,9 @@ int main(int, char *argv[]) {
 	// Tee 1
 	currentStates[0][1] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
 	rcptr<Factor> teeOne = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][1]], 
-				{mht::kGenericWeight[0]},
-				{mht::kLaunchStateMean[0]},
-				{mht::kLaunchStateCov[0]}));
+				{1.0},
+				{1.0*mht::kGenericMean},
+				{1.0*mht::kGenericCov}));
 	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne, 1) );
 
 	// Step 4: Loop through every time step
@@ -87,7 +87,6 @@ int main(int, char *argv[]) {
 	}
 
 	// State Extraction
-	std::cout << "N;x;y;z" << std::endl;
 	for (unsigned i = 0; i < kNumberOfTimeSteps; i++) {
 		extractStates(i, currentStates, stateNodes);
 	} // for

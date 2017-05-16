@@ -9,6 +9,7 @@
 #include <map>
 #include <iostream>
 #include <math.h>
+#include <limits>
 #include "sortindices.hpp"
 #include "genvec.hpp"
 #include "genmat.hpp"
@@ -142,10 +143,12 @@ CanonicalGaussianMixture::CanonicalGaussianMixture(
 		if (fail) printf("Could not invert cov[%d] at line number %d in file %s\n", i, __LINE__, __FILE__);
 
 		ColVector<double> h = K*means[i];
+		/*
 		double g = -0.5*( means[i].transpose()*h + vars.size()*log( 2*M_PI ) 
 			- log(detK) ) + log(weights[i]);
+		*/
 
-		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, g, false) );
+		comps_[i] = uniqptr<Factor> ( new GaussCanonical(vars, K, h, log(weights[i]), false) );
 	}
 
 	// Make the sure high level description is sorted.
@@ -573,7 +576,7 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	for(unsigned i = 0; i < dimension; i++) newVars[i] = vars_[i];
 
 	// Determine the GM's total mass
-	double totalMass = getMass();
+	double totalMass = getLogMass();
 
 	// First and second central moments
 	ColVector<double> mean(dimension); mean.assignToAll(0.0);
@@ -585,7 +588,9 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 		rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(factor);
 
 		// Determine relative weight
-		double weight = (gc->getMass())/totalMass;
+		double weight = exp( (gc->getLogMass()) - totalMass );
+
+		//std::cout << "momentMatch(), weight : " << weight << std::endl;
 
 		// Get the mean and covariance
 		ColVector<double> mu = 1.0*(gc->getMean());
@@ -597,7 +602,7 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatch() const {
 	cov -= (mean)*(mean.transpose());
 
 	rcptr<Factor> matched = uniqptr<Factor>(new GaussCanonical(newVars, mean, cov));
-	//std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustMass(totalMass);
+	std::dynamic_pointer_cast<GaussCanonical>(matched)->adjustLogMass(totalMass);
 
 	return uniqptr<Factor>( matched->copy() );
 } // momentMatch()
@@ -609,15 +614,15 @@ uniqptr<Factor> CanonicalGaussianMixture::momentMatchCGM() const {
 
 void CanonicalGaussianMixture::pruneAndMerge() {
 	if (N_ > maxComp_) {
-		std::vector<rcptr<Factor>> reduced = pruneComponents(comps_, maxComp_, threshold_, true);
-		//std::vector<rcptr<Factor>> merged =  mergeComponents(reduced, maxComp_, threshold_, unionDistance_);
+		std::vector<rcptr<Factor>> reduced = pruneComponents(comps_, maxComp_, threshold_, false);
+		std::vector<rcptr<Factor>> merged =  mergeComponents(reduced, maxComp_, threshold_, unionDistance_);
 		
+		// Deep copy of vars
 		emdw::RVIds vars(vars_.size());
 		for (unsigned i = 0; i < vars_.size(); i++) vars[i] = vars_[i];
-		// reduced.clear();
 
 		classSpecificConfigure( vars, 
-					reduced, 
+					merged, 
 					true,
 					maxComp_,
 					threshold_,
@@ -653,22 +658,30 @@ std::vector<rcptr<Factor>> CanonicalGaussianMixture::getComponents() const {
 double CanonicalGaussianMixture::getNumberOfComponents() const { return N_; } // getNumberOfComponents()
 
 double CanonicalGaussianMixture::getMass() const {
+	double mass = getLogMass();
+	if (std::isinf(mass)) return 0;
 	return exp(getLogMass());
 } // getMass()
 
 double CanonicalGaussianMixture::getLogMass() const {
 	std::vector<double> masses;
 	
-	for (unsigned i = 0; i < comps_.size(); i++) {
-		masses.push_back((std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getLogMass()) ;
+	// Get the compnents logarithmic mass - ignoring all components with zero linear mass
+	for (unsigned i = 0; i < N_; i++) {
+		double mass= (std::dynamic_pointer_cast<GaussCanonical>(comps_[i]))->getLogMass();
+		if (!std::isinf(mass)) masses.push_back(mass);
 	} // for
 
+	// If the mixture has no mass - return 0
+	unsigned M = masses.size();
+	if (M == 0) return -std::numeric_limits<double>::infinity();
+	
+	// Else work out the mass
 	double maxMass= *std::max_element(masses.begin(), masses.end());
-	double linearSum = 0.0;
+	double linearSum = 0;
 
-	for (unsigned i = 0; i < comps_.size(); i++) linearSum += exp(masses[i] - maxMass);
-
-	return (maxMass + log(linearSum));
+	for (unsigned i = 0; i < M; i++) linearSum += exp(masses[i] - maxMass);
+	return maxMass + log(linearSum);
 } // getMass()
 
 
@@ -724,12 +737,10 @@ void InplaceNormalizeCGM::inplaceProcess(CanonicalGaussianMixture* lhsPtr) {
 	std::vector<rcptr<Factor>> lhsComp = lhs.getComponents();
 
 	// Get the total mass
-	std::vector<double> weights = lhs.getWeights();
-	double totalMass = 0.0;
-	for (auto& w : weights) totalMass += w;
+	double totalMass = lhs.getLogMass();
 
 	// Divide through by the total mass
-	for (rcptr<Factor> c : lhsComp) std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(1.0/totalMass);
+	for (rcptr<Factor> c : lhsComp) std::dynamic_pointer_cast<GaussCanonical>(c)->adjustLogMass(-totalMass);
 
 	// Reconfigure
 	lhs.classSpecificConfigure(lhs.getVars(), 
@@ -1061,10 +1072,11 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 	std::vector<double> reducedMass; reducedMass.clear();
 
 	for (rcptr<Factor> c : components) {
-		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getMass();
+		double mass = std::dynamic_pointer_cast<GaussCanonical>(c)->getLogMass();
+		
 		originalMass.push_back(mass);
 		
-		if (mass > threshold) {
+		if (mass > threshold && ~std::isinf(mass) && ~std::isnan(mass)) {
 			reduced.push_back( uniqptr<Factor>(c->copy()) );
 			reducedMass.push_back(mass);
 		} // if
@@ -1073,25 +1085,30 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 	// If everything should is below threshold - just take the largest components
 	if (reduced.size() == 0) {
 		// Sort the original weights
-		std::vector<size_t> sortedIndices = sortIndices( originalMass, std::less<double>() );
-		std::vector<double> w = extract<double>( originalMass, sortedIndices );
+
+		std::vector<size_t> sortedIndices = sortIndices( originalMass, std::greater<double>() );
 		std::vector<rcptr<Factor>> newComps = extract<rcptr<Factor>>(components, sortedIndices);
 
 		// Only take the maxComp largest components
-		reduced.clear();
-		for (unsigned i = 0; i < maxComp; i++) reduced.push_back( uniqptr<Factor> ( newComps[i]->copy() ) );
+		std::vector<rcptr<Factor>> clipped; clipped.clear();
+		for (unsigned i = 0; i < maxComp; i++) clipped.push_back( uniqptr<Factor> ( newComps[i]->copy() ) );
+
+		// Return the reduced mixture
+		return clipped;
 	} // if
 
 	// If this is you only reduction technique and you still have too many components
 	if (clip && reduced.size() > maxComp) {
 		// Sort the original weights
-		std::vector<size_t> sortedIndices = sortIndices( reducedMass, std::less<double>() );
-		std::vector<double> w = extract<double>( reducedMass, sortedIndices );
+		std::vector<size_t> sortedIndices = sortIndices( reducedMass, std::greater<double>() );
 		std::vector<rcptr<Factor>> newComps = extract<rcptr<Factor>>(reduced, sortedIndices);
 
 		// Only take the maxComp largest components
-		reduced.clear();
-		for (unsigned i = 0; i < maxComp; i++) reduced.push_back( uniqptr<Factor> ( newComps[i]->copy() ) );
+		std::vector<rcptr<Factor>> clipped; clipped.clear();
+		for (unsigned i = 0; i < maxComp; i++) clipped.push_back( uniqptr<Factor> ( newComps[i]->copy() ) );
+
+		// Return the reduced mixture
+		return clipped;
 	} // if
 
 	return reduced;
@@ -1099,48 +1116,63 @@ std::vector<rcptr<Factor>> pruneComponents(const std::vector<rcptr<Factor>>& com
 
 std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& components, const unsigned maxComp,
 		const double threshold, const double unionDistance) {
-	std::cout << "mergeComponents()" << std::endl;
 	ASSERT( components.size() != 0, "There must be at least one mixand." );
 
+	// Deep copy of vars
+	emdw::RVIds oldVars = (components.back())->getVars();
+	unsigned Q = oldVars.size();
+
 	// Local variables
-	emdw::RVIds vars = (components.back())->getVars();
 	std::vector<rcptr<Factor>> merged; merged.clear();
 	std::vector<rcptr<Factor>> comps; comps.clear();
-	std::vector<double> weights; weights.clear();
+	std::vector<double> masses; masses.clear();
 
-	// Get the weights and copy the factors
+	// Get the mass and copy the factors
 	for (rcptr<Factor> c : components) {
-		comps.push_back( uniqptr<Factor>( c->copy() ) );
-		weights.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass()  );
+		rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>(c);
+		if (!std::isinf(gc->getLogMass())) {
+			comps.push_back( uniqptr<Factor>( c->copy() ) );
+			masses.push_back( gc->getLogMass() );
+		}
 	} // for	
 
-	// Sort the components according to weight
-	std::vector<size_t> sortedIndices = sortIndices( weights, std::less<double>() );
-	std::vector<double> w = extract<double>( weights, sortedIndices );
+	// If there is nothing of significant mass
+	if (comps.size() == 0) return components;
+
+	// Determine the total log mass of the mixture
+	double maxMass= *std::max_element(masses.begin(), masses.end());
+	double linearSum = 0;
+
+	for (unsigned i = 0; i < masses.size(); i++) linearSum += exp(masses[i] - maxMass);
+	double totalMass = maxMass + log(linearSum);
+
+	// Sort the components according to mass
+	std::vector<size_t> sortedIndices = sortIndices( masses, std::greater<double>() );
+	std::vector<double> w = extract<double>( masses, sortedIndices );
 	std::vector<rcptr<Factor>> newComps = extract<rcptr<Factor>>(comps, sortedIndices);
 
 	// Merge closely spaced components
 	while ( !newComps.empty() ) {
 		// Dominant components mean
-		ColVector<double> mu_0 = std::dynamic_pointer_cast<GaussCanonical>(newComps[0])->getMean();
+		ColVector<double> mu_0 = 1.0*std::dynamic_pointer_cast<GaussCanonical>(newComps[0])->getMean();
 		unsigned L = w.size();
 
 		// Local variables
-		std::map<unsigned, bool> indices; indices.clear();
-		ColVector<double> mu( vars.size() ); mu.assignToAll(0.0);
-		Matrix<double> S = gLinear::zeros<double>( vars.size(), vars.size() );
+		std::map<unsigned, bool> indices; 
+		ColVector<double> mu(Q); mu.assignToAll(0.0);
+		Matrix<double> S = gLinear::zeros<double>(Q, Q);
 		double g = 0;
 
 		// Create a merged super Gaussian
 		for (unsigned i = 0; i < L; i++) {
 			rcptr<GaussCanonical> gc = std::dynamic_pointer_cast<GaussCanonical>( newComps[i]  );
 			if (gc->mahalanobis(mu_0) <= unionDistance) {
-				//std::cout << "Merged: " << i << std::endl;
-				ColVector<double> mean = gc->getMean();
+				ColVector<double> mean = 1.0*(gc->getMean());
 				
-				g += w[i];
-				mu += w[i]*(mean);
-				S += w[i]*( gc->getCov() + (mean - mu_0)*( (mean - mu_0).transpose() ) );
+				double weight = exp(w[i] - totalMass); // Relative mass
+				g += weight; // Linear sum of weights
+				mu += weight*(mean);
+				S += weight*( gc->getCov() + (mean - mu_0)*( (mean - mu_0).transpose() ) );
 				
 				indices[i] = true;
 			} // if
@@ -1151,7 +1183,7 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		std::vector<double> wTemp; wTemp.clear();
 		for (unsigned i = 0; i < L; i++) {
 			if (!indices[i]) {
-				cTemp.push_back(newComps[i]);
+				cTemp.push_back(uniqptr<Factor> (newComps[i]->copy()) );
 				wTemp.push_back(w[i]);
 			} // if
 		} // for
@@ -1159,14 +1191,22 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		// Reassign temporary variables to local variables
 		newComps.clear(); w.clear();
 		for (unsigned i = 0 ; i < cTemp.size(); i++) {
-			newComps.push_back(cTemp[i]);
+			newComps.push_back(uniqptr<Factor> (cTemp[i]->copy()) );
 			w.push_back(wTemp[i]);
 		} // for
 
 		// Create a new Gaussian
-		rcptr<Factor> scaled = uniqptr<Factor> (new GaussCanonical( vars, mu/g, S/g, true ));
-		std::dynamic_pointer_cast<GaussCanonical>(scaled)->adjustMass(g);
-		merged.push_back(scaled);
+		emdw::RVIds newVars(Q);
+		for (unsigned i = 0; i < Q; i++) newVars[i] = oldVars[i];
+		ColVector<double> newMean = mu/g; Matrix<double> newS = S/g;
+		rcptr<Factor> scaled = uniqptr<Factor> (new GaussCanonical( newVars, newMean, newS, false ));
+
+		// Determine new log mass
+		double logMass = totalMass + log(g);
+		std::dynamic_pointer_cast<GaussCanonical>(scaled)->adjustLogMass(logMass);
+		
+		// Push the merged component back
+		merged.push_back( uniqptr<Factor>(scaled->copy()) );
 	} // while	
 
 	// If there are still too many components
@@ -1178,11 +1218,11 @@ std::vector<rcptr<Factor>> mergeComponents(const std::vector<rcptr<Factor>>& com
 		// Extract weights and copy
 		for ( rcptr<Factor> c : merged ) {
 			sigComps.push_back( uniqptr<Factor> (c->copy() ) );
-			sigWeights.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getMass() );
+			sigWeights.push_back( std::dynamic_pointer_cast<GaussCanonical>(c)->getLogMass() );
 		} // for
 		
 		// Sort according to weight
-		std::vector<size_t> sorted = sortIndices( sigWeights, std::less<double>() );
+		std::vector<size_t> sorted = sortIndices( sigWeights, std::greater<double>() );
 		std::vector<rcptr<Factor>> ordered = extract<rcptr<Factor>>(sigComps, sorted);
 		
 		// Select only the N largest components	

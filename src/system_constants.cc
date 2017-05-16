@@ -32,7 +32,7 @@ std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
 Matrix<double> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 9;
+const double mht::kValidationThreshold = 16;
 
 // Smoothing paramaters
 const unsigned mht::kNumberOfBackSteps = 2;
@@ -50,9 +50,13 @@ const double mht::kMergeDistance = 5;
 std::vector<ColVector<double>> mht::kLaunchStateMean;
 std::vector<Matrix<double>> mht::kLaunchStateCov;
 
+// Generic Means
 ColVector<double> mht::kGenericMean;
 Matrix<double> mht::kGenericCov;
 std::vector<double> mht::kGenericWeight;
+
+// Maximum number of targets
+const unsigned mht::maxNumberOfTargets = 10;
 
 bool init = initialiseVariables();
 
@@ -115,9 +119,9 @@ bool initialiseVariables() {
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	RCov(0, 0) = 1; RCov(1, 1) = 5;
-	RCov(2, 2) = 1; RCov(3, 3) = 5;
-	RCov(4, 4) = 1; RCov(5, 5) = 5;
+	RCov(0, 0) = 1; RCov(1, 1) = 4;
+	RCov(2, 2) = 1; RCov(3, 3) = 4;
+	RCov(4, 4) = 1; RCov(5, 5) = 4;
 
 	return RCov;
 } // initialiseRCovMat()
@@ -126,7 +130,7 @@ Matrix<double> initialiseQCovMat () {
 	Matrix<double> QCov;
 	
 	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 2.25; QCov(1, 1) = 1;
+	QCov(0, 0) = 9; QCov(1, 1) = 4;
 
 	return QCov;
 } // initialiseQCovMat()
@@ -134,9 +138,9 @@ Matrix<double> initialiseQCovMat () {
 ColVector<double> initialiseClutterMean() {
 	ColVector<double> clutterMean(mht::kStateSpaceDim); clutterMean *= 0;
 
-	clutterMean[0] = -70.00; clutterMean[1] = 0;
-	clutterMean[2] = -25.00; clutterMean[3] = 0;
-	clutterMean[4] = 20.00;  clutterMean[5] = 0;
+	clutterMean[0] = -70; clutterMean[1] = -10;
+	clutterMean[2] = -20; clutterMean[3] = -10;
+	clutterMean[4] = 20; clutterMean[5] = 20;
 
 	return clutterMean;
 } // initialiseClutterMean()
@@ -145,7 +149,7 @@ Matrix<double> initialiseClutterCovMat () {
 	Matrix<double> clutterCov;
 	
 	clutterCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov)(i, i) = 90000;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov)(i, i) = 500000;
 
 	return clutterCov;
 } // initialiseClutterCovMat()
@@ -245,9 +249,9 @@ std::vector<Matrix<double>> initialiseLaunchStateCov() {
 ColVector<double> initialiseGenericMean() {
 	ColVector<double> genericMean(mht::kStateSpaceDim); genericMean *= 0;
 	
-	genericMean[0] = -12.331; genericMean[1] = -10;
-	genericMean[2] = 13.851; genericMean[3] = -10;
-	genericMean[4] = -5.139; genericMean[5] = 20;
+	genericMean[0] = -13.797; genericMean[1] = -30;
+	genericMean[2] = 16.525; genericMean[3] = -15;
+	genericMean[4] = -3.5824; genericMean[5] = 15;
 
 	return genericMean;
 } // initialiseGenricMean()
@@ -255,14 +259,14 @@ ColVector<double> initialiseGenericMean() {
 Matrix<double> initialiseGenericCov() {
 	Matrix<double> genericCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 	
-	genericCov(0, 0) = 9; genericCov(1, 1) = 25;
-	genericCov(2, 2) = 9; genericCov(3, 3) = 25;
-	genericCov(4, 4) = 16; genericCov(5, 5) = 49;
+	genericCov(0, 0) = 1; genericCov(1, 1) = 9;
+	genericCov(2, 2) = 1; genericCov(3, 3) = 9;
+	genericCov(4, 4) = 1; genericCov(5, 5) = 9;
 
 	return genericCov;
 } // initialiseGenericMean()
 
 std::vector<double> initialiseGenericWeights() {
-	std::vector<double> weights = {1.0, 1.0, 1.0};
+	std::vector<double> weights = {1.0/3, 1.0/3, 1.0/3};
 	return weights;
 } // initialiseGenericWeights()

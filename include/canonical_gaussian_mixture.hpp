@@ -244,7 +244,7 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param maxComponents The maximum allowable number of components in the mixture.
 		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute. Given in logarithmic form.
 		 *
 		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
 		 * If the distance between their means is less than this threshold they merged into 
@@ -257,8 +257,8 @@ class CanonicalGaussianMixture : public Factor {
 				const emdw::RVIds& vars = {},
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-21,
-				const double unionDistance = 1,
+				const double threshold = -2000,
+				const double unionDistance = 9,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -281,7 +281,7 @@ class CanonicalGaussianMixture : public Factor {
 		 * parameters.
 		 *
 		 * @param vars Each variable in the PGM will be identified
-		 * with a specific integer that indentifies it.
+		 * with a specific integer that identifies it.
 		 *
 		 * @param weights The weight of a mixture component. The weights
 		 * must assume that Gaussian is otherwise normalised, they must given
@@ -296,7 +296,7 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param maxComponents The maximum allowable number of components in the mixture.
 		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute. Given in logarithmic form.
 		 *
 		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
 		 * If the distance between their means is less than this threshold they merged into 
@@ -312,8 +312,8 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<Matrix<double>>& covs,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-21,
-				const double unionDistance = 1,
+				const double threshold = -2000,
+				const double unionDistance = 9,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -336,7 +336,7 @@ class CanonicalGaussianMixture : public Factor {
 		 * parameters.
 		 * 
 		 * @param vars Each variable in the PGM will be identified
-		 * with a specific integer that indentifies it.
+		 * with a specific integer that identifies it.
 		 *
 		 * @param prec A vector of the components' precision matrices.
 		 *
@@ -350,7 +350,7 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param maxComponents The maximum allowable number of components in the mixture.
 		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute. Given in logarithmic form.
 		 *
 		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
 		 * If the distance between their means is less than this threshold they merged into 
@@ -366,8 +366,8 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<double>& g,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-21,
-				const double unionDistance = 1,
+				const double threshold = -2000,
+				const double unionDistance = 9,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -396,7 +396,7 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param maxComponents The maximum allowable number of components in the mixture.
 		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute. Given in logarithmic form.
 		 *
 		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
 		 * If the distance between their means is less than this threshold they merged into 
@@ -410,8 +410,8 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-21,
-				const double unionDistance = 1,
+				const double threshold = -2000,
+				const double unionDistance = 9,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -443,7 +443,7 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param maxComponents The maximum allowable number of components in the mixture.
 		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute. Given in logarithmic form.
 		 *
 		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
 		 * If the distance between their means is less than this threshold they merged into 
@@ -459,8 +459,8 @@ class CanonicalGaussianMixture : public Factor {
 				const Matrix<double>& Q,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-21,
-				const double unionDistance = 1,
+				const double threshold = -2000,
+				const double unionDistance = 9,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -493,7 +493,7 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param maxComponents The maximum allowable number of components in the mixture.
 		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute. Given in logarithmic form.
 		 *
 		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
 		 * If the distance between their means is less than this threshold they merged into 
@@ -509,8 +509,8 @@ class CanonicalGaussianMixture : public Factor {
 				const Matrix<double>& Q,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-21,
-				const double unionDistance = 1,
+				const double threshold = -2000,
+				const double unionDistance = 9,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,
@@ -557,7 +557,7 @@ class CanonicalGaussianMixture : public Factor {
 		 *
 		 * @param maxComponents The maximum allowable number of components in the mixture.
 		 *
-		 * @param threshold The mimimum allowable mass a component is allowed to contribute.
+		 * @param threshold The mimimum allowable mass a component is allowed to contribute. Given in logarithmic form.
 		 *
 		 * @param unionDistance The minimum Mahalanobis distance allowed between components.
 		 * If the distance between their means is less than this threshold they merged into 
@@ -571,8 +571,8 @@ class CanonicalGaussianMixture : public Factor {
 				const std::vector<rcptr<Factor>>& components,
 				bool presorted = false,
 				const unsigned maxComponents = 3,
-				const double threshold = 1e-21,
-				const double unionDistance = 1,
+				const double threshold = -2000,
+				const double unionDistance = 9,
 				const rcptr<FactorOperator>& inplaceNormalizer = 0,
 				const rcptr<FactorOperator>& normalizer = 0,
 				const rcptr<FactorOperator>& inplaceAbsorber = 0,

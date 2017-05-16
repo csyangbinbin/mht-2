@@ -531,12 +531,14 @@ Factor* MarginalizeCG::process(const ConditionalGaussian* lhsPtr, const emdw::RV
 			double potential = dtConvert->potentialAt(discretePrior->getVars(), 
 					emdw::RVVals{ (unsigned short)(i.first) });
 
+			potential = log(potential);
+
 			// Get the factor
 			rcptr<Factor> component = i.second;
 
 			if (std::dynamic_pointer_cast<GaussCanonical>(component)) {
 				// Adjust the mass
-				std::dynamic_pointer_cast<GaussCanonical>(component)->adjustMass(potential);
+				std::dynamic_pointer_cast<GaussCanonical>(component)->adjustLogMass(potential);
 				mixtureComponents.push_back(component);
 			} else {
 				rcptr<CanonicalGaussianMixture> cgmConvert = 
@@ -545,7 +547,7 @@ Factor* MarginalizeCG::process(const ConditionalGaussian* lhsPtr, const emdw::RV
 
 				// Adjust the mass
 				for (rcptr<Factor> c : components) {
-					std::dynamic_pointer_cast<GaussCanonical>(c)->adjustMass(potential);
+					std::dynamic_pointer_cast<GaussCanonical>(c)->adjustLogMass(potential);
 					mixtureComponents.push_back(c);
 				} // for
 			}  // if

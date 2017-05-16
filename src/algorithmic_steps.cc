@@ -46,6 +46,7 @@ void predictStates(const unsigned N,
 			// Get the marginal over previous variables
 			rcptr<Factor> prevMarginal = (stateNodes[N-1][i])->marginalize(elementsOfX[currentStates[N-1][i]]);
 			prevMarginal = std::dynamic_pointer_cast<CGM>(prevMarginal)->momentMatchCGM();
+			prevMarginal->inplaceNormalize();
 
 			// Create a new factor over current variables
 			stateJoint = uniqptr<Factor>(new CGM( prevMarginal, 
@@ -95,10 +96,10 @@ void createMeasurementDistributions(const unsigned N,
 	measurementNodes[N].clear(); 
 	currentMeasurements[N].clear();
 
-	// For each sensor
+	// For each sensorI
 	for (unsigned i = 0; i < mht::kNumSensors; i++) {
 		// Retrieve measurements
-		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N); // Hack time offset.
+		std::vector<ColVector<double>> measurements = measurementManager->getSensorPoints(i, N + 6); // Hack time offset.
 
 		// Local Scope
 		std::vector<emdw::RVIdType> sensorMeasurements; 
@@ -124,16 +125,29 @@ void createMeasurementDistributions(const unsigned N,
 				assocHypotheses[a] = uniqptr<DASS>(new DASS{0});
 				colMeasurements[z] = measurements[j];
 
+
+				//std::cout << "\n\nN : " << N << std::endl;
+				//std::cout << "M : " << M << std::endl;
+				//std::cout << "observedVals : " << measurements[j] << std::endl;
+
 				// Form hypotheses over each measurement
 				for (unsigned k = 1; k < M; k++) {
 					if (validationRegion[k].size() == 0) continue;
+					
+					//std::cout << "k : " << k << std::endl;
 					double distance = 
 						(std::dynamic_pointer_cast<GC>(validationRegion[k][i]))->mahalanobis(measurements[j]);
-						
+					//std::cout << "Distance : " << distance  << std::endl;
+
+
 					if (distance < mht::kValidationThreshold) {
 						assocHypotheses[a]->push_back(k); 
+						//std::cout << "\nPushed back " << k << std::endl;
+						//std::cout << "Distance : " << distance  << std::endl;
 					} // if
 				} // for
+
+				//std::cout << "\n\n" << std::endl;
 			} // if
 		} // for
 
@@ -176,13 +190,14 @@ void createMeasurementDistributions(const unsigned N,
 								true);
 					} // for
 			
-
-					if (N == 13) {
-						std::cout << *distributions[a] << std::endl;
-					}
-
 					// Create ConditionalGauss - observeAndReduce does work, but for scope reasons this is easier.
 					rcptr<Factor> clg = uniqptr<Factor>(new CLG(distributions[a], conditionalList));
+
+					/*
+					std::cout << "\n\nN : " << N << std::endl;
+					std::cout << "M : " << M << std::endl;
+					std::cout << *distributions[a] << "\n\n" << std::endl;
+					*/
 
 					// Create a measurement node and connect it to state nodes
 					rcptr<Node> measNode = uniqptr<Node>(new Node(clg));
@@ -210,6 +225,9 @@ void measurementUpdate(const unsigned N,
 	//std::cout << "measurementUpdate(" << N << ")" << std::endl;
 	unsigned M = measurementNodes[N].size();
 
+	//std::cout << "N : " << N << std::endl;
+	//std::cout << "M : " << stateNodes[N].size() << std::endl;
+
 	for (unsigned i = 0; i < M; i++) {
 		std::vector<std::weak_ptr<Node>> adjacent = measurementNodes[N][i]->getAdjacentNodes();
 
@@ -217,21 +235,12 @@ void measurementUpdate(const unsigned N,
 			// Get the neighbouring state node and message it sent to the measurement clique
 			rcptr<Node> stateNode = adjacent[j].lock();
 			rcptr<Factor> receivedMessage = measurementNodes[N][i]->getReceivedMessage( stateNode );
+
+			//std::cout << "Target " << stateNode->getIdentity() << std::endl;
 			
 			// Determine the outgoing message
 			emdw::RVIds sepset = measurementNodes[N][i]->getSepset( stateNode );
 			rcptr<Factor> outgoingMessage =  (measurementNodes[N][i]->marginalize( sepset, true));
-
-			/*
-			if (N == 13) std::cout << stateNode->getIdentity() << std::endl;
-
-			if (stateNode->getIdentity() == 0 && N == 13) {
-				double mass = std::dynamic_pointer_cast<CGM>(outgoingMessage)->getMass();
-				if (mass > 10) {
-					std::cout << *outgoingMessage << std::endl;
-				}
-			}
-			*/
 
 			// Update the factor
 			rcptr<Factor> factor = stateNode->getFactor();
@@ -245,6 +254,7 @@ void measurementUpdate(const unsigned N,
 			stateNode->setFactor(factor);
 		} // for
 	} // for
+	//std::cout << "\n\n" << std::endl;
 } // measurementUpdate()
 
 void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
@@ -267,9 +277,8 @@ void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Nod
 				
 				matched->inplaceCancel(receivedMessage);
 
-				// Received node absorbs message, divides previous message and logs the new message
 				stateNodes[N-(j+1)][i]->inplaceAbsorb( matched.get()  );
-				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], uniqptr<Factor>(matched->copy()) );
+				stateNodes[N-(j+1)][i]->logMessage( stateNodes[N-j][i], uniqptr<Factor>(matched->copy()) );	
 			} // for
 		} // for
 	} // if
@@ -296,85 +305,75 @@ void modelSelection(const unsigned N,
 			if (stateNodes[K][i] != 0) numberOfTargets += 1;
 		} // for
 
-		// Determine odds for current model
-		if (N == 15)std::cout << "ModelOneOdds" << std::endl;
-		double modelOneOdds = calculateEvidence(K, stateNodes);		
+		if (numberOfTargets < mht::maxNumberOfTargets) {    //(K-1) > 9 && (K-1) < 20) {
 
-		// Create new model - just copies of stateNodes and newMeasurementNodes
-		std::map<unsigned, emdw::RVIds> newCurrentStates; newCurrentStates[K-1].resize(M);
-		std::map<unsigned, std::vector<rcptr<Node>>> newStateNodes; newStateNodes[K-1].resize(M);
-		std::map<unsigned, std::vector<rcptr<Node>>> newMeasurementNodes;
+			// Determine odds for current model
+			double modelOneOdds = calculateEvidence(K, stateNodes);		
 
-		//std::cout << "New prior creation: " << std::endl;
-		
-		// Copy the stateNodes for time K-1
-		for (unsigned i = 0; i < M; i++) {
-			newCurrentStates[K-1][i] = currentStates[K-1][i];
-			newStateNodes[K-1][i] = stateNodes[K-1][i];
-		} // for
+			// Create new model - just copies of stateNodes and newMeasurementNodes
+			std::map<unsigned, emdw::RVIds> newCurrentStates; newCurrentStates[K-1].resize(M);
+			std::map<unsigned, std::vector<rcptr<Node>>> newStateNodes; newStateNodes[K-1].resize(M);
+			std::map<unsigned, std::vector<rcptr<Node>>> newMeasurementNodes;
+
+			//std::cout << "New prior creation: " << std::endl;
 			
-		// Create a prior for the new target and add it to the preceding time step
-		newCurrentStates[K-1].push_back(addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim));
-		rcptr<Factor> newTargetPrior = uniqptr<Factor>(new CGM(elementsOfX[newCurrentStates[K-1][M]], 
-					{mht::kGenericWeight[0]},
-					{mht::kLaunchStateMean[0]},
-					{mht::kLaunchStateCov[0]}));
-		newStateNodes[K-1].push_back(uniqptr<Node> (new Node(newTargetPrior, M) ));
-
-		// Propagate the new model forward
-		for (unsigned i = K; i <= N; i++) {
-			// Predict states
-			predictStates(i, newCurrentStates, virtualMeasurementVars, newStateNodes, predMarginals, predMeasurements, 
-				validationRegion);
-
-			// Recreate measurement distributions
-			createMeasurementDistributions(i, newCurrentStates, virtualMeasurementVars, newStateNodes,
-					newMeasurementNodes, predMarginals, predMeasurements, validationRegion);
-
-			// Measurement update
-			measurementUpdate(i, newStateNodes, newMeasurementNodes);
-	
-			/*
-			if (i == 13 && N == 15) {
-				std::cout << "i: " << i << std::endl;
-				std::cout << *newStateNodes[i][0] << std::endl;
-			}
-			*/
-
-		} // for
-		//smoothTrajectory(N, newStateNodes);
-
-		// Calculate new model odds
-		if (N==15) std::cout << "ModelTwoOdds" << std::endl;
-		double modelTwoOdds = calculateEvidence(K, newStateNodes) + log(mht::kTimeStep*3) - log(numberOfTargets+1);
-		//std::cout << "modelTwoOdds: " << exp(modelTwoOdds) << std::endl;
-		
-		if (modelTwoOdds > modelOneOdds) {
-			std::cout << "K: " << K << "- Use model two now!" << std::endl;	
-			std::cout << "modelOneOdds: " << modelOneOdds << std::endl;
-			std::cout << "modelTwoOdds: " << modelTwoOdds << std::endl;
-
-			/*
-			// Replace model one
-			for (unsigned i = K-1; i <= N; i++) {
-
-				unsigned M = newStateNodes[i].size();
-
-				stateNodes[i].clear(); stateNodes[i].resize(M);
-				currentStates[i].clear(); currentStates[i].resize(M);
-
-				for (unsigned j = 0; j < M; j++) {
-					stateNodes[i][j] = newStateNodes[i][j];
-					currentStates[i][j] = newCurrentStates[i][j];
-				} // for
+			// Copy the stateNodes for time K-1
+			for (unsigned i = 0; i < M; i++) {
+				newCurrentStates[K-1][i] = currentStates[K-1][i];
+				newStateNodes[K-1][i] = stateNodes[K-1][i];
 			} // for
-			*/
-		} // if
+				
+			// Create a prior for the new target and add it to the preceding time step
+			newCurrentStates[K-1].push_back(addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim));
+			rcptr<Factor> newTargetPrior = uniqptr<Factor>(new CGM(elementsOfX[newCurrentStates[K-1][M]], 
+						{1.0},
+						{1.0*mht::kGenericMean},
+						{1.0*mht::kGenericCov}));
+			newStateNodes[K-1].push_back(uniqptr<Node> (new Node(newTargetPrior, M) ));
 
-		// Clear model two
-		// newStateNodes.clear(); newCurrentStates.clear();
-		
-		//std::cout << "\n\n" << std::endl;
+			// Propagate the new model forward
+			for (unsigned i = K; i <= N; i++) {
+				// Predict states
+				predictStates(i, newCurrentStates, virtualMeasurementVars, newStateNodes, predMarginals, predMeasurements, 
+					validationRegion);
+
+				// Recreate measurement distributions
+				createMeasurementDistributions(i, newCurrentStates, virtualMeasurementVars, newStateNodes,
+						newMeasurementNodes, predMarginals, predMeasurements, validationRegion);
+
+				// Measurement update
+				measurementUpdate(i, newStateNodes, newMeasurementNodes);
+			} // for
+			smoothTrajectory(N, newStateNodes);
+
+			// Calculate new model odds
+			double modelTwoOdds = calculateEvidence(K, newStateNodes) + log(mht::kTimeStep*2) - log(numberOfTargets+1);
+			
+			if (modelTwoOdds > modelOneOdds) {
+				std::cout << "K: " << K << "- Use model two now!" << std::endl;	
+				std::cout << "modelOneOdds: " << modelOneOdds << std::endl;
+				std::cout << "modelTwoOdds: " << modelTwoOdds << std::endl;
+
+				// Replace model one
+				for (unsigned i = K-1; i <= N; i++) {
+
+					unsigned M = newStateNodes[i].size();
+
+					stateNodes[i].clear(); stateNodes[i].resize(M);
+					currentStates[i].clear(); currentStates[i].resize(M);
+
+					for (unsigned j = 0; j < M; j++) {
+						stateNodes[i][j] = newStateNodes[i][j];
+						currentStates[i][j] = newCurrentStates[i][j];
+					} // for
+				} // for
+			} // if
+
+			// Clear model two
+			// newStateNodes.clear(); newCurrentStates.clear();
+			
+			//std::cout << "\n\n" << std::endl;
+	   } // if
 	} // if
 } // modelSelection()
 

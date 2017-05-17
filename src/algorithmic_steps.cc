@@ -308,7 +308,7 @@ void modelSelection(const unsigned N,
 		if (numberOfTargets < mht::maxNumberOfTargets) {    //(K-1) > 9 && (K-1) < 20) {
 
 			// Determine odds for current model
-			double modelOneOdds = calculateEvidence(K, stateNodes);		
+			double modelOneOdds = calculateEvidence(K, N, stateNodes);		
 
 			// Create new model - just copies of stateNodes and newMeasurementNodes
 			std::map<unsigned, emdw::RVIds> newCurrentStates; newCurrentStates[K-1].resize(M);
@@ -334,25 +334,39 @@ void modelSelection(const unsigned N,
 			// Propagate the new model forward
 			for (unsigned i = K; i <= N; i++) {
 				// Predict states
-				predictStates(i, newCurrentStates, virtualMeasurementVars, newStateNodes, predMarginals, predMeasurements, 
-					validationRegion);
+				predictStates(i, 
+						newCurrentStates, 
+						virtualMeasurementVars, 
+						newStateNodes, 
+						predMarginals, 
+						predMeasurements, 
+						validationRegion);
 
 				// Recreate measurement distributions
-				createMeasurementDistributions(i, newCurrentStates, virtualMeasurementVars, newStateNodes,
-						newMeasurementNodes, predMarginals, predMeasurements, validationRegion);
+				createMeasurementDistributions(i, 
+						newCurrentStates, 
+						virtualMeasurementVars, 
+						newStateNodes,
+						newMeasurementNodes, 
+						predMarginals, 
+						predMeasurements, 
+						validationRegion);
 
 				// Measurement update
-				measurementUpdate(i, newStateNodes, newMeasurementNodes);
+				measurementUpdate(i, 
+						newStateNodes, 
+						newMeasurementNodes);
 			} // for
 			smoothTrajectory(N, newStateNodes);
 
 			// Calculate new model odds
-			double modelTwoOdds = calculateEvidence(K, newStateNodes) + log(mht::kTimeStep*2) - log(numberOfTargets+1);
+			double modelTwoOdds = calculateEvidence(K, N, newStateNodes) 
+				+ log(mht::kTimeStep*1) - log(numberOfTargets+1);
 			
 			if (modelTwoOdds > modelOneOdds) {
-				std::cout << "K: " << K << "- Use model two now!" << std::endl;	
-				std::cout << "modelOneOdds: " << modelOneOdds << std::endl;
-				std::cout << "modelTwoOdds: " << modelTwoOdds << std::endl;
+				std::cerr << "K: " << K << "- Use model two now!" << "\n";	
+				std::cerr << "modelOneOdds: " << modelOneOdds << "\n";
+				std::cerr << "modelTwoOdds: " << modelTwoOdds << "\n";
 
 				// Replace model one
 				for (unsigned i = K-1; i <= N; i++) {

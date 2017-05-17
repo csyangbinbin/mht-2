@@ -56,7 +56,7 @@ Matrix<double> mht::kGenericCov;
 std::vector<double> mht::kGenericWeight;
 
 // Maximum number of targets
-const unsigned mht::maxNumberOfTargets = 10;
+const unsigned mht::maxNumberOfTargets = 3;
 
 bool init = initialiseVariables();
 
@@ -259,9 +259,9 @@ ColVector<double> initialiseGenericMean() {
 Matrix<double> initialiseGenericCov() {
 	Matrix<double> genericCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 	
-	genericCov(0, 0) = 1; genericCov(1, 1) = 9;
-	genericCov(2, 2) = 1; genericCov(3, 3) = 9;
-	genericCov(4, 4) = 1; genericCov(5, 5) = 9;
+	genericCov(0, 0) = 4; genericCov(1, 1) = 100;
+	genericCov(2, 2) = 4; genericCov(3, 3) = 100;
+	genericCov(4, 4) = 4; genericCov(5, 5) = 100;
 
 	return genericCov;
 } // initialiseGenericMean()

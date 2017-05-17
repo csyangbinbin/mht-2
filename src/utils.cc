@@ -34,15 +34,21 @@ unsigned addVariables (emdw::RVIds& globalVariables,
 	return localVariables[M];
 } // addVariables()
 
-double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
-	unsigned M = stateNodes[N].size();
+double calculateEvidence(const unsigned K, 
+		const unsigned N,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes) {
+	
 	double odds = 0;
 
-	// Determine the log-odds - including vacuous sponge.
-	for (unsigned i = 0; i < M; i++) {
-		if (stateNodes[N][i] == 0) continue;
-		double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][i]->getFactor())->getLogMass();
-		odds += mass;
+	for (unsigned i = K; i <= N; i++) {
+		unsigned M = stateNodes[i].size();
+		
+		// Determine the log-odds - including vacuous sponge.
+		for (unsigned j = 0; j < M; j++) {
+			if (stateNodes[N][j] == 0) continue;
+			double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][j]->getFactor())->getLogMass();
+			odds += mass;
+		} // for
 	} // for
 
 	return odds;
@@ -68,7 +74,7 @@ void extractStates(const unsigned N,
 
 			std::cout << N+1 << "," << i << "," << j << "," << mean[0] << "," << mean[2] << "," << mean[4] 
 				<< "," << mass << std::endl;
-		}
+		} // for
 	} // for
 } // extractStates()
 

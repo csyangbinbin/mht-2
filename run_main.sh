@@ -28,6 +28,7 @@ if [ $RUN_OPTIONS = 0 ]
 then
 	rm zed.csv;
 	.$RUN_PATH > zed.csv;
+	cp zed.csv ~/devel/gmm_phd/data;
 fi
 
 #Run the tests

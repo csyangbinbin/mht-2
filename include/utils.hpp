@@ -45,7 +45,9 @@ unsigned addVariables (emdw::RVIds& globalVariables,
  *
  * @return The evidence provided in logarithmic form.
  */
-double calculateEvidence(const unsigned N, std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
+double calculateEvidence(const unsigned K,
+		const unsigned N,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
 
 /**
  * @brief Extract the targets' states at each time step.

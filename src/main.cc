@@ -19,71 +19,116 @@ int main(int, char *argv[]) {
 
 	// Step 0: Initialise the variables
 	initialiseVariables();
+	unsigned operationMode = 1;
 
 	// Step 1 : Get the measurements
-	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_7", mht::kNumSensors));
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
 	// Step 2 : Create a GraphBuilder object
 	graphBuilder = uniqptr<GraphBuilder>(new GraphBuilder());
 
 	// Step 3 : Set up the prior
-	currentStates[0].clear(); currentStates[0].resize(2); vecX.push_back(0);
-	stateNodes[0].clear(); stateNodes[0].resize(2); stateNodes[0][0] = 0;
+	currentStates[0].clear(); currentStates[0].resize(mht::kNumSensors+1); 
+	stateNodes[0].clear(); stateNodes[0].resize(mht::kNumSensors+1); 
+	
+	for (unsigned i = 0; i < mht::kNumSensors; i++) { 
+		vecX.push_back(i);
+		stateNodes[0][i] = 0;
+	} // for
 
 	// Tee 1
-	currentStates[0][1] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
-	rcptr<Factor> teeOne = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][1]], 
+	currentStates[0][mht::kNumSensors] = addVariables(variables, vecX, elementsOfX, mht::kStateSpaceDim);
+	rcptr<Factor> teeOne = uniqptr<Factor>(new CGM(elementsOfX[currentStates[0][mht::kNumSensors]], 
 				{1.0},
 				{1.0*mht::kGenericMean},
 				{1.0*mht::kGenericCov}));
-	stateNodes[0][1] = uniqptr<Node> (new Node(teeOne, 1) );
+	stateNodes[0][mht::kNumSensors] = uniqptr<Node> (new Node(teeOne, mht::kNumSensors) );
 
 	// Step 4: Loop through every time step
 	for (unsigned i = 1; i < kNumberOfTimeSteps; i++) {
-		// Prediction
-		predictStates(i, 
-				currentStates, 
-				virtualMeasurementVars, 
-				stateNodes, 
-				predMarginals, 
-				predMeasurements, 
-				validationRegion);
 
-		// Create measurement distributions
-		createMeasurementDistributions(i, 
-				currentStates, 
-				virtualMeasurementVars, 
-				stateNodes, 
-				measurementNodes, 
-				predMarginals, 
-				predMeasurements, 
-				validationRegion);
-		
-		// Measurement update
-		measurementUpdate(i, 
-				stateNodes,
-				measurementNodes
-				);
+		if (operationMode == 0) {
+			// Prediction
+			predictStatesSU(i, 
+					currentStates, 
+					virtualMeasurementVars, 
+					stateNodes, 
+					predMarginals, 
+					predMeasurements, 
+					validationRegion);
 
-		// Backward pass and recalibration
-		smoothTrajectory(i, stateNodes);
+			// Create measurement distributions
+			createMeasurementDistributionsSU(i, 
+					currentStates, 
+					virtualMeasurementVars, 
+					stateNodes, 
+					measurementNodes, 
+					predMarginals, 
+					predMeasurements, 
+					validationRegion);
+			
+			// Measurement update
+			measurementUpdateSU(i, 
+					stateNodes,
+					measurementNodes
+					);
 
-		// Decision making
-		modelSelection(i,
-				currentStates, 
-				virtualMeasurementVars, 
-				stateNodes, 
-				measurementNodes, 
-				predMarginals, 
-				predMeasurements, 
-				validationRegion);
+			// Backward pass and recalibration
+			smoothTrajectory(i, stateNodes);
 
-		// Forwards pass
-		forwardPass(i, stateNodes);
+			// Decision making
+			modelSelectionSU(i,
+					currentStates, 
+					virtualMeasurementVars, 
+					stateNodes, 
+					measurementNodes, 
+					predMarginals, 
+					predMeasurements, 
+					validationRegion);
 
-		// Remove states
-		removeStates(i, currentStates, stateNodes);
+			// Forwards pass
+			forwardPass(i, stateNodes);
+
+			// Remove states
+			removeStates(i, currentStates, stateNodes);
+
+		} else if (operationMode == 1) {
+			// Prediction
+			predictStatesAU(i,
+					currentStates, 
+					stateNodes);
+
+			// Measurement update
+			measurementUpdateAU(i, 
+					currentStates, 
+					virtualMeasurementVars, 
+					stateNodes, 
+					measurementNodes, 
+					predMarginals, 
+					predMeasurements, 
+					validationRegion);
+
+			// Backward pass and recalibration
+			smoothTrajectory(i, stateNodes);
+
+			// Decision making
+			modelSelectionAU(i,
+					currentStates, 
+					virtualMeasurementVars, 
+					stateNodes, 
+					measurementNodes, 
+					predMarginals, 
+					predMeasurements, 
+					validationRegion);
+
+
+			// Forwards pass
+			forwardPass(i, stateNodes);
+
+			// Remove states
+			removeStates(i, currentStates, stateNodes);
+		} // if
 	}
 
 	// State Extraction

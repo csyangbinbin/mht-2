@@ -23,8 +23,8 @@
 // Function prototypes
 Matrix<double> initialiseRCovMat();
 Matrix<double> initialiseQCovMat();
-ColVector<double> initialiseClutterMean();
-Matrix<double> initialiseClutterCovMat();
+std::vector<ColVector<double>> initialiseClutterMean();
+std::vector<Matrix<double>> initialiseClutterCovMat();
 std::vector<ColVector<double>> initialiseSensorLocations();
 rcptr<V2VTransform> initialiseMotionModel();
 std::vector<rcptr<V2VTransform>> initialiseMeasurementModels();
@@ -75,8 +75,8 @@ namespace mht {
 	extern const double kValidationThreshold;
 
 	// Clutter distribution
-	extern ColVector<double> kClutterMean;
-	extern Matrix<double> kClutterCov;
+	extern std::vector<ColVector<double>> kClutterMean;
+	extern std::vector<Matrix<double>> kClutterCov;
 
 	// Gaussian mixture pruning parameters
 	extern const unsigned kMaxComponents;
@@ -94,6 +94,9 @@ namespace mht {
 
 	// Maximum number of targets
 	extern const unsigned maxNumberOfTargets;
+	
+	// Time Off-set
+	extern const unsigned timeOffSet;
 
 	// Force initialisation
 	extern bool init;

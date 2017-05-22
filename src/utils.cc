@@ -45,7 +45,7 @@ double calculateEvidence(const unsigned K,
 		
 		// Determine the log-odds - including vacuous sponge.
 		for (unsigned j = 0; j < M; j++) {
-			if (stateNodes[N][j] == 0) continue;
+			if (stateNodes[N][j] == nullptr) continue;
 			double mass = std::dynamic_pointer_cast<CGM>(stateNodes[N][j]->getFactor())->getLogMass();
 			odds += mass;
 		} // for
@@ -60,8 +60,8 @@ void extractStates(const unsigned N,
 		) {
 	unsigned M = stateNodes[N].size();
 	
-	for (unsigned i = 1; i < M; i++) {
-		if (stateNodes[N][i] == 0) continue;
+	for (unsigned i = mht::kNumSensors; i < M; i++) {
+		if (stateNodes[N][i] == nullptr) continue;
 
 		// Moment match the current marginal
 		rcptr<Factor> marginal = stateNodes[N][i]->marginalize(elementsOfX[currentStates[N][i]], true);

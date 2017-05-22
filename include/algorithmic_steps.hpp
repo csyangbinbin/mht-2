@@ -25,10 +25,33 @@
  *
  * @param N The current time index.
  */
-void predictStates(const unsigned N,
+void predictStatesSU(const unsigned N,
 		std::map<unsigned, emdw::RVIds>& currentStates,
 		emdw::RVIds& virtualMeasurementVars, 
 		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion);
+
+/**
+ * @brief Predict the current state of the x variables
+ *
+ * @param N The current time index.
+ */
+void predictStatesAU(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes);
+
+/**
+ * @brief Forms hypotheses and creates current measurement distributions.
+ *
+ * @param N The current time index.
+ */
+void createMeasurementDistributionsSU(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes,
 		std::vector<rcptr<Factor>>& predMarginals,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
 		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion);
@@ -38,7 +61,8 @@ void predictStates(const unsigned N,
  *
  * @param N The current time index.
  */
-void createMeasurementDistributions(const unsigned N,
+void createMeasurementDistributionsAU(const unsigned N,
+		const unsigned sensorNumber,
 		std::map<unsigned, emdw::RVIds>& currentStates,
 		emdw::RVIds& virtualMeasurementVars, 
 		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
@@ -52,9 +76,24 @@ void createMeasurementDistributions(const unsigned N,
  *
  * @param N The current time index.
  */
-void measurementUpdate(const unsigned N,
+void measurementUpdateSU(const unsigned N,
 		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
 		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes);
+
+/**
+ * @brief Forms hypotheses and creates current measurement distributions.
+ *
+ * @param N The current time index.
+ */
+void measurementUpdateAU(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion);
+
 
 /**
  * @brief Smoothes existing targets trajectories.
@@ -68,7 +107,22 @@ void smoothTrajectory(const unsigned N, std::map<unsigned, std::vector<rcptr<Nod
  *
  * @param N The current time index.
  */
-void modelSelection(const unsigned N,
+void modelSelectionSU(const unsigned N,
+		std::map<unsigned, emdw::RVIds>& currentStates,
+		emdw::RVIds& virtualMeasurementVars, 
+		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,
+		std::map<unsigned, std::vector<rcptr<Node>>>& measurementNodes,
+		std::vector<rcptr<Factor>>& predMarginals,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& predMeasurements,
+		std::map<unsigned, std::vector<rcptr<Factor>>>& validationRegion
+		);
+
+/**
+ * @brief Decide whether to add new targets.
+ *
+ * @param N The current time index.
+ */
+void modelSelectionAU(const unsigned N,
 		std::map<unsigned, emdw::RVIds>& currentStates,
 		emdw::RVIds& virtualMeasurementVars, 
 		std::map<unsigned, std::vector<rcptr<Node>>>& stateNodes,

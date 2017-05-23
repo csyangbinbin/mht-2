@@ -19,10 +19,10 @@ int main(int, char *argv[]) {
 
 	// Step 0: Initialise the variables
 	initialiseVariables();
-	unsigned operationMode = 1;
+	unsigned operationMode = 0;
 
 	// Step 1 : Get the measurements
-	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_6", mht::kNumSensors));
+	measurementManager = uniqptr<MeasurementManager>(new MeasurementManager("data/test_case_9", mht::kNumSensors));
 	kNumberOfTimeSteps = measurementManager->getNumberOfTimeSteps();
 
 	// Step 2 : Create a GraphBuilder object
@@ -91,7 +91,7 @@ int main(int, char *argv[]) {
 			forwardPass(i, stateNodes);
 
 			// Remove states
-			removeStates(i, currentStates, stateNodes);
+			//removeStates(i, currentStates, stateNodes);
 
 		} else if (operationMode == 1) {
 			// Prediction
@@ -127,7 +127,7 @@ int main(int, char *argv[]) {
 			forwardPass(i, stateNodes);
 
 			// Remove states
-			removeStates(i, currentStates, stateNodes);
+			//removeStates(i, currentStates, stateNodes);
 		} // if
 	}
 

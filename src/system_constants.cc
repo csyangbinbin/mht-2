@@ -29,10 +29,10 @@ const double mht::kTp = 200e-6;
 const double mht::kBw = 47e6; 
 
 std::vector<rcptr<V2VTransform>> mht::kMeasurementModel;
-Matrix<double> mht::kQCovMat;
+std::vector<Matrix<double>> mht::kQCovMat;
 
 // Mahanolobis thresholding distance
-const double mht::kValidationThreshold = 2;
+const double mht::kValidationThreshold = 4;
 
 // Smoothing paramaters
 const unsigned mht::kNumberOfBackSteps = 2;
@@ -59,7 +59,7 @@ std::vector<double> mht::kGenericWeight;
 const unsigned mht::maxNumberOfTargets = mht::kNumSensors + 3;
 
 // Time Off-set
-const unsigned mht::timeOffSet = 4;
+const unsigned mht::timeOffSet = 0;
 
 bool init = initialiseVariables();
 
@@ -122,18 +122,33 @@ bool initialiseVariables() {
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	RCov(0, 0) = 1; RCov(1, 1) = 4;
-	RCov(2, 2) = 1; RCov(3, 3) = 4;
-	RCov(4, 4) = 1; RCov(5, 5) = 4;
+	RCov(0, 0) = 1; RCov(1, 1) = 9;
+	RCov(2, 2) = 1; RCov(3, 3) = 9;
+	RCov(4, 4) = 1; RCov(5, 5) = 9;
 
 	return RCov;
 } // initialiseRCovMat()
 
-Matrix<double> initialiseQCovMat () {
-	Matrix<double> QCov;
+std::vector<Matrix<double>> initialiseQCovMat () {
+	std::vector<Matrix<double>> QCov(mht::kNumSensors);
 	
-	QCov = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
-	QCov(0, 0) = 9; QCov(1, 1) = 4;
+	QCov[0] = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	(QCov[0])(0, 0) = 9; (QCov[0])(1, 1) = 4;
+
+	QCov[1] = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	(QCov[1])(0, 0) = 9; (QCov[1])(1, 1) = 4;
+
+	QCov[2] = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	(QCov[2])(0, 0) = 9; (QCov[2])(1, 1) = 4;
+
+	QCov[3] = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	(QCov[3])(0, 0) = 9; (QCov[3])(1, 1) = 4;
+
+	QCov[4] = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	(QCov[4])(0, 0) = 9; (QCov[4])(1, 1) = 4;
+
+	QCov[5] = gLinear::zeros<double>(mht::kMeasSpaceDim, mht::kMeasSpaceDim);
+	(QCov[5])(0, 0) = 9; (QCov[5])(1, 1) = 4;
 
 	return QCov;
 } // initialiseQCovMat()
@@ -143,39 +158,39 @@ std::vector<ColVector<double>> initialiseClutterMean() {
 
 	// Sensor 0
 	clutterMean[0] = ColVector<double>(mht::kStateSpaceDim); clutterMean[0].assignToAll(0.0);
-	clutterMean[0][0] = -90; clutterMean[0][1] = -100;
-	clutterMean[0][2] = -10; clutterMean[0][3] = -100;
-	clutterMean[0][4] = 20; clutterMean[0][5] = 100;
+	clutterMean[0][0] = -90; clutterMean[0][1] = 94.434;
+	clutterMean[0][2] = -10; clutterMean[0][3] = -32.88;
+	clutterMean[0][4] = 20; clutterMean[0][5] = 1.03;
 
 	// Sensor 1
 	clutterMean[1] = ColVector<double>(mht::kStateSpaceDim); clutterMean[1].assignToAll(0.0);
-	clutterMean[1][0] = -90; clutterMean[1][1] = -100;
-	clutterMean[1][2] = -10; clutterMean[1][3] = -100;
-	clutterMean[1][4] = 20; clutterMean[1][5] = 100;
+	clutterMean[1][0] = -90; clutterMean[1][1] = 98;
+	clutterMean[1][2] = -10; clutterMean[1][3] = 20;
+	clutterMean[1][4] = 20; clutterMean[1][5] = 0.2;
 
 	// Sensor 2
 	clutterMean[2] = ColVector<double>(mht::kStateSpaceDim); clutterMean[2].assignToAll(0.0);
-	clutterMean[2][0] = -90; clutterMean[2][1] = -100;
-	clutterMean[2][2] = -10; clutterMean[2][3] = -100;
-	clutterMean[2][4] = 20; clutterMean[2][5] = 100;
+	clutterMean[2][0] = -90; clutterMean[2][1] = -61;
+	clutterMean[2][2] = -10; clutterMean[2][3] = -78;
+	clutterMean[2][4] = 20; clutterMean[2][5] = -0.3359;
 
 	// Sensor 3
 	clutterMean[3] = ColVector<double>(mht::kStateSpaceDim); clutterMean[3].assignToAll(0.0);
-	clutterMean[3][0] = -90; clutterMean[3][1] = -100;
-	clutterMean[3][2] = -10; clutterMean[3][3] = -100;
-	clutterMean[3][4] = 20; clutterMean[3][5] = 100;
+	clutterMean[3][0] = -90; clutterMean[3][1] = -94;
+	clutterMean[3][2] = -10; clutterMean[3][3] = 32;
+	clutterMean[3][4] = 20; clutterMean[3][5] = 1.03;
 
 	// Sensor 4
 	clutterMean[4] = ColVector<double>(mht::kStateSpaceDim); clutterMean[4].assignToAll(0.0);
-	clutterMean[4][0] = -90; clutterMean[4][1] = -100;
-	clutterMean[4][2] = -10; clutterMean[4][3] = -100;
-	clutterMean[4][4] = 20; clutterMean[4][5] = 100;
+	clutterMean[4][0] = -90; clutterMean[4][1] = -88;
+	clutterMean[4][2] = -10; clutterMean[4][3] = -45;
+	clutterMean[4][4] = 20; clutterMean[4][5] = -4;
 
 	// Sensor 5
 	clutterMean[5] = ColVector<double>(mht::kStateSpaceDim); clutterMean[5].assignToAll(0.0);
-	clutterMean[5][0] = -90; clutterMean[5][1] = -100;
-	clutterMean[5][2] = -10; clutterMean[5][3] = -100;
-	clutterMean[5][4] = 20; clutterMean[5][5] = 100;
+	clutterMean[5][0] = -90; clutterMean[5][1] = 94;
+	clutterMean[5][2] = -10; clutterMean[5][3] = 32;
+	clutterMean[5][4] = 20; clutterMean[5][5] = 4;
 
 	return clutterMean;
 } // initialiseClutterMean()
@@ -185,27 +200,27 @@ std::vector<Matrix<double>> initialiseClutterCovMat () {
 	
 	// Sensor 0
 	clutterCov[0] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[0])(i, i) = 90000;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[0])(i, i) = 625;
 
 	// Sensor 1
 	clutterCov[1] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[1])(i, i) = 90000;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[1])(i, i) = 625;
 
 	// Sensor 2
 	clutterCov[2] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[2])(i, i) = 90000;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[2])(i, i) = 625;
 
 	// Sensor 3
 	clutterCov[3] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[3])(i, i) = 90000;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[3])(i, i) = 625;
 
 	// Sensor 4
 	clutterCov[4] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[4])(i, i) = 90000;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[4])(i, i) = 625;
 
 	// Sensor 5
 	clutterCov[5] = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
-	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[5])(i, i) = 90000;
+	for (unsigned i = 0; i < mht::kStateSpaceDim; i++) (clutterCov[5])(i, i) = 625;
 
 	return clutterCov;
 } // initialiseClutterCovMat()

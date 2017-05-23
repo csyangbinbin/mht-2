@@ -22,7 +22,7 @@
 
 // Function prototypes
 Matrix<double> initialiseRCovMat();
-Matrix<double> initialiseQCovMat();
+std::vector<Matrix<double>> initialiseQCovMat();
 std::vector<ColVector<double>> initialiseClutterMean();
 std::vector<Matrix<double>> initialiseClutterCovMat();
 std::vector<ColVector<double>> initialiseSensorLocations();
@@ -66,7 +66,7 @@ namespace mht {
 	extern const double kBw; // Bandwidth
 
 	extern std::vector<rcptr<V2VTransform>> kMeasurementModel;
-	extern Matrix<double> kQCovMat;
+	extern std::vector<Matrix<double>> kQCovMat;
 
 	// Smoothing parameters
 	extern const unsigned kNumberOfBackSteps;

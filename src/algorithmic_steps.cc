@@ -75,7 +75,7 @@ void predictStatesSU(const unsigned N,
 			predMeasurements[i][j] = uniqptr<Factor>(new CGM( predMarginals[i], 
 						mht::kMeasurementModel[j], 
 						elementsOfZ[virtualMeasurementVars[i]],
-						mht::kQCovMat ) );
+						mht::kQCovMat[j] ) );
 
 			rcptr<Factor> measMarginal = (predMeasurements[i][j])->marginalize(elementsOfZ[virtualMeasurementVars[i]]);
 			validationRegion[i][j]  = (std::dynamic_pointer_cast<CGM>(measMarginal))->momentMatch();
@@ -294,7 +294,7 @@ void createMeasurementDistributionsAU(const unsigned N,
 		predMeasurements[i][0] = uniqptr<Factor>(new CGM( predMarginals[i], 
 					mht::kMeasurementModel[sensorNumber], 
 					elementsOfZ[virtualMeasurementVars[i]],
-					mht::kQCovMat ) );
+					mht::kQCovMat[sensorNumber] ) );
 
 		// Cast the predicted distribution to a GaussCannical so Mahalanobis distance can be used.
 		rcptr<Factor> measMarginal = (predMeasurements[i][0])->marginalize(elementsOfZ[virtualMeasurementVars[i]]);
@@ -528,14 +528,14 @@ void modelSelectionSU(const unsigned N,
 
 		// Number of active targets
 		unsigned numberOfTargets = 0;
-		for (unsigned i = mht::kNumSensors; i < M; i++) {
+		for (unsigned i = 0; i < M; i++) {
 			if (stateNodes[K][i] != nullptr) numberOfTargets += 1;
 		} // for
 
 		if (numberOfTargets < mht::maxNumberOfTargets) {   
 
 			// Determine odds for current model
-			double modelOneOdds = calculateEvidence(K, K, stateNodes);		
+			double modelOneOdds = calculateEvidence(K, N, stateNodes);		
 
 			// Create new model - just copies of stateNodes and newMeasurementNodes
 			std::map<unsigned, emdw::RVIds> newCurrentStates; newCurrentStates[K-1].resize(M);
@@ -587,11 +587,11 @@ void modelSelectionSU(const unsigned N,
 			smoothTrajectory(N, newStateNodes);
 
 			// Calculate new model odds
-			double modelTwoOdds = calculateEvidence(K, K, newStateNodes) 
+			double modelTwoOdds = calculateEvidence(K, N, newStateNodes) 
 				+ log(mht::kTimeStep*1) - log(numberOfTargets+1);
 			
 			if (modelTwoOdds > modelOneOdds) {
-				std::cerr << "K: " << K << "- Use model two now!" << "\n";	
+				std::cerr << "N: " << K << " - Adding in Target " << M << "\n";	
 				std::cerr << "modelOneOdds: " << modelOneOdds << "\n";
 				std::cerr << "modelTwoOdds: " << modelTwoOdds << "\n";
 
@@ -630,11 +630,12 @@ void modelSelectionAU(const unsigned N,
 
 		// Number of active targets
 		unsigned numberOfTargets = 0;
-		for (unsigned i = mht::kNumSensors; i < M; i++) {
+		for (unsigned i = 0; i < M; i++) {
 			if (stateNodes[K][i] != nullptr) numberOfTargets += 1;
 		} // for
 
 		if (numberOfTargets < mht::maxNumberOfTargets) {    //(K-1) > 9 && (K-1) < 20) {
+
 
 			// Determine odds for current model
 			double modelOneOdds = calculateEvidence(K, N, stateNodes);		
@@ -681,10 +682,10 @@ void modelSelectionAU(const unsigned N,
 
 			// Calculate new model odds
 			double modelTwoOdds = calculateEvidence(K, N, newStateNodes) 
-				+ log(mht::kTimeStep*1) - log(numberOfTargets+1);
+				+ log(mht::kTimeStep*3) - log(numberOfTargets+1);
 			
 			if (modelTwoOdds > modelOneOdds) {
-				std::cerr << "K: " << K << "- Use model two now!" << "\n";	
+				std::cerr << "N: " << K << " - Adding in Target " << M << "\n";	
 				std::cerr << "modelOneOdds: " << modelOneOdds << "\n";
 				std::cerr << "modelTwoOdds: " << modelTwoOdds << "\n";
 

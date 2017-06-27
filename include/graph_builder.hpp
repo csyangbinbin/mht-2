@@ -55,6 +55,7 @@ class GraphBuilder {
 
 	public:
 		/**
+	protected:
 		 * Return the marginal beliefs over the association variables.
 		 */
 		std::map<emdw::RVIdType, rcptr<Factor>> getMarginals(std::map<emdw::RVIdType, rcptr<DASS>>& assocHypotheses) const;

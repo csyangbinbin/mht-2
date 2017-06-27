@@ -56,10 +56,10 @@ Matrix<double> mht::kGenericCov;
 std::vector<double> mht::kGenericWeight;
 
 // Maximum number of targets
-const unsigned mht::maxNumberOfTargets = mht::kNumSensors + 3;
+const unsigned mht::maxNumberOfTargets = mht::kNumSensors;
 
 // Time Off-set
-const unsigned mht::timeOffSet = 0;
+const unsigned mht::timeOffSet = 1;
 
 bool init = initialiseVariables();
 
@@ -122,9 +122,9 @@ bool initialiseVariables() {
 Matrix<double> initialiseRCovMat () {
 	Matrix<double> RCov = gLinear::zeros<double>(mht::kStateSpaceDim, mht::kStateSpaceDim);
 
-	RCov(0, 0) = 1; RCov(1, 1) = 9;
-	RCov(2, 2) = 1; RCov(3, 3) = 9;
-	RCov(4, 4) = 1; RCov(5, 5) = 9;
+	RCov(0, 0) = 1; RCov(1, 1) = 1;
+	RCov(2, 2) = 1; RCov(3, 3) = 1;
+	RCov(4, 4) = 1; RCov(5, 5) = 4;
 
 	return RCov;
 } // initialiseRCovMat()

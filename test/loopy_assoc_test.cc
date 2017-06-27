@@ -63,6 +63,8 @@ TEST_F (LoopyAssocTest, SmallTest) {
 	rcptr<GraphBuilder> gb = uniqptr<GraphBuilder> (new GraphBuilder());
 	std::map<emdw::RVIdType, rcptr<Factor>> marginals = gb->getMarginals( assocHypotheses );
 
+	assocHypotheses[1] = uniqptr<DASS>(new DASS{0, 1});
+	assocHypotheses[2] = uniqptr<DASS>(new DASS{0, 2});
 	/*
 	for (emdw::RVIdType i : vars) {
 		 std::cout << "Belief held over var " << i << "\n" << *(marginals[i]) << 

@@ -39,5 +39,5 @@ TEST_F (TransformsTest, MotionModelTest) {
 	x[4] = 13.4131;
 	x[5] = -8.4455;
 
-	for (unsigned i = 0; i < 6; i++) std::cout << (transform[i]->operator()(x))[0] << std::endl;
+	//for (unsigned i = 0; i < 6; i++) std::cout << (transform[i]->operator()(x))[0] << std::endl;
 }

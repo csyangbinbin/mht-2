@@ -218,7 +218,7 @@ TEST_F (CGMTest, PruneComponents) {
 
 	std::vector<rcptr<Factor>> pruned = pruneComponents(components, 2, 1e-6, false);
 
-	std::cout << pruned.size() << std::endl;
+	//std::cout << pruned.size() << std::endl;
 
 }
 
@@ -235,6 +235,6 @@ TEST_F (CGMTest, MergeComponents) {
 
 	std::vector<rcptr<Factor>> merged = mergeComponents(components, 2, 1e-6, 50);
 
-	std::cout << *merged[0] << std::endl;
+	//std::cout << *merged[0] << std::endl;
 
 }
